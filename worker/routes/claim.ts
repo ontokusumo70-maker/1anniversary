@@ -1,4 +1,5 @@
 import type { Env } from "../index";
+import { writeAuditSafe } from "../audit/logger";
 
 type ClaimRequest = {
   rewardId: string;
@@ -29,7 +30,8 @@ function json(
       headers: {
         "Content-Type":
           "application/json; charset=utf-8",
-        "Cache-Control": "no-store",
+        "Cache-Control":
+          "no-store",
       },
     },
   );
@@ -62,11 +64,6 @@ function isNonEmptyString(
 function getCustomerId(
   request: Request,
 ): string | null {
-  /*
-   * Temporary internal authentication context.
-   * Final Auth/RBAC middleware will provide
-   * the authenticated customer identity.
-   */
   const value =
     request.headers.get(
       "X-Customer-ID",
@@ -78,11 +75,6 @@ function getCustomerId(
 }
 
 function generateTokenRef(): string {
-  /*
-   * Opaque reference.
-   * Tidak mengandung Customer ID,
-   * nomor telepon, Reward ID, atau PII.
-   */
   return crypto.randomUUID();
 }
 
@@ -90,14 +82,8 @@ function generateTokenRef(): string {
  * ============================================================
  * CLAIM REWARD
  * ============================================================
- *
- * Lifecycle:
- *
- * WON → CLAIMED
- *
- * Customer hanya dapat Claim reward miliknya sendiri.
- * Claim bersifat idempotent.
  */
+
 export async function handleClaim(
   request: Request,
   env: Env,
@@ -126,9 +112,6 @@ export async function handleClaim(
     );
   }
 
-  /*
-   * Validate request contract.
-   */
   if (
     !isNonEmptyString(
       body.rewardId,
@@ -147,20 +130,13 @@ export async function handleClaim(
   const rewardId =
     body.rewardId.trim();
 
-  /*
-   * idempotencyKey diterima sebagai bagian
-   * dari contract Claim.
-   *
-   * State reward sendiri menjadi authoritative
-   * idempotency guard karena schema baseline
-   * belum memiliki tabel idempotency khusus.
-   */
   const idempotencyKey =
     body.idempotencyKey.trim();
 
   /*
-   * Prevent unused-variable compiler warning
-   * while preserving the API contract.
+   * idempotencyKey tetap menjadi bagian contract.
+   * State reward digunakan sebagai authoritative
+   * idempotency guard.
    */
   void idempotencyKey;
 
@@ -203,10 +179,8 @@ export async function handleClaim(
 
   /*
    * ----------------------------------------------------------
-   * 2. Customer ownership
+   * 2. Ownership
    * ----------------------------------------------------------
-   *
-   * Reward tidak boleh dipindahkan ke Customer ID lain.
    */
 
   if (
@@ -222,10 +196,13 @@ export async function handleClaim(
 
   /*
    * ----------------------------------------------------------
-   * 3. Already claimed = idempotent success
+   * 3. Already claimed
    * ----------------------------------------------------------
    *
-   * Retry Claim tidak membuat token baru.
+   * Retry tidak membuat token baru.
+   *
+   * Audit tidak ditulis lagi karena state transition
+   * sudah terjadi pada request sebelumnya.
    */
 
   if (
@@ -260,7 +237,7 @@ export async function handleClaim(
 
   /*
    * ----------------------------------------------------------
-   * 4. Reject invalid lifecycle states
+   * 4. Invalid lifecycle
    * ----------------------------------------------------------
    */
 
@@ -302,12 +279,6 @@ export async function handleClaim(
    * ----------------------------------------------------------
    * 6. Atomic WON → CLAIMED
    * ----------------------------------------------------------
-   *
-   * Hanya request pertama yang dapat mengubah state.
-   *
-   * WHERE status = 'WON'
-   * memastikan concurrent Claim tidak menghasilkan
-   * dua token / dua Claim.
    */
 
   const updateResult =
@@ -334,7 +305,7 @@ export async function handleClaim(
 
   /*
    * ----------------------------------------------------------
-   * 7. Race-condition handling
+   * 7. Race-condition protection
    * ----------------------------------------------------------
    */
 
@@ -361,7 +332,9 @@ export async function handleClaim(
           LIMIT 1
           `,
         )
-        .bind(reward.reward_id)
+        .bind(
+          reward.reward_id,
+        )
         .first<RewardRow>();
 
     if (
@@ -400,7 +373,25 @@ export async function handleClaim(
 
   /*
    * ----------------------------------------------------------
-   * 8. Success
+   * 8. AUDIT: CLAIM SUCCESS
+   * ----------------------------------------------------------
+   */
+
+  await writeAuditSafe(
+    env,
+    {
+      entityType: "REWARD",
+      entityId:
+        reward.reward_id,
+      action: "CLAIM",
+      actor: customerId,
+      result: "SUCCESS",
+    },
+  );
+
+  /*
+   * ----------------------------------------------------------
+   * 9. Success
    * ----------------------------------------------------------
    */
 
