@@ -1,4 +1,5 @@
 import type { Env } from "../index";
+import { checkEligibility } from "../services/eligibility";
 
 const GAME_DURATION_SECONDS = 15;
 
@@ -46,14 +47,18 @@ function errorResponse(
   );
 }
 
-function isNonEmptyString(value: unknown): value is string {
+function isNonEmptyString(
+  value: unknown,
+): value is string {
   return (
     typeof value === "string" &&
     value.trim().length > 0
   );
 }
 
-function isValidScore(value: unknown): value is number {
+function isValidScore(
+  value: unknown,
+): value is number {
   return (
     typeof value === "number" &&
     Number.isInteger(value) &&
@@ -76,15 +81,12 @@ function getCustomerId(
   request: Request,
 ): string | null {
   /*
-   * 3.2 authentication middleware will provide
-   * the authenticated Customer ID.
-   *
-   * For now the route accepts the internal
-   * X-Customer-ID context header so the game
-   * module can be integrated with the auth layer
-   * without hard-coding credentials.
+   * Temporary internal auth context.
+   * Final production authentication is supplied
+   * by the Auth/RBAC layer.
    */
-  const value = request.headers.get("X-Customer-ID");
+  const value =
+    request.headers.get("X-Customer-ID");
 
   return isNonEmptyString(value)
     ? value.trim()
@@ -108,7 +110,8 @@ async function handleStart(
   let body: StartRequest;
 
   try {
-    body = await request.json() as StartRequest;
+    body =
+      await request.json() as StartRequest;
   } catch {
     return errorResponse(
       "INVALID_REQUEST",
@@ -128,85 +131,119 @@ async function handleStart(
     );
   }
 
-  const transactionId = body.transactionId.trim();
-  const idempotencyKey = body.idempotencyKey.trim();
+  const transactionId =
+    body.transactionId.trim();
 
-  const transaction = await env.DB
-    .prepare(
-      `
-      SELECT
-        transaction_id,
-        customer_id
-      FROM transactions
-      WHERE transaction_id = ?
-      LIMIT 1
-      `,
-    )
-    .bind(transactionId)
-    .first<{
-      transaction_id: string;
-      customer_id: string;
-    }>();
+  const idempotencyKey =
+    body.idempotencyKey.trim();
 
-  if (!transaction) {
+  /*
+   * ----------------------------------------------------------
+   * 3.3.2 ELIGIBILITY
+   * ----------------------------------------------------------
+   *
+   * Eligibility is checked server-side BEFORE
+   * creating Play and Session.
+   */
+  const eligibility =
+    await checkEligibility(
+      env,
+      customerId,
+      transactionId,
+    );
+
+  /*
+   * A transaction that already has a Play is
+   * not eligible for a new Play.
+   */
+  if (!eligibility.eligible) {
+    /*
+     * Preserve idempotent behavior for a retry of
+     * an already-created Play.
+     */
+    const existingPlay =
+      await env.DB
+        .prepare(
+          `
+          SELECT
+            play_id,
+            session_id,
+            status
+          FROM plays
+          WHERE transaction_id = ?
+          LIMIT 1
+          `,
+        )
+        .bind(transactionId)
+        .first<{
+          play_id: string;
+          session_id: string | null;
+          status: string;
+        }>();
+
+    if (
+      eligibility.reason ===
+        "TRANSACTION_ALREADY_PLAYED" &&
+      existingPlay
+    ) {
+      return json(
+        {
+          ok: true,
+          playId: existingPlay.play_id,
+          sessionId: existingPlay.session_id,
+          status: existingPlay.status,
+          idempotent: true,
+        },
+        200,
+      );
+    }
+
+    if (
+      eligibility.reason ===
+      "TRANSACTION_NOT_FOUND"
+    ) {
+      return errorResponse(
+        "NOT_ELIGIBLE",
+        "Transaction was not found.",
+        403,
+      );
+    }
+
+    if (
+      eligibility.reason ===
+      "TRANSACTION_NOT_OWNED"
+    ) {
+      return errorResponse(
+        "FORBIDDEN",
+        "Transaction does not belong to this customer.",
+        403,
+      );
+    }
+
+    if (
+      eligibility.reason ===
+      "CAMPAIGN_NOT_ACTIVE"
+    ) {
+      return errorResponse(
+        "NOT_ELIGIBLE",
+        "Campaign is not currently active.",
+        403,
+      );
+    }
+
     return errorResponse(
       "NOT_ELIGIBLE",
-      "Transaction was not found.",
-      403,
-    );
-  }
-
-  if (transaction.customer_id !== customerId) {
-    return errorResponse(
-      "FORBIDDEN",
-      "Transaction does not belong to this customer.",
+      "Customer is not eligible to start the game.",
       403,
     );
   }
 
   /*
-   * Baseline:
-   * 1 valid transaction = 1 Play.
-   *
-   * Therefore a transaction cannot create
-   * another Play after it has already been used.
+   * ----------------------------------------------------------
+   * CREATE PLAY + SESSION
+   * ----------------------------------------------------------
    */
-  const existingPlay = await env.DB
-    .prepare(
-      `
-      SELECT
-        play_id,
-        session_id,
-        status
-      FROM plays
-      WHERE transaction_id = ?
-      LIMIT 1
-      `,
-    )
-    .bind(transactionId)
-    .first<{
-      play_id: string;
-      session_id: string | null;
-      status: string;
-    }>();
 
-  if (existingPlay) {
-    return json(
-      {
-        ok: true,
-        playId: existingPlay.play_id,
-        sessionId: existingPlay.session_id,
-        status: existingPlay.status,
-        idempotent: true,
-      },
-      200,
-    );
-  }
-
-  /*
-   * Deterministic Play ID prevents duplicate Play
-   * creation when the same Start request is retried.
-   */
   const playId = makeDeterministicId(
     "play",
     `${customerId}_${transactionId}_${idempotencyKey}`,
@@ -214,7 +251,7 @@ async function handleStart(
 
   const sessionId = makeDeterministicId(
     "session",
-    `${playId}`,
+    playId,
   );
 
   const startedAt = new Date();
@@ -277,34 +314,37 @@ async function handleStart(
     );
 
     /*
-     * A concurrent Start may have created the Play.
-     * Re-read the indexed transaction key.
+     * Concurrent/retried Start:
+     * read the existing Play instead of creating
+     * a second Play.
      */
-    const concurrentPlay = await env.DB
-      .prepare(
-        `
-        SELECT
-          play_id,
-          session_id,
-          status
-        FROM plays
-        WHERE transaction_id = ?
-        LIMIT 1
-        `,
-      )
-      .bind(transactionId)
-      .first<{
-        play_id: string;
-        session_id: string | null;
-        status: string;
-      }>();
+    const concurrentPlay =
+      await env.DB
+        .prepare(
+          `
+          SELECT
+            play_id,
+            session_id,
+            status
+          FROM plays
+          WHERE transaction_id = ?
+          LIMIT 1
+          `,
+        )
+        .bind(transactionId)
+        .first<{
+          play_id: string;
+          session_id: string | null;
+          status: string;
+        }>();
 
     if (concurrentPlay) {
       return json(
         {
           ok: true,
           playId: concurrentPlay.play_id,
-          sessionId: concurrentPlay.session_id,
+          sessionId:
+            concurrentPlay.session_id,
           status: concurrentPlay.status,
           idempotent: true,
         },
@@ -324,8 +364,10 @@ async function handleStart(
       ok: true,
       playId,
       sessionId,
-      startedAt: startedAt.toISOString(),
-      expiresAt: expiresAt.toISOString(),
+      startedAt:
+        startedAt.toISOString(),
+      expiresAt:
+        expiresAt.toISOString(),
     },
     201,
   );
@@ -348,7 +390,8 @@ async function handleFinish(
   let body: FinishRequest;
 
   try {
-    body = await request.json() as FinishRequest;
+    body =
+      await request.json() as FinishRequest;
   } catch {
     return errorResponse(
       "INVALID_REQUEST",
@@ -371,38 +414,39 @@ async function handleFinish(
     );
   }
 
-  const play = await env.DB
-    .prepare(
-      `
-      SELECT
-        p.play_id,
-        p.customer_id,
-        p.session_id,
-        p.status,
-        s.started_at,
-        s.expires_at,
-        s.status AS session_status
-      FROM plays p
-      INNER JOIN sessions s
-        ON s.session_id = p.session_id
-      WHERE p.play_id = ?
-        AND p.session_id = ?
-      LIMIT 1
-      `,
-    )
-    .bind(
-      body.playId.trim(),
-      body.sessionId.trim(),
-    )
-    .first<{
-      play_id: string;
-      customer_id: string;
-      session_id: string;
-      status: string;
-      started_at: string;
-      expires_at: string;
-      session_status: string;
-    }>();
+  const play =
+    await env.DB
+      .prepare(
+        `
+        SELECT
+          p.play_id,
+          p.customer_id,
+          p.session_id,
+          p.status,
+          s.started_at,
+          s.expires_at,
+          s.status AS session_status
+        FROM plays p
+        INNER JOIN sessions s
+          ON s.session_id = p.session_id
+        WHERE p.play_id = ?
+          AND p.session_id = ?
+        LIMIT 1
+        `,
+      )
+      .bind(
+        body.playId.trim(),
+        body.sessionId.trim(),
+      )
+      .first<{
+        play_id: string;
+        customer_id: string;
+        session_id: string;
+        status: string;
+        started_at: string;
+        expires_at: string;
+        session_status: string;
+      }>();
 
   if (!play) {
     return errorResponse(
@@ -420,11 +464,6 @@ async function handleFinish(
     );
   }
 
-  /*
-   * Idempotent Finish:
-   * If the Play has already been completed,
-   * return its current state instead of changing it.
-   */
   if (
     play.status === "COMPLETED" ||
     play.status === "WON"
@@ -440,7 +479,9 @@ async function handleFinish(
     );
   }
 
-  if (play.session_status !== "ACTIVE") {
+  if (
+    play.session_status !== "ACTIVE"
+  ) {
     return errorResponse(
       "SESSION_EXPIRED",
       "Game session is no longer active.",
@@ -449,8 +490,11 @@ async function handleFinish(
   }
 
   const now = Date.now();
+
   const expiresAt =
-    new Date(play.expires_at).getTime();
+    new Date(
+      play.expires_at,
+    ).getTime();
 
   if (now > expiresAt) {
     await env.DB
@@ -472,67 +516,63 @@ async function handleFinish(
     );
   }
 
-  /*
-   * The baseline does not define a numerical
-   * winning threshold in the API contract.
-   *
-   * Therefore this module does NOT invent one.
-   * Reward determination remains server-side and
-   * is handled by the Reward layer.
-   *
-   * Finish records the completed Play here.
-   */
-  const finishTime = new Date().toISOString();
+  const finishTime =
+    new Date().toISOString();
 
-  const updateResult = await env.DB
-    .prepare(
-      `
-      UPDATE plays
-      SET
-        status = 'COMPLETED',
-        finished_at = ?
-      WHERE play_id = ?
-        AND customer_id = ?
-        AND status = 'STARTED'
-      `,
-    )
-    .bind(
-      finishTime,
-      play.play_id,
-      customerId,
-    )
-    .run();
-
-  if (updateResult.meta.changes !== 1) {
-    const currentPlay = await env.DB
+  const updateResult =
+    await env.DB
       .prepare(
         `
-        SELECT
-          play_id,
-          status
-        FROM plays
+        UPDATE plays
+        SET
+          status = 'COMPLETED',
+          finished_at = ?
         WHERE play_id = ?
-        LIMIT 1
+          AND customer_id = ?
+          AND status = 'STARTED'
         `,
       )
-      .bind(play.play_id)
-      .first<{
-        play_id: string;
-        status: string;
-      }>();
+      .bind(
+        finishTime,
+        play.play_id,
+        customerId,
+      )
+      .run();
+
+  if (updateResult.meta.changes !== 1) {
+    const currentPlay =
+      await env.DB
+        .prepare(
+          `
+          SELECT
+            play_id,
+            status
+          FROM plays
+          WHERE play_id = ?
+          LIMIT 1
+          `,
+        )
+        .bind(play.play_id)
+        .first<{
+          play_id: string;
+          status: string;
+        }>();
 
     if (
       currentPlay &&
       (
-        currentPlay.status === "COMPLETED" ||
+        currentPlay.status ===
+          "COMPLETED" ||
         currentPlay.status === "WON"
       )
     ) {
       return json(
         {
           ok: true,
-          playId: currentPlay.play_id,
-          status: currentPlay.status,
+          playId:
+            currentPlay.play_id,
+          status:
+            currentPlay.status,
           idempotent: true,
         },
         200,
