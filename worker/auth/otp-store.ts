@@ -73,11 +73,56 @@ export async function loadOtpChallenge(env: Env, challengeId: string): Promise<S
   };
 }
 
-export async function incrementOtpAttempt(env: Env, challenge: StoredOtp): Promise<boolean> {
+export function buildOtpAttemptIncrement(
+  challenge: Pick<
+    StoredOtp,
+    "sessionId" | "phoneHash" | "otpHash" | "attempts"
+  >,
+): { sql: string; params: string[] } {
   const next = challenge.attempts + 1;
-  const userId = encodeUserId(challenge.phoneHash, challenge.otpHash, next);
-  const result = await env.DB.prepare(`UPDATE auth_sessions SET user_id = ? WHERE session_id = ? AND revoked_at IS NULL AND expires_at > ?`).bind(userId, challenge.sessionId, new Date().toISOString()).run();
-  return (result.meta?.changes ?? 0) === 1;
+
+  return {
+    sql: `UPDATE auth_sessions
+          SET user_id = ?
+          WHERE session_id = ?
+            AND user_id = ?
+            AND revoked_at IS NULL
+            AND expires_at > ?`,
+    params: [
+      encodeUserId(
+        challenge.phoneHash,
+        challenge.otpHash,
+        next,
+      ),
+      challenge.sessionId,
+      encodeUserId(
+        challenge.phoneHash,
+        challenge.otpHash,
+        challenge.attempts,
+      ),
+      new Date().toISOString(),
+    ],
+  };
+}
+
+export async function incrementOtpAttempt(
+  env: Env,
+  challenge: StoredOtp,
+): Promise<boolean> {
+  const q =
+    buildOtpAttemptIncrement(
+      challenge,
+    );
+
+  const result =
+    await env.DB
+      .prepare(q.sql)
+      .bind(...q.params)
+      .run();
+
+  return (
+    (result.meta?.changes ?? 0) === 1
+  );
 }
 
 export async function consumeOtp(env: Env, challengeId: string): Promise<boolean> {
