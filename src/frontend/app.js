@@ -1,7 +1,7 @@
 const state={token:null,role:null,userId:null,challengeId:null,playId:null,sessionId:null,rewardId:null};
 const $=id=>document.getElementById(id);
 const msg=(id,text)=>$(id).textContent=text;
-let apiBase="",assetBasePath="/assets/";
+let apiBase="https://1anniversary.ontokusumo70.workers.dev",assetBasePath="/assets/";
 
 async function api(path,options={}){
   const headers={"Content-Type":"application/json",...(options.headers||{})};
