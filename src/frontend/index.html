@@ -8,38 +8,86 @@
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <main class="app">
-    <header class="hero"><img src="/assets/branding/branding.png" alt="Teras Laundry"><h1>10 HARI MENUJU 1 TAHUN</h1><p>Coin Catch • 15 detik</p></header>
+<main class="app">
+  <header class="hero">
+    <img id="brand" src="/assets/branding/branding.png" alt="Teras Laundry">
+    <h1>10 HARI MENUJU 1 TAHUN</h1>
+    <p>Coin Catch • 15 detik</p>
+  </header>
 
-    <section id="auth" class="card">
-      <h2>Verifikasi Member</h2>
-      <label>Nomor WhatsApp<input id="phone" inputmode="tel" autocomplete="tel" maxlength="32" placeholder="08xxxxxxxxxx"></label>
-      <button id="requestOtp">Kirim OTP</button>
-      <div id="otpBox" hidden><label>OTP 6 digit<input id="otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456"></label><button id="verifyOtp">Verifikasi</button></div>
-      <p id="authMsg" class="msg"></p>
-    </section>
+  <section id="auth" class="card">
+    <h2>Verifikasi Member</h2>
+    <label>Nomor WhatsApp<input id="phone" inputmode="tel" autocomplete="tel" maxlength="32" placeholder="08xxxxxxxxxx"></label>
+    <button id="requestOtp">Kirim OTP</button>
+    <div id="otpBox" hidden>
+      <label>OTP 6 digit<input id="otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456"></label>
+      <button id="verifyOtp">Verifikasi</button>
+    </div>
+    <p id="authMsg" class="msg"></p>
+  </section>
 
-    <section id="customer" class="card" hidden>
+  <section id="customer" hidden>
+    <div class="card">
       <h2>Coin Catch</h2>
       <label>ID Transaksi<input id="transactionId" maxlength="128" placeholder="Masukkan ID transaksi"></label>
       <button id="startGame">Mulai Game</button>
-      <div id="gameBox" hidden><div class="gameHud"><span>Waktu <b id="time">15</b></span><span>Skor <b id="score">0</b></span></div><canvas id="game" width="360" height="520" aria-label="Coin Catch"></canvas></div>
-      <div id="rewardBox" hidden><h3 id="rewardTitle"></h3><p id="rewardType"></p><div id="qr"></div><code id="token"></code></div>
+      <div id="gameBox" hidden>
+        <div class="gameHud"><span>Waktu <b id="time">15</b></span><span>Skor <b id="score">0</b></span></div>
+        <canvas id="game" width="360" height="520" aria-label="Coin Catch"></canvas>
+      </div>
+      <div id="rewardBox" hidden>
+        <h3 id="rewardTitle">REWARD BERHASIL DIKLAIM</h3>
+        <p id="rewardType"></p>
+        <div id="qr"></div>
+        <code id="token"></code>
+      </div>
       <p id="gameMsg" class="msg"></p>
-    </section>
+    </div>
+    <div class="card">
+      <h3>Status Mesin</h3>
+      <button id="refreshMachines">Refresh Status Mesin</button>
+      <div id="machines" class="machineGrid"></div>
+    </div>
+  </section>
 
-    <section id="staff" class="card" hidden>
+  <section id="staff" hidden>
+    <div class="card">
       <h2>Staff Validation</h2>
-      <div id="scannerSupport" class="msg">Gunakan kamera untuk scan QR reward.</div><input id="scanToken" type="hidden"><button id="scanCamera">Scan QR dengan Kamera</button><video id="camera" playsinline autoplay hidden></video>
+      <p id="scannerSupport" class="msg">Scan QR reward menggunakan kamera.</p>
+      <button id="scanCamera">Scan QR dengan Kamera</button>
+      <video id="camera" playsinline autoplay hidden></video>
       <pre id="staffResult"></pre>
-    </section>
+    </div>
+    <div class="card">
+      <h3>Aktivasi Mesin</h3>
+      <div id="staffMachines" class="machineGrid"></div>
+    </div>
+  </section>
 
-    <section id="owner" class="card" hidden>
+  <section id="owner" hidden>
+    <div class="card">
       <h2>Owner Dashboard</h2>
       <button id="loadOwner">Refresh Overview</button>
+      <div id="ownerOverview" class="stats"></div>
+      <label>Customer Trace<input id="traceCustomerId" maxlength="128" placeholder="Customer ID"></label>
+      <button id="traceCustomer">Lihat Customer Trace</button>
+      <pre id="traceResult"></pre>
       <pre id="ownerResult"></pre>
-    </section>
-  </main>
-  <script src="./app.js" defer></script>
+      <h3>Export CSV</h3>
+      <select id="ownerExport">
+        <option value="customers">Customers</option>
+        <option value="plays">Plays</option>
+        <option value="rewards">Rewards</option>
+        <option value="audit">Audit</option>
+      </select>
+      <button id="downloadExport">Download CSV</button>
+    </div>
+    <div class="card">
+      <h3>Machine Overview</h3>
+      <pre id="ownerMachines"></pre>
+    </div>
+  </section>
+</main>
+<script src="./app.js" defer></script>
 </body>
 </html>

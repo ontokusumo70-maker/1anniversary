@@ -17,7 +17,7 @@ export function requireRole(
 }
 
 export function canAccessStaff(role: UserRole): boolean {
-  return role === "STAFF" || role === "OWNER";
+  return role === "STAFF";
 }
 
 export function canAccessOwner(role: UserRole): boolean {
@@ -29,7 +29,7 @@ export function canAccessCustomer(role: UserRole): boolean {
 }
 
 export function canActivateMachine(role: UserRole): boolean {
-  return role === "STAFF" || role === "OWNER";
+  return role === "STAFF";
 }
 
 export function canExportOwnerData(role: UserRole): boolean {

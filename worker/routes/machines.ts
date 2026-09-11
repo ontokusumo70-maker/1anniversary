@@ -132,6 +132,25 @@ function machineResponse(
 async function getMachines(
   env: Env,
 ): Promise<MachineRow[]> {
+  const nowIso = new Date().toISOString();
+
+  // Automatically release completed machines before reading status.
+  await env.DB
+    .prepare(
+      `
+      UPDATE machines
+      SET status = 'IDLE',
+          started_at = NULL,
+          expected_end_at = NULL,
+          activated_by = NULL
+      WHERE status = 'IN_USE'
+        AND expected_end_at IS NOT NULL
+        AND expected_end_at <= ?
+      `,
+    )
+    .bind(nowIso)
+    .run();
+
   const result =
     await env.DB
       .prepare(
@@ -480,51 +499,19 @@ export async function handleOwnerMachineOverview(
         "IN_USE",
     );
 
-  /*
-   * Period boundaries menggunakan UTC date
-   * untuk query ISO timestamps.
-   */
+  // Campaign operations use WIB (UTC+07:00) boundaries.
+  const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
+  const localNow = new Date(now + WIB_OFFSET_MS);
+  const year = localNow.getUTCFullYear();
+  const month = localNow.getUTCMonth();
+  const date = localNow.getUTCDate();
+  const dayOfWeek = localNow.getUTCDay();
+  const daysFromMonday = (dayOfWeek + 6) % 7;
 
-  const nowDate =
-    new Date(now);
-
-  const dayStart =
-    new Date(
-      Date.UTC(
-        nowDate.getUTCFullYear(),
-        nowDate.getUTCMonth(),
-        nowDate.getUTCDate(),
-      ),
-    );
-
-  const weekStart =
-    new Date(
-      dayStart.getTime() -
-        ((dayStart.getUTCDay() + 6) %
-          7) *
-          24 *
-          60 *
-          60 *
-          1000,
-    );
-
-  const monthStart =
-    new Date(
-      Date.UTC(
-        nowDate.getUTCFullYear(),
-        nowDate.getUTCMonth(),
-        1,
-      ),
-    );
-
-  const yearStart =
-    new Date(
-      Date.UTC(
-        nowDate.getUTCFullYear(),
-        0,
-        1,
-      ),
-    );
+  const dayStart = new Date(Date.UTC(year, month, date) - WIB_OFFSET_MS);
+  const weekStart = new Date(dayStart.getTime() - daysFromMonday * 24 * 60 * 60 * 1000);
+  const monthStart = new Date(Date.UTC(year, month, 1) - WIB_OFFSET_MS);
+  const yearStart = new Date(Date.UTC(year, 0, 1) - WIB_OFFSET_MS);
 
   const [
     daily,
