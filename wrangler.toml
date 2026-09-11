@@ -1,1 +1,22 @@
+name = "teras-laundry-anniversary"
+main = "worker/index.ts"
+compatibility_date = "2026-09-11"
 
+[vars]
+ENVIRONMENT = "production"
+# Set ALLOWED_ORIGIN in the deployment environment to the exact Pages origin.
+# Example: https://1anniversary.pages.dev
+ALLOWED_ORIGIN = "https://1anniversary.pages.dev"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "teras-laundry-anniversary"
+# database_id must be supplied from the existing Cloudflare D1 resource before deploy.
+# It is intentionally not invented here.
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "teras-laundry-anniversary-assets"
+
+[observability]
+enabled = true

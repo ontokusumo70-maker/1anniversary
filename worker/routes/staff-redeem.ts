@@ -146,7 +146,7 @@ export async function handleStaffScan(
     await env.DB
       .prepare(
         `
-        SELECT phone
+        SELECT phone_masked
         FROM customers
         WHERE customer_id = ?
         LIMIT 1
@@ -156,7 +156,7 @@ export async function handleStaffScan(
         reward.customer_id,
       )
       .first<{
-        phone: string;
+        phone_masked: string;
       }>();
 
   /*
@@ -214,11 +214,8 @@ export async function handleStaffScan(
         customerId:
           reward.customer_id,
         phone:
-          customer?.phone
-            ? maskPhone(
-                customer.phone,
-              )
-            : null,
+          customer?.phone_masked ??
+          null,
       },
       claimedAt:
         reward.claimed_at,

@@ -1,0 +1,29 @@
+TERAS LAUNDRY 1st ANNIVERSARY 2026
+PRODUCTION CONFIGURATION REQUIREMENTS
+
+Source code contains no staff/owner phone numbers.
+Configure these as Cloudflare Worker Secrets before production:
+
+STAFF_PHONE
+OWNER_PHONE_1
+OWNER_PHONE_2
+OTP_DELIVERY_URL
+OTP_DELIVERY_SECRET (if required by the delivery endpoint)
+
+The OTP delivery endpoint must accept POST JSON:
+{"phone":"...","message":"..."}
+
+D1:
+Use the existing production D1 database. Put its real database_id into wrangler.toml before deploy; do not invent or create a replacement database.
+Apply migrations 0001_initial.sql and 0002_auth_sessions.sql to that database.
+Do NOT create migrations/0003_otp.sql.
+
+R2:
+Use the production R2 bucket for campaign assets. The configured binding name is R2 and the bucket name in wrangler.toml is the expected project bucket name; if the existing production bucket has a different approved name, change only that binding name before deploy.
+Upload the existing assets/ tree to the R2 bucket without modifying official assets.
+
+Pages:
+Set ALLOWED_ORIGIN to the exact production Pages origin.
+
+Production acceptance gate:
+Run tests/production-smoke.mjs and tests/load-test.mjs against the deployed Worker. A live 1,000-concurrent result is required before declaring the production gate passed.

@@ -6,11 +6,20 @@ import {
 import { handleClaimRequest } from './routes/claim';
 import { handleRewardRequest } from './routes/reward';
 import { handleStaffRedeemRequest } from './routes/staff-redeem';
+import { handleAuthRequest } from './routes/auth';
+import { handleOwnerRequest } from './routes/owner';
+import { handleAssetRequest } from './routes/assets';
 
 export interface Env {
   DB: D1Database;
   ENVIRONMENT?: string;
   ALLOWED_ORIGIN?: string;
+  STAFF_PHONE?: string;
+  OWNER_PHONE_1?: string;
+  OWNER_PHONE_2?: string;
+  OTP_DELIVERY_URL?: string;
+  OTP_DELIVERY_SECRET?: string;
+  R2?: R2Bucket;
 }
 
 const JSON_HEADERS = {
@@ -186,6 +195,15 @@ async function handleRequest(
     );
   }
 
+  const authResponse = await handleAuthRequest(request, env);
+  if (authResponse.status !== 404) return withCors(authResponse, origin);
+
+  const ownerResponse = await handleOwnerRequest(request, env);
+  if (ownerResponse.status !== 404) return ownerResponse;
+
+  const assetResponse = await handleAssetRequest(request, env);
+  if (assetResponse.status !== 404) return assetResponse;
+
   if (
     request.method === 'GET' &&
     url.pathname === '/config'
@@ -204,6 +222,9 @@ async function handleRequest(
             'Coin Catch',
           durationSeconds:
             15,
+        },
+        assets: {
+          basePath: env.R2 ? '/r2-assets/' : '/assets/',
         },
         machineStatus: {
           washers: 5,

@@ -39,6 +39,7 @@ export async function getSession(request: Request, env: Env): Promise<AuthSessio
     SELECT session_id, user_id, role, expires_at
     FROM auth_sessions
     WHERE token_hash = ?
+      AND session_id NOT LIKE 'otp_%'
       AND revoked_at IS NULL
       AND expires_at > ?
     LIMIT 1

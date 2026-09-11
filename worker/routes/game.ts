@@ -786,6 +786,19 @@ async function handleFinish(
         ? error.message
         : "UNKNOWN_ERROR";
 
+    const concurrentReward = await getRewardByPlay(env, play.play_id);
+    if (concurrentReward) {
+      return json({
+        ok: true,
+        playId: play.play_id,
+        status: concurrentReward.status,
+        rewardId: concurrentReward.rewardId,
+        rewardType: concurrentReward.rewardType,
+        tokenRef: concurrentReward.tokenRef,
+        idempotent: true,
+      }, 200);
+    }
+
     if (
       message ===
       "REWARD_POOL_EMPTY"
