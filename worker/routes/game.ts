@@ -1,5 +1,9 @@
 import type { Env } from "../index";
 import { checkEligibility } from "../services/eligibility";
+import {
+  allocateReward,
+  getRewardByPlay,
+} from "../services/reward";
 
 const GAME_DURATION_SECONDS = 15;
 
@@ -82,9 +86,9 @@ function getCustomerId(
   request: Request,
 ): string | null {
   /*
-   * Auth/RBAC layer will provide the authenticated
-   * Customer ID. This internal context header is
-   * replaced by the final auth middleware integration.
+   * Temporary internal authentication context.
+   * Final Auth/RBAC middleware will provide
+   * the authenticated customer identity.
    */
   const value =
     request.headers.get("X-Customer-ID");
@@ -149,10 +153,6 @@ async function handleStart(
   const idempotencyKey =
     body.idempotencyKey.trim();
 
-  /*
-   * Eligibility must be checked before creating
-   * Play and Session.
-   */
   const eligibility =
     await checkEligibility(
       env,
@@ -161,9 +161,6 @@ async function handleStart(
     );
 
   if (!eligibility.eligible) {
-    /*
-     * Preserve idempotency for an already-created Play.
-     */
     const existingPlay =
       await env.DB
         .prepare(
@@ -256,7 +253,8 @@ async function handleStart(
       playId,
     );
 
-  const startedAt = new Date();
+  const startedAt =
+    new Date();
 
   const expiresAt =
     new Date(
@@ -375,7 +373,7 @@ async function handleStart(
 
 /*
  * ============================================================
- * FINISH VALIDATION
+ * FINISH
  * ============================================================
  */
 
@@ -407,9 +405,6 @@ async function handleFinish(
     );
   }
 
-  /*
-   * Validate request contract.
-   */
   if (
     !isNonEmptyString(body.playId) ||
     !isNonEmptyString(body.sessionId) ||
@@ -435,8 +430,11 @@ async function handleFinish(
     body.sessionId.trim();
 
   /*
-   * Query through indexed primary/session keys.
+   * ----------------------------------------------------------
+   * 1. Load Play + Session
+   * ----------------------------------------------------------
    */
+
   const play =
     await env.DB
       .prepare(
@@ -473,9 +471,6 @@ async function handleFinish(
         session_status: string;
       }>();
 
-  /*
-   * Play + Session must exist and match.
-   */
   if (!play) {
     return errorResponse(
       "SESSION_NOT_FOUND",
@@ -485,8 +480,11 @@ async function handleFinish(
   }
 
   /*
-   * Customer ownership validation.
+   * ----------------------------------------------------------
+   * 2. Ownership validation
+   * ----------------------------------------------------------
    */
+
   if (
     play.customer_id !==
     customerId
@@ -499,17 +497,33 @@ async function handleFinish(
   }
 
   /*
-   * Idempotent Finish.
+   * ----------------------------------------------------------
+   * 3. Existing Reward / idempotency
+   * ----------------------------------------------------------
+   *
+   * Jika reward sudah ada, jangan membuat duplicate.
    */
-  if (
-    play.status === "COMPLETED" ||
-    play.status === "WON"
-  ) {
+
+  const existingReward =
+    await getRewardByPlay(
+      env,
+      play.play_id,
+    );
+
+  if (existingReward) {
     return json(
       {
         ok: true,
-        playId: play.play_id,
-        status: play.status,
+        playId:
+          play.play_id,
+        status:
+          existingReward.status,
+        rewardId:
+          existingReward.rewardId,
+        rewardType:
+          existingReward.rewardType,
+        tokenRef:
+          existingReward.tokenRef,
         idempotent: true,
       },
       200,
@@ -517,8 +531,28 @@ async function handleFinish(
   }
 
   /*
-   * Session must still be active.
+   * ----------------------------------------------------------
+   * 4. Already completed without reward
+   * ----------------------------------------------------------
    */
+
+  if (
+    play.status === "COMPLETED" ||
+    play.status === "WON"
+  ) {
+    return errorResponse(
+      "PLAY_ALREADY_FINISHED",
+      "Play has already finished but no reward is available.",
+      409,
+    );
+  }
+
+  /*
+   * ----------------------------------------------------------
+   * 5. Session state validation
+   * ----------------------------------------------------------
+   */
+
   if (
     play.session_status !==
     "ACTIVE"
@@ -531,10 +565,18 @@ async function handleFinish(
   }
 
   /*
-   * Server validates actual session expiry.
+   * ----------------------------------------------------------
+   * 6. Expiry validation
+   * ----------------------------------------------------------
    */
+
   const now =
     Date.now();
+
+  const startedAt =
+    new Date(
+      play.started_at,
+    ).getTime();
 
   const expiresAt =
     new Date(
@@ -543,12 +585,15 @@ async function handleFinish(
 
   if (
     !Number.isFinite(
+      startedAt,
+    ) ||
+    !Number.isFinite(
       expiresAt,
     )
   ) {
     return errorResponse(
       "SESSION_NOT_FOUND",
-      "Session expiry is invalid.",
+      "Session timestamps are invalid.",
       500,
     );
   }
@@ -578,23 +623,87 @@ async function handleFinish(
   }
 
   /*
-   * Server accepts the submitted score only as
-   * validated game-result data.
+   * ----------------------------------------------------------
+   * 7. Minimum game duration validation
+   * ----------------------------------------------------------
    *
-   * No winning threshold is invented here.
-   * Reward determination remains server-side
-   * in the Reward API stage.
+   * Client tidak boleh Finish sebelum 15 detik.
    */
+
+  const minimumFinishAt =
+    startedAt +
+    GAME_DURATION_SECONDS * 1000;
+
+  if (
+    now < minimumFinishAt
+  ) {
+    return errorResponse(
+      "INVALID_REQUEST",
+      "Game session has not reached the required 15-second duration.",
+      409,
+    );
+  }
+
+  /*
+   * ----------------------------------------------------------
+   * 8. Allocate Reward
+   * ----------------------------------------------------------
+   *
+   * Reward dipilih server-side dari Reward Pool.
+   */
+
+  let reward;
+
+  try {
+    reward =
+      await allocateReward(
+        env,
+        play.play_id,
+        play.customer_id,
+      );
+  } catch (error) {
+    console.error(
+      "Reward allocation failed:",
+      error,
+    );
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : "UNKNOWN_ERROR";
+
+    if (
+      message ===
+      "REWARD_POOL_EMPTY"
+    ) {
+      return errorResponse(
+        "INTERNAL_ERROR",
+        "No reward is currently available.",
+        503,
+      );
+    }
+
+    return errorResponse(
+      "INTERNAL_ERROR",
+      "Unable to allocate reward.",
+      500,
+    );
+  }
+
+  /*
+   * ----------------------------------------------------------
+   * 9. Atomic Play state transition
+   * ----------------------------------------------------------
+   *
+   * STARTED → COMPLETED
+   *
+   * Hanya satu concurrent request yang boleh
+   * memenangkan state transition.
+   */
+
   const finishTime =
     new Date().toISOString();
 
-  /*
-   * Atomic state transition:
-   * STARTED → COMPLETED
-   *
-   * This prevents two concurrent Finish requests
-   * from completing the same Play twice.
-   */
   const updateResult =
     await env.DB
       .prepare(
@@ -621,45 +730,29 @@ async function handleFinish(
     updateResult.meta.changes !== 1
   ) {
     /*
-     * Another request may have completed
-     * the Play first. Re-read state.
+     * Concurrent request kemungkinan telah
+     * menyelesaikan Play lebih dahulu.
      */
-    const currentPlay =
-      await env.DB
-        .prepare(
-          `
-          SELECT
-            play_id,
-            status
-          FROM plays
-          WHERE play_id = ?
-          LIMIT 1
-          `,
-        )
-        .bind(
-          play.play_id,
-        )
-        .first<{
-          play_id: string;
-          status: string;
-        }>();
+    const currentReward =
+      await getRewardByPlay(
+        env,
+        play.play_id,
+      );
 
-    if (
-      currentPlay &&
-      (
-        currentPlay.status ===
-          "COMPLETED" ||
-        currentPlay.status ===
-          "WON"
-      )
-    ) {
+    if (currentReward) {
       return json(
         {
           ok: true,
           playId:
-            currentPlay.play_id,
+            play.play_id,
           status:
-            currentPlay.status,
+            currentReward.status,
+          rewardId:
+            currentReward.rewardId,
+          rewardType:
+            currentReward.rewardType,
+          tokenRef:
+            currentReward.tokenRef,
           idempotent: true,
         },
         200,
@@ -674,8 +767,11 @@ async function handleFinish(
   }
 
   /*
-   * Close the session after successful Finish.
+   * ----------------------------------------------------------
+   * 10. Close Session
+   * ----------------------------------------------------------
    */
+
   await env.DB
     .prepare(
       `
@@ -693,16 +789,24 @@ async function handleFinish(
     .run();
 
   /*
-   * Reward creation is intentionally NOT performed
-   * here. It belongs to the Reward API stage,
-   * where Reward Pool and atomic reward allocation
-   * are handled server-side.
+   * ----------------------------------------------------------
+   * 11. Return Reward
+   * ----------------------------------------------------------
    */
+
   return json(
     {
       ok: true,
-      playId: play.play_id,
-      status: "COMPLETED",
+      playId:
+        play.play_id,
+      status:
+        reward.status,
+      rewardId:
+        reward.rewardId,
+      rewardType:
+        reward.rewardType,
+      tokenRef:
+        reward.tokenRef,
     },
     200,
   );
