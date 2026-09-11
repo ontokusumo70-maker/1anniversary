@@ -27,7 +27,7 @@ test(
   "normalizeExportRequest memakai default pagination",
   () => {
     const result =
-      normalizeExportRequest({});
+      normalizeExportRequest({ type: "customers" });
 
     assert.equal(
       result.limit,
@@ -56,6 +56,7 @@ test(
   () => {
     const result =
       normalizeExportRequest({
+        type: "customers",
         from:
           "2026-11-01T00:00:00.000Z",
         to:
@@ -91,6 +92,7 @@ test(
   () => {
     const result =
       normalizeExportRequest({
+        type: "customers",
         limit: 5000,
         offset: -10,
       });
