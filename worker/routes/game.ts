@@ -8,6 +8,12 @@ import { writeAuditSafe } from "../audit/logger";
 
 const GAME_DURATION_SECONDS = 15;
 
+const MAX_TRANSACTION_ID_LENGTH = 128;
+const MAX_IDEMPOTENCY_KEY_LENGTH = 128;
+const MAX_PLAY_ID_LENGTH = 200;
+const MAX_SESSION_ID_LENGTH = 200;
+const MAX_SCORE = 1_000_000_000;
+
 type GameResult = {
   score: number;
 };
@@ -22,6 +28,13 @@ type FinishRequest = {
   sessionId: string;
   result: GameResult;
   idempotencyKey: string;
+};
+
+type AuthSession = {
+  session_id: string;
+  user_id: string;
+  role: "CUSTOMER" | "STAFF" | "OWNER";
+  expires_at: string;
 };
 
 function json(
@@ -66,6 +79,16 @@ function isNonEmptyString(
   );
 }
 
+function isBoundedString(
+  value: unknown,
+  maxLength: number,
+): value is string {
+  return (
+    isNonEmptyString(value) &&
+    value.trim().length <= maxLength
+  );
+}
+
 function isValidScore(
   value: unknown,
 ): value is number {
@@ -73,7 +96,8 @@ function isValidScore(
     typeof value === "number" &&
     Number.isInteger(value) &&
     Number.isFinite(value) &&
-    value >= 0
+    value >= 0 &&
+    value <= MAX_SCORE
   );
 }
 
@@ -87,17 +111,131 @@ function makeDeterministicId(
     .slice(0, 180)}`;
 }
 
-function getCustomerId(
-  request: Request,
-): string | null {
-  const value =
-    request.headers.get(
-      "X-Customer-ID",
+async function hashToken(
+  token: string,
+): Promise<string> {
+  const data =
+    new TextEncoder().encode(token);
+
+  const digest =
+    await crypto.subtle.digest(
+      "SHA-256",
+      data,
     );
 
-  return isNonEmptyString(value)
-    ? value.trim()
+  return Array.from(
+    new Uint8Array(digest),
+    (byte) =>
+      byte.toString(16).padStart(2, "0"),
+  ).join("");
+}
+
+function getBearerToken(
+  request: Request,
+): string | null {
+  const authorization =
+    request.headers.get(
+      "Authorization",
+    );
+
+  if (!authorization) {
+    return null;
+  }
+
+  const match =
+    authorization.match(
+      /^Bearer\s+([A-Za-z0-9_-]{20,256})$/i,
+    );
+
+  return match
+    ? match[1]
     : null;
+}
+
+async function requireCustomer(
+  request: Request,
+  env: Env,
+): Promise<
+  | {
+      ok: true;
+      userId: string;
+      sessionId: string;
+    }
+  | {
+      ok: false;
+      response: Response;
+    }
+> {
+  const token =
+    getBearerToken(request);
+
+  if (!token) {
+    return {
+      ok: false,
+      response: errorResponse(
+        "UNAUTHORIZED",
+        "Customer authentication is required.",
+        401,
+      ),
+    };
+  }
+
+  const tokenHash =
+    await hashToken(token);
+
+  const session =
+    await env.DB
+      .prepare(
+        `
+        SELECT
+          session_id,
+          user_id,
+          role,
+          expires_at
+        FROM auth_sessions
+        WHERE token_hash = ?
+          AND revoked_at IS NULL
+          AND expires_at > ?
+        LIMIT 1
+        `,
+      )
+      .bind(
+        tokenHash,
+        new Date().toISOString(),
+      )
+      .first<AuthSession>();
+
+  if (!session) {
+    return {
+      ok: false,
+      response: errorResponse(
+        "UNAUTHORIZED",
+        "Authentication session is invalid or expired.",
+        401,
+      ),
+    };
+  }
+
+  if (
+    session.role !== "CUSTOMER"
+  ) {
+    return {
+      ok: false,
+      response: errorResponse(
+        "FORBIDDEN",
+        "Customer role is required.",
+        403,
+      ),
+    };
+  }
+
+  return {
+    ok: true,
+    userId:
+      session.user_id,
+    sessionId:
+      session.session_id,
+  };
 }
 
 /*
@@ -110,15 +248,14 @@ async function handleStart(
   request: Request,
   env: Env,
 ): Promise<Response> {
-  const customerId =
-    getCustomerId(request);
-
-  if (!customerId) {
-    return errorResponse(
-      "UNAUTHORIZED",
-      "Customer authentication is required.",
-      401,
+  const auth =
+    await requireCustomer(
+      request,
+      env,
     );
+
+  if (!auth.ok) {
+    return auth.response;
   }
 
   let body: StartRequest;
@@ -135,16 +272,18 @@ async function handleStart(
   }
 
   if (
-    !isNonEmptyString(
+    !isBoundedString(
       body.transactionId,
+      MAX_TRANSACTION_ID_LENGTH,
     ) ||
-    !isNonEmptyString(
+    !isBoundedString(
       body.idempotencyKey,
+      MAX_IDEMPOTENCY_KEY_LENGTH,
     )
   ) {
     return errorResponse(
       "INVALID_REQUEST",
-      "transactionId and idempotencyKey are required.",
+      "transactionId and idempotencyKey are required and must be valid.",
       400,
     );
   }
@@ -158,7 +297,7 @@ async function handleStart(
   const eligibility =
     await checkEligibility(
       env,
-      customerId,
+      auth.userId,
       transactionId,
     );
 
@@ -173,10 +312,14 @@ async function handleStart(
             status
           FROM plays
           WHERE transaction_id = ?
+            AND customer_id = ?
           LIMIT 1
           `,
         )
-        .bind(transactionId)
+        .bind(
+          transactionId,
+          auth.userId,
+        )
         .first<{
           play_id: string;
           session_id: string | null;
@@ -246,7 +389,7 @@ async function handleStart(
   const playId =
     makeDeterministicId(
       "play",
-      `${customerId}_${transactionId}_${idempotencyKey}`,
+      `${auth.userId}_${transactionId}_${idempotencyKey}`,
     );
 
   const sessionId =
@@ -282,7 +425,7 @@ async function handleStart(
         )
         .bind(
           playId,
-          customerId,
+          auth.userId,
           transactionId,
           sessionId,
           "STARTED",
@@ -326,10 +469,14 @@ async function handleStart(
             status
           FROM plays
           WHERE transaction_id = ?
+            AND customer_id = ?
           LIMIT 1
           `,
         )
-        .bind(transactionId)
+        .bind(
+          transactionId,
+          auth.userId,
+        )
         .first<{
           play_id: string;
           session_id: string | null;
@@ -359,16 +506,13 @@ async function handleStart(
     );
   }
 
-  /*
-   * AUDIT: START SUCCESS
-   */
   await writeAuditSafe(
     env,
     {
       entityType: "PLAY",
       entityId: playId,
       action: "START",
-      actor: customerId,
+      actor: auth.userId,
       result: "SUCCESS",
     },
   );
@@ -397,15 +541,14 @@ async function handleFinish(
   request: Request,
   env: Env,
 ): Promise<Response> {
-  const customerId =
-    getCustomerId(request);
-
-  if (!customerId) {
-    return errorResponse(
-      "UNAUTHORIZED",
-      "Customer authentication is required.",
-      401,
+  const auth =
+    await requireCustomer(
+      request,
+      env,
     );
+
+  if (!auth.ok) {
+    return auth.response;
   }
 
   let body: FinishRequest;
@@ -422,10 +565,17 @@ async function handleFinish(
   }
 
   if (
-    !isNonEmptyString(body.playId) ||
-    !isNonEmptyString(body.sessionId) ||
-    !isNonEmptyString(
+    !isBoundedString(
+      body.playId,
+      MAX_PLAY_ID_LENGTH,
+    ) ||
+    !isBoundedString(
+      body.sessionId,
+      MAX_SESSION_ID_LENGTH,
+    ) ||
+    !isBoundedString(
       body.idempotencyKey,
+      MAX_IDEMPOTENCY_KEY_LENGTH,
     ) ||
     !body.result ||
     !isValidScore(
@@ -434,7 +584,7 @@ async function handleFinish(
   ) {
     return errorResponse(
       "INVALID_REQUEST",
-      "playId, sessionId, result.score and idempotencyKey are required.",
+      "playId, sessionId, result.score and idempotencyKey are required and must be valid.",
       400,
     );
   }
@@ -491,7 +641,7 @@ async function handleFinish(
 
   if (
     play.customer_id !==
-    customerId
+    auth.userId
   ) {
     return errorResponse(
       "FORBIDDEN",
@@ -585,11 +735,13 @@ async function handleFinish(
         UPDATE sessions
         SET status = 'EXPIRED'
         WHERE session_id = ?
+          AND play_id = ?
           AND status = 'ACTIVE'
         `,
       )
       .bind(
         play.session_id,
+        play.play_id,
       )
       .run();
 
@@ -613,12 +765,6 @@ async function handleFinish(
       409,
     );
   }
-
-  /*
-   * ----------------------------------------------------------
-   * Allocate Reward
-   * ----------------------------------------------------------
-   */
 
   let reward;
 
@@ -658,12 +804,6 @@ async function handleFinish(
     );
   }
 
-  /*
-   * ----------------------------------------------------------
-   * Atomic Play transition
-   * ----------------------------------------------------------
-   */
-
   const finishTime =
     new Date().toISOString();
 
@@ -684,7 +824,7 @@ async function handleFinish(
       .bind(
         finishTime,
         play.play_id,
-        customerId,
+        auth.userId,
         play.session_id,
       )
       .run();
@@ -725,12 +865,6 @@ async function handleFinish(
     );
   }
 
-  /*
-   * ----------------------------------------------------------
-   * Close Session
-   * ----------------------------------------------------------
-   */
-
   await env.DB
     .prepare(
       `
@@ -747,19 +881,13 @@ async function handleFinish(
     )
     .run();
 
-  /*
-   * ----------------------------------------------------------
-   * AUDIT: FINISH SUCCESS
-   * ----------------------------------------------------------
-   */
-
   await writeAuditSafe(
     env,
     {
       entityType: "PLAY",
       entityId: play.play_id,
       action: "FINISH",
-      actor: customerId,
+      actor: auth.userId,
       result: "SUCCESS",
     },
   );
