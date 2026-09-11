@@ -1,7 +1,7 @@
-import { handleMachineRequest } from "./routes/machines";
+import { handleMachineRequest } from './routes/machines';
 import {
   handleOwnerExportRequest,
-} from "./routes/owner-export";
+} from './routes/owner-export';
 
 export interface Env {
   DB: D1Database;
@@ -10,86 +10,99 @@ export interface Env {
 }
 
 const JSON_HEADERS = {
-  "Content-Type":
-    "application/json; charset=utf-8",
+  'Content-Type':
+    'application/json; charset=utf-8',
 };
-
-function json(
-  data: unknown,
-  status = 200,
-  origin = "*",
-): Response {
-  return new Response(
-    JSON.stringify(data),
-    {
-      status,
-      headers: {
-        ...JSON_HEADERS,
-        "Access-Control-Allow-Origin":
-          origin,
-        "Access-Control-Allow-Methods":
-          "GET,POST,OPTIONS",
-        "Access-Control-Allow-Headers":
-          "Content-Type, Authorization, X-Customer-ID, X-Staff-ID, X-Owner-ID",
-        "Cache-Control":
-          "no-store",
-      },
-    },
-  );
-}
 
 function getAllowedOrigin(
   request: Request,
   env: Env,
-): string {
+): string | null {
   const configured =
     env.ALLOWED_ORIGIN?.trim();
 
   if (!configured) {
-    return "*";
+    return null;
   }
 
   const requestOrigin =
-    request.headers.get("Origin");
+    request.headers.get('Origin');
 
-  if (
-    requestOrigin ===
-    configured
-  ) {
+  if (!requestOrigin) {
     return configured;
+  }
+
+  if (requestOrigin !== configured) {
+    return null;
   }
 
   return configured;
 }
 
+function corsHeaders(
+  origin: string,
+): Record<string, string> {
+  return {
+    'Access-Control-Allow-Origin':
+      origin,
+    'Access-Control-Allow-Methods':
+      'GET,POST,OPTIONS',
+    'Access-Control-Allow-Headers':
+      'Content-Type, Authorization, X-Customer-ID, X-Staff-ID, X-Owner-ID',
+    'Vary':
+      'Origin',
+    'Cache-Control':
+      'no-store',
+  };
+}
+
+function json(
+  data: unknown,
+  status = 200,
+  origin?: string,
+): Response {
+  const headers: Record<string, string> = {
+    ...JSON_HEADERS,
+  };
+
+  if (origin) {
+    Object.assign(
+      headers,
+      corsHeaders(origin),
+    );
+  }
+
+  return new Response(
+    JSON.stringify(data),
+    {
+      status,
+      headers,
+    },
+  );
+}
+
 function withCors(
   response: Response,
-  origin: string,
+  origin?: string,
 ): Response {
   const headers =
     new Headers(
       response.headers,
     );
 
-  headers.set(
-    "Access-Control-Allow-Origin",
-    origin,
-  );
+  if (origin) {
+    const securityHeaders =
+      corsHeaders(origin);
 
-  headers.set(
-    "Access-Control-Allow-Methods",
-    "GET,POST,OPTIONS",
-  );
-
-  headers.set(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, X-Customer-ID, X-Staff-ID, X-Owner-ID",
-  );
-
-  headers.set(
-    "Cache-Control",
-    "no-store",
-  );
+    for (
+      const [key, value]
+      of Object.entries(
+        securityHeaders,
+      )
+    ) {
+      headers.set(key, value);
+    }
+  }
 
   return new Response(
     response.body,
@@ -116,40 +129,53 @@ async function handleRequest(
       env,
     );
 
-  if (
-    request.method ===
-    "OPTIONS"
-  ) {
+  if (!origin) {
     return new Response(
-      null,
+      JSON.stringify({
+        ok: false,
+        error:
+          'ORIGIN_NOT_ALLOWED',
+      }),
       {
-        status: 204,
+        status: 403,
         headers: {
-          "Access-Control-Allow-Origin":
-            origin,
-          "Access-Control-Allow-Methods":
-            "GET,POST,OPTIONS",
-          "Access-Control-Allow-Headers":
-            "Content-Type, Authorization, X-Customer-ID, X-Staff-ID, X-Owner-ID",
-          "Access-Control-Max-Age":
-            "86400",
+          ...JSON_HEADERS,
+          'Cache-Control':
+            'no-store',
         },
       },
     );
   }
 
   if (
-    request.method === "GET" &&
-    url.pathname === "/"
+    request.method ===
+    'OPTIONS'
+  ) {
+    return new Response(
+      null,
+      {
+        status: 204,
+        headers: {
+          ...corsHeaders(origin),
+          'Access-Control-Max-Age':
+            '86400',
+        },
+      },
+    );
+  }
+
+  if (
+    request.method === 'GET' &&
+    url.pathname === '/'
   ) {
     return json(
       {
         ok: true,
         service:
-          "teras-laundry-1st-anniversary-worker",
+          'teras-laundry-1st-anniversary-worker',
         environment:
           env.ENVIRONMENT ??
-          "production",
+          'production',
       },
       200,
       origin,
@@ -157,21 +183,21 @@ async function handleRequest(
   }
 
   if (
-    request.method === "GET" &&
-    url.pathname === "/config"
+    request.method === 'GET' &&
+    url.pathname === '/config'
   ) {
     return json(
       {
         ok: true,
         campaign:
-          "10 HARI MENUJU 1 TAHUN",
+          '10 HARI MENUJU 1 TAHUN',
         campaignStart:
-          "2026-11-01",
+          '2026-11-01',
         campaignEnd:
-          "2026-11-10",
+          '2026-11-10',
         game: {
           type:
-            "Coin Catch",
+            'Coin Catch',
           durationSeconds:
             15,
         },
@@ -183,16 +209,16 @@ async function handleRequest(
           dryerDurationMinutes:
             50,
           selfService: {
-            start: "07:00",
-            end: "21:00",
+            start: '07:00',
+            end: '21:00',
             timezone:
-              "Asia/Jakarta",
+              'Asia/Jakarta',
           },
           dropOff: {
-            start: "07:00",
-            end: "23:00",
+            start: '07:00',
+            end: '23:00',
             timezone:
-              "Asia/Jakarta",
+              'Asia/Jakarta',
           },
         },
       },
@@ -230,9 +256,10 @@ async function handleRequest(
   return json(
     {
       ok: false,
-      error: "NOT_FOUND",
+      error:
+        'NOT_FOUND',
       message:
-        "Endpoint not found.",
+        'Endpoint not found.',
     },
     404,
     origin,
@@ -251,30 +278,38 @@ export default {
           env,
         );
 
-      return withCors(
-        response,
+      const origin =
         getAllowedOrigin(
           request,
           env,
-        ),
+        );
+
+      return withCors(
+        response,
+        origin ??
+          undefined,
       );
     } catch (error) {
       console.error(
-        "Worker request error:",
+        'Worker request error:',
         error,
       );
+
+      const origin =
+        getAllowedOrigin(
+          request,
+          env,
+        );
 
       return json(
         {
           ok: false,
           error:
-            "INTERNAL_ERROR",
+            'INTERNAL_ERROR',
         },
         500,
-        getAllowedOrigin(
-          request,
-          env,
-        ),
+        origin ??
+          undefined,
       );
     }
   },
