@@ -82,8 +82,27 @@ async function verifyOtpRequest(request: Request, env: AuthEnv): Promise<Respons
   if (!challenge || !timingSafeEqual(challenge.phoneHash, submittedPhoneHash)) return errorResponse("OTP_INVALID_OR_EXPIRED", "OTP is invalid or expired.", 401);
   const result = await verifyOtp(challenge, body.otp);
   if (!result.valid) {
-    if (result.reason === "OTP_INVALID") await incrementOtpAttempt(env, challenge);
-    return errorResponse(result.reason ?? "OTP_INVALID", "OTP is invalid or expired.", 401);
+    if (result.reason === "OTP_INVALID") {
+      const incremented =
+        await incrementOtpAttempt(
+          env,
+          challenge,
+        );
+
+      if (!incremented) {
+        return errorResponse(
+          "OTP_ATTEMPTS_EXCEEDED",
+          "OTP attempts exceeded. Request a new OTP.",
+          401,
+        );
+      }
+    }
+
+    return errorResponse(
+      result.reason ?? "OTP_INVALID",
+      "OTP is invalid or expired.",
+      401,
+    );
   }
   const consumed = await consumeOtp(env, challenge.challengeId);
   if (!consumed) return errorResponse("OTP_ALREADY_USED", "OTP has already been used.", 409);
