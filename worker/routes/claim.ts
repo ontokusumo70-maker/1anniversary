@@ -19,6 +19,14 @@ type RewardRow = {
   used_at: string | null;
 };
 
+type AuthSessionRow = {
+  session_id: string;
+  user_id: string;
+  role: string;
+  expires_at: string;
+  revoked_at: string | null;
+};
+
 function json(
   data: unknown,
   status = 200,
@@ -61,35 +69,134 @@ function isNonEmptyString(
   );
 }
 
-function getCustomerId(
+function getBearerToken(
   request: Request,
 ): string | null {
-  const value =
+  const header =
     request.headers.get(
-      "X-Customer-ID",
+      "Authorization",
     );
 
-  return isNonEmptyString(value)
-    ? value.trim()
+  if (!header) {
+    return null;
+  }
+
+  const match =
+    header.match(
+      /^Bearer\s+(.+)$/i,
+    );
+
+  if (!match) {
+    return null;
+  }
+
+  const token =
+    match[1].trim();
+
+  return token.length > 0
+    ? token
     : null;
+}
+
+async function sha256Hex(
+  value: string,
+): Promise<string> {
+  const encoded =
+    new TextEncoder().encode(value);
+
+  const digest =
+    await crypto.subtle.digest(
+      "SHA-256",
+      encoded,
+    );
+
+  return Array.from(
+    new Uint8Array(digest),
+  )
+    .map((byte) =>
+      byte
+        .toString(16)
+        .padStart(2, "0"),
+    )
+    .join("");
+}
+
+async function authenticateCustomer(
+  request: Request,
+  env: Env,
+): Promise<string | null> {
+  const token =
+    getBearerToken(request);
+
+  if (!token) {
+    return null;
+  }
+
+  const tokenHash =
+    await sha256Hex(token);
+
+  const session =
+    await env.DB
+      .prepare(
+        `
+        SELECT
+          session_id,
+          user_id,
+          role,
+          expires_at,
+          revoked_at
+        FROM auth_sessions
+        WHERE token_hash = ?
+        LIMIT 1
+        `,
+      )
+      .bind(tokenHash)
+      .first<AuthSessionRow>();
+
+  if (!session) {
+    return null;
+  }
+
+  if (
+    session.revoked_at !== null
+  ) {
+    return null;
+  }
+
+  if (
+    session.role !== "CUSTOMER"
+  ) {
+    return null;
+  }
+
+  const expiresAt =
+    Date.parse(
+      session.expires_at,
+    );
+
+  if (
+    !Number.isFinite(expiresAt) ||
+    expiresAt <= Date.now()
+  ) {
+    return null;
+  }
+
+  return session.user_id;
 }
 
 function generateTokenRef(): string {
   return crypto.randomUUID();
 }
 
-/*
- * ============================================================
- * CLAIM REWARD
- * ============================================================
- */
-
 export async function handleClaim(
   request: Request,
   env: Env,
 ): Promise<Response> {
   const customerId =
-    getCustomerId(request);
+    await authenticateCustomer(
+      request,
+      env,
+    );
 
   if (!customerId) {
     return errorResponse(
@@ -133,18 +240,16 @@ export async function handleClaim(
   const idempotencyKey =
     body.idempotencyKey.trim();
 
-  /*
-   * idempotencyKey tetap menjadi bagian contract.
-   * State reward digunakan sebagai authoritative
-   * idempotency guard.
-   */
-  void idempotencyKey;
-
-  /*
-   * ----------------------------------------------------------
-   * 1. Load Reward
-   * ----------------------------------------------------------
-   */
+  if (
+    rewardId.length > 128 ||
+    idempotencyKey.length > 128
+  ) {
+    return errorResponse(
+      "INVALID_REQUEST",
+      "Request value is too long.",
+      400,
+    );
+  }
 
   const reward =
     await env.DB
@@ -177,12 +282,6 @@ export async function handleClaim(
     );
   }
 
-  /*
-   * ----------------------------------------------------------
-   * 2. Ownership
-   * ----------------------------------------------------------
-   */
-
   if (
     reward.customer_id !==
     customerId
@@ -193,17 +292,6 @@ export async function handleClaim(
       403,
     );
   }
-
-  /*
-   * ----------------------------------------------------------
-   * 3. Already claimed
-   * ----------------------------------------------------------
-   *
-   * Retry tidak membuat token baru.
-   *
-   * Audit tidak ditulis lagi karena state transition
-   * sudah terjadi pada request sebelumnya.
-   */
 
   if (
     reward.status === "CLAIMED"
@@ -231,15 +319,8 @@ export async function handleClaim(
           reward.claimed_at,
         idempotent: true,
       },
-      200,
     );
   }
-
-  /*
-   * ----------------------------------------------------------
-   * 4. Invalid lifecycle
-   * ----------------------------------------------------------
-   */
 
   if (
     reward.status === "REDEEMED" ||
@@ -262,24 +343,13 @@ export async function handleClaim(
     );
   }
 
-  /*
-   * ----------------------------------------------------------
-   * 5. Generate opaque token
-   * ----------------------------------------------------------
-   */
+  void idempotencyKey;
 
   const tokenRef =
-    reward.token_ref ??
     generateTokenRef();
 
   const claimedAt =
     new Date().toISOString();
-
-  /*
-   * ----------------------------------------------------------
-   * 6. Atomic WON → CLAIMED
-   * ----------------------------------------------------------
-   */
 
   const updateResult =
     await env.DB
@@ -302,12 +372,6 @@ export async function handleClaim(
         customerId,
       )
       .run();
-
-  /*
-   * ----------------------------------------------------------
-   * 7. Race-condition protection
-   * ----------------------------------------------------------
-   */
 
   if (
     updateResult.meta.changes !== 1
@@ -360,7 +424,6 @@ export async function handleClaim(
             current.claimed_at,
           idempotent: true,
         },
-        200,
       );
     }
 
@@ -370,12 +433,6 @@ export async function handleClaim(
       409,
     );
   }
-
-  /*
-   * ----------------------------------------------------------
-   * 8. AUDIT: CLAIM SUCCESS
-   * ----------------------------------------------------------
-   */
 
   await writeAuditSafe(
     env,
@@ -389,12 +446,6 @@ export async function handleClaim(
     },
   );
 
-  /*
-   * ----------------------------------------------------------
-   * 9. Success
-   * ----------------------------------------------------------
-   */
-
   return json(
     {
       ok: true,
@@ -407,15 +458,8 @@ export async function handleClaim(
       tokenRef,
       claimedAt,
     },
-    200,
   );
 }
-
-/*
- * ============================================================
- * ROUTER
- * ============================================================
- */
 
 export async function handleClaimRequest(
   request: Request,
