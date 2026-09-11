@@ -4,6 +4,7 @@ import {
   allocateReward,
   getRewardByPlay,
 } from "../services/reward";
+import { writeAuditSafe } from "../audit/logger";
 
 const GAME_DURATION_SECONDS = 15;
 
@@ -27,14 +28,18 @@ function json(
   data: unknown,
   status = 200,
 ): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      "Content-Type":
-        "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
+  return new Response(
+    JSON.stringify(data),
+    {
+      status,
+      headers: {
+        "Content-Type":
+          "application/json; charset=utf-8",
+        "Cache-Control":
+          "no-store",
+      },
     },
-  });
+  );
 }
 
 function errorResponse(
@@ -91,7 +96,9 @@ function getCustomerId(
    * the authenticated customer identity.
    */
   const value =
-    request.headers.get("X-Customer-ID");
+    request.headers.get(
+      "X-Customer-ID",
+    );
 
   return isNonEmptyString(value)
     ? value.trim()
@@ -152,6 +159,12 @@ async function handleStart(
 
   const idempotencyKey =
     body.idempotencyKey.trim();
+
+  /*
+   * ----------------------------------------------------------
+   * Eligibility
+   * ----------------------------------------------------------
+   */
 
   const eligibility =
     await checkEligibility(
@@ -240,6 +253,12 @@ async function handleStart(
       403,
     );
   }
+
+  /*
+   * ----------------------------------------------------------
+   * Create Play + Session
+   * ----------------------------------------------------------
+   */
 
   const playId =
     makeDeterministicId(
@@ -357,6 +376,23 @@ async function handleStart(
     );
   }
 
+  /*
+   * ----------------------------------------------------------
+   * AUDIT: START SUCCESS
+   * ----------------------------------------------------------
+   */
+
+  await writeAuditSafe(
+    env,
+    {
+      entityType: "PLAY",
+      entityId: playId,
+      action: "START",
+      actor: customerId,
+      result: "SUCCESS",
+    },
+  );
+
   return json(
     {
       ok: true,
@@ -429,12 +465,6 @@ async function handleFinish(
   const sessionId =
     body.sessionId.trim();
 
-  /*
-   * ----------------------------------------------------------
-   * 1. Load Play + Session
-   * ----------------------------------------------------------
-   */
-
   const play =
     await env.DB
       .prepare(
@@ -479,12 +509,6 @@ async function handleFinish(
     );
   }
 
-  /*
-   * ----------------------------------------------------------
-   * 2. Ownership validation
-   * ----------------------------------------------------------
-   */
-
   if (
     play.customer_id !==
     customerId
@@ -495,14 +519,6 @@ async function handleFinish(
       403,
     );
   }
-
-  /*
-   * ----------------------------------------------------------
-   * 3. Existing Reward / idempotency
-   * ----------------------------------------------------------
-   *
-   * Jika reward sudah ada, jangan membuat duplicate.
-   */
 
   const existingReward =
     await getRewardByPlay(
@@ -530,12 +546,6 @@ async function handleFinish(
     );
   }
 
-  /*
-   * ----------------------------------------------------------
-   * 4. Already completed without reward
-   * ----------------------------------------------------------
-   */
-
   if (
     play.status === "COMPLETED" ||
     play.status === "WON"
@@ -547,12 +557,6 @@ async function handleFinish(
     );
   }
 
-  /*
-   * ----------------------------------------------------------
-   * 5. Session state validation
-   * ----------------------------------------------------------
-   */
-
   if (
     play.session_status !==
     "ACTIVE"
@@ -563,12 +567,6 @@ async function handleFinish(
       409,
     );
   }
-
-  /*
-   * ----------------------------------------------------------
-   * 6. Expiry validation
-   * ----------------------------------------------------------
-   */
 
   const now =
     Date.now();
@@ -622,14 +620,6 @@ async function handleFinish(
     );
   }
 
-  /*
-   * ----------------------------------------------------------
-   * 7. Minimum game duration validation
-   * ----------------------------------------------------------
-   *
-   * Client tidak boleh Finish sebelum 15 detik.
-   */
-
   const minimumFinishAt =
     startedAt +
     GAME_DURATION_SECONDS * 1000;
@@ -646,10 +636,8 @@ async function handleFinish(
 
   /*
    * ----------------------------------------------------------
-   * 8. Allocate Reward
+   * Reward allocation
    * ----------------------------------------------------------
-   *
-   * Reward dipilih server-side dari Reward Pool.
    */
 
   let reward;
@@ -692,13 +680,8 @@ async function handleFinish(
 
   /*
    * ----------------------------------------------------------
-   * 9. Atomic Play state transition
+   * Atomic Play transition
    * ----------------------------------------------------------
-   *
-   * STARTED → COMPLETED
-   *
-   * Hanya satu concurrent request yang boleh
-   * memenangkan state transition.
    */
 
   const finishTime =
@@ -729,10 +712,6 @@ async function handleFinish(
   if (
     updateResult.meta.changes !== 1
   ) {
-    /*
-     * Concurrent request kemungkinan telah
-     * menyelesaikan Play lebih dahulu.
-     */
     const currentReward =
       await getRewardByPlay(
         env,
@@ -766,12 +745,6 @@ async function handleFinish(
     );
   }
 
-  /*
-   * ----------------------------------------------------------
-   * 10. Close Session
-   * ----------------------------------------------------------
-   */
-
   await env.DB
     .prepare(
       `
@@ -790,8 +763,11 @@ async function handleFinish(
 
   /*
    * ----------------------------------------------------------
-   * 11. Return Reward
+   * AUDIT: FINISH SUCCESS
    * ----------------------------------------------------------
+   *
+   * Finish audit akan menjadi bagian integrasi
+   * berikutnya setelah 3.7.1.
    */
 
   return json(
