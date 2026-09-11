@@ -5,6 +5,7 @@ import {
   getRewardByPlay,
 } from "../services/reward";
 import { writeAuditSafe } from "../audit/logger";
+import { requireSession } from "../auth/session-guard";
 
 const GAME_DURATION_SECONDS = 15;
 
@@ -166,10 +167,14 @@ async function requireCustomer(
       response: Response;
     }
 > {
-  const token =
-    getBearerToken(request);
+  const session =
+    await requireSession(
+      request,
+      env,
+      ["CUSTOMER"],
+    );
 
-  if (!token) {
+  if (!session) {
     return {
       ok: false,
       response: errorResponse(
@@ -180,61 +185,10 @@ async function requireCustomer(
     };
   }
 
-  const tokenHash =
-    await hashToken(token);
-
-  const session =
-    await env.DB
-      .prepare(
-        `
-        SELECT
-          session_id,
-          user_id,
-          role,
-          expires_at
-        FROM auth_sessions
-        WHERE token_hash = ?
-          AND revoked_at IS NULL
-          AND expires_at > ?
-        LIMIT 1
-        `,
-      )
-      .bind(
-        tokenHash,
-        new Date().toISOString(),
-      )
-      .first<AuthSession>();
-
-  if (!session) {
-    return {
-      ok: false,
-      response: errorResponse(
-        "UNAUTHORIZED",
-        "Authentication session is invalid or expired.",
-        401,
-      ),
-    };
-  }
-
-  if (
-    session.role !== "CUSTOMER"
-  ) {
-    return {
-      ok: false,
-      response: errorResponse(
-        "FORBIDDEN",
-        "Customer role is required.",
-        403,
-      ),
-    };
-  }
-
   return {
     ok: true,
-    userId:
-      session.user_id,
-    sessionId:
-      session.session_id,
+    userId: session.userId,
+    sessionId: session.sessionId,
   };
 }
 
@@ -254,7 +208,7 @@ async function handleStart(
       env,
     );
 
-  if (!auth.ok) {
+  if (auth.ok === false) {
     return auth.response;
   }
 
@@ -547,7 +501,7 @@ async function handleFinish(
       env,
     );
 
-  if (!auth.ok) {
+  if (auth.ok === false) {
     return auth.response;
   }
 
