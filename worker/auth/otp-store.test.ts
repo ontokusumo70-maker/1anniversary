@@ -1,5 +1,5 @@
 import { strict as assert } from "node:assert";
-import { buildOtpChallengeInsert, buildOtpChallengeLookup, buildOtpChallengeConsume } from "./otp-store";
+import { buildOtpChallengeInsert, buildOtpChallengeLookup, buildOtpChallengeConsume, buildOtpAttemptIncrement } from "./otp-store";
 
 const challenge = { challengeId: "challenge_001", phoneHash: "phone_hash_001", role: "CUSTOMER" as const, otpHash: "otp_hash_001", createdAt: "2026-09-11T12:00:00.000Z", expiresAt: "2026-09-11T12:05:00.000Z", attempts: 0, consumed: false };
 const insert = buildOtpChallengeInsert(challenge);
@@ -13,3 +13,13 @@ const consume = buildOtpChallengeConsume(challenge.challengeId, "2026-09-11T12:0
 assert.match(consume.sql, /revoked_at = \?/);
 assert.match(consume.sql, /revoked_at IS NULL/);
 console.log("OTP store tests PASS");
+
+const attemptUpdate = buildOtpAttemptIncrement({
+  sessionId: `otp_${challenge.challengeId}`,
+  phoneHash: challenge.phoneHash,
+  otpHash: challenge.otpHash,
+  attempts: 0,
+});
+assert.ok(attemptUpdate, "atomic OTP attempt update contract missing");
+assert.match(attemptUpdate.sql, /AND user_id = \?/);
+assert.equal(attemptUpdate.params.length, 4);
