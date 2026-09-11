@@ -90,11 +90,6 @@ function makeDeterministicId(
 function getCustomerId(
   request: Request,
 ): string | null {
-  /*
-   * Temporary internal authentication context.
-   * Final Auth/RBAC middleware will provide
-   * the authenticated customer identity.
-   */
   const value =
     request.headers.get(
       "X-Customer-ID",
@@ -159,12 +154,6 @@ async function handleStart(
 
   const idempotencyKey =
     body.idempotencyKey.trim();
-
-  /*
-   * ----------------------------------------------------------
-   * Eligibility
-   * ----------------------------------------------------------
-   */
 
   const eligibility =
     await checkEligibility(
@@ -253,12 +242,6 @@ async function handleStart(
       403,
     );
   }
-
-  /*
-   * ----------------------------------------------------------
-   * Create Play + Session
-   * ----------------------------------------------------------
-   */
 
   const playId =
     makeDeterministicId(
@@ -377,11 +360,8 @@ async function handleStart(
   }
 
   /*
-   * ----------------------------------------------------------
    * AUDIT: START SUCCESS
-   * ----------------------------------------------------------
    */
-
   await writeAuditSafe(
     env,
     {
@@ -636,7 +616,7 @@ async function handleFinish(
 
   /*
    * ----------------------------------------------------------
-   * Reward allocation
+   * Allocate Reward
    * ----------------------------------------------------------
    */
 
@@ -745,6 +725,12 @@ async function handleFinish(
     );
   }
 
+  /*
+   * ----------------------------------------------------------
+   * Close Session
+   * ----------------------------------------------------------
+   */
+
   await env.DB
     .prepare(
       `
@@ -765,10 +751,18 @@ async function handleFinish(
    * ----------------------------------------------------------
    * AUDIT: FINISH SUCCESS
    * ----------------------------------------------------------
-   *
-   * Finish audit akan menjadi bagian integrasi
-   * berikutnya setelah 3.7.1.
    */
+
+  await writeAuditSafe(
+    env,
+    {
+      entityType: "PLAY",
+      entityId: play.play_id,
+      action: "FINISH",
+      actor: customerId,
+      result: "SUCCESS",
+    },
+  );
 
   return json(
     {
