@@ -3,6 +3,9 @@ import { handleMachineRequest } from './routes/machines';
 import {
   handleOwnerExportRequest,
 } from './routes/owner-export';
+import { handleClaimRequest } from './routes/claim';
+import { handleRewardRequest } from './routes/reward';
+import { handleStaffRedeemRequest } from './routes/staff-redeem';
 
 export interface Env {
   DB: D1Database;
@@ -49,7 +52,7 @@ function corsHeaders(
     'Access-Control-Allow-Methods':
       'GET,POST,OPTIONS',
     'Access-Control-Allow-Headers':
-      'Content-Type, Authorization, X-Customer-ID, X-Staff-ID, X-Owner-ID',
+      'Content-Type, Authorization',
     'Vary':
       'Origin',
     'Cache-Control':
@@ -265,6 +268,21 @@ async function handleRequest(
     404
   ) {
     return ownerExportResponse;
+  }
+
+  const claimResponse = await handleClaimRequest(request, env);
+  if (claimResponse.status !== 404) {
+    return claimResponse;
+  }
+
+  const rewardResponse = await handleRewardRequest(request, env);
+  if (rewardResponse.status !== 404) {
+    return rewardResponse;
+  }
+
+  const staffResponse = await handleStaffRedeemRequest(request, env);
+  if (staffResponse.status !== 404) {
+    return staffResponse;
   }
 
   return json(

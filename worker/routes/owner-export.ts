@@ -34,6 +34,7 @@
  */
 
 import type { Env } from "../index";
+import { requireSession } from "../auth/session-guard";
 
 import {
   buildCsv,
@@ -229,20 +230,10 @@ export async function handleOwnerExportRequest(
     );
   }
 
-  /*
-   * Temporary auth contract:
-   * X-Owner-ID represents the authenticated
-   * owner session identity.
-   *
-   * Final OTP/session middleware remains
-   * responsible for establishing this identity.
-   */
-  const ownerId =
-    request.headers
-      .get("X-Owner-ID")
-      ?.trim();
+  const ownerSession =
+    await requireSession(request, env, ["OWNER"]);
 
-  if (!ownerId) {
+  if (!ownerSession) {
     return json(
       {
         ok: false,
@@ -517,7 +508,7 @@ export async function handleOwnerExportRequest(
         action:
           "EXPORT",
         actor:
-          ownerId,
+          ownerSession.userId,
         result:
           "SUCCESS",
       },
@@ -546,7 +537,7 @@ export async function handleOwnerExportRequest(
         action:
           "EXPORT",
         actor:
-          ownerId,
+          ownerSession.userId,
         result:
           "FAILED",
       },

@@ -1,5 +1,7 @@
 import type { Env } from "../index";
 import { writeAuditSafe } from "../audit/logger";
+import { requireSession } from "../auth/session-guard";
+import type { AuthSession } from "../auth/session-guard";
 
 type RewardRow = {
   reward_id: string;
@@ -45,17 +47,11 @@ function errorResponse(
   );
 }
 
-function getStaffId(
+async function getStaffSession(
   request: Request,
-): string | null {
-  const value =
-    request.headers.get(
-      "X-Staff-ID",
-    );
-
-  return value?.trim()
-    ? value.trim()
-    : null;
+  env: Env,
+): Promise<AuthSession | null> {
+  return requireSession(request, env, ["STAFF"]);
 }
 
 function maskPhone(
@@ -83,10 +79,10 @@ export async function handleStaffScan(
   env: Env,
   token: string,
 ): Promise<Response> {
-  const staffId =
-    getStaffId(request);
+  const staffSession =
+    await getStaffSession(request, env);
 
-  if (!staffId) {
+  if (!staffSession) {
     return errorResponse(
       "UNAUTHORIZED",
       "Staff authentication is required.",
@@ -193,7 +189,7 @@ export async function handleStaffScan(
       entityId:
         reward.reward_id,
       action: "SCAN",
-      actor: staffId,
+      actor: staffSession.userId,
       result: "SUCCESS",
     },
   );
@@ -245,10 +241,10 @@ export async function handleStaffRedeem(
   request: Request,
   env: Env,
 ): Promise<Response> {
-  const staffId =
-    getStaffId(request);
+  const staffSession =
+    await getStaffSession(request, env);
 
-  if (!staffId) {
+  if (!staffSession) {
     return errorResponse(
       "UNAUTHORIZED",
       "Staff authentication is required.",
@@ -330,7 +326,7 @@ export async function handleStaffRedeem(
         entityType: "REWARD",
         entityId: rewardId,
         action: "REDEEM",
-        actor: staffId,
+        actor: staffSession.userId,
         result: "SUCCESS",
       },
     );

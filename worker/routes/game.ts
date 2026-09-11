@@ -389,7 +389,7 @@ async function handleStart(
   const playId =
     makeDeterministicId(
       "play",
-      `${auth.userId}_${transactionId}_${idempotencyKey}`,
+      `${auth.userId}_${transactionId}`,
     );
 
   const sessionId =

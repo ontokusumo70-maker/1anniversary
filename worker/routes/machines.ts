@@ -1,5 +1,6 @@
 import type { Env } from "../index";
 import { writeAuditSafe } from "../audit/logger";
+import { requireSession } from "../auth/session-guard";
 
 type MachineType =
   | "WASHER"
@@ -56,24 +57,7 @@ function errorResponse(
   );
 }
 
-function getActorId(
-  request: Request,
-  role: "CUSTOMER" | "STAFF" | "OWNER",
-): string | null {
-  const header =
-    role === "CUSTOMER"
-      ? "X-Customer-ID"
-      : role === "STAFF"
-        ? "X-Staff-ID"
-        : "X-Owner-ID";
 
-  const value =
-    request.headers.get(header);
-
-  return value?.trim()
-    ? value.trim()
-    : null;
-}
 
 function durationMinutes(
   type: MachineType,
@@ -190,13 +174,10 @@ export async function handleMachineStatus(
   request: Request,
   env: Env,
 ): Promise<Response> {
-  const customerId =
-    getActorId(
-      request,
-      "CUSTOMER",
-    );
+  const customerSession =
+    await requireSession(request, env, ["CUSTOMER"]);
 
-  if (!customerId) {
+  if (!customerSession) {
     return errorResponse(
       "UNAUTHORIZED",
       "Customer authentication is required.",
@@ -242,13 +223,10 @@ export async function handleStaffActivateMachine(
   env: Env,
   machineId: string,
 ): Promise<Response> {
-  const staffId =
-    getActorId(
-      request,
-      "STAFF",
-    );
+  const staffSession =
+    await requireSession(request, env, ["STAFF"]);
 
-  if (!staffId) {
+  if (!staffSession) {
     return errorResponse(
       "UNAUTHORIZED",
       "Staff authentication is required.",
@@ -354,7 +332,7 @@ export async function handleStaffActivateMachine(
       .bind(
         startedAtIso,
         expectedEndIso,
-        staffId,
+        staffSession.userId,
         normalizedMachineId,
       )
       .run();
@@ -408,7 +386,7 @@ export async function handleStaffActivateMachine(
         machine.machine_type,
       ) *
         60,
-      staffId,
+      staffSession.userId,
       startedAtIso,
     )
     .run();
@@ -420,7 +398,7 @@ export async function handleStaffActivateMachine(
       entityId:
         machine.machine_id,
       action: "UPDATE",
-      actor: staffId,
+      actor: staffSession.userId,
       result: "SUCCESS",
     },
   );
@@ -452,7 +430,7 @@ export async function handleStaffActivateMachine(
         ) *
         60,
       activatedBy:
-        staffId,
+        staffSession.userId,
     },
   });
 }
@@ -478,13 +456,10 @@ export async function handleOwnerMachineOverview(
   request: Request,
   env: Env,
 ): Promise<Response> {
-  const ownerId =
-    getActorId(
-      request,
-      "OWNER",
-    );
+  const ownerSession =
+    await requireSession(request, env, ["OWNER"]);
 
-  if (!ownerId) {
+  if (!ownerSession) {
     return errorResponse(
       "UNAUTHORIZED",
       "Owner authentication is required.",
@@ -581,7 +556,7 @@ export async function handleOwnerMachineOverview(
       entityType: "MACHINE",
       entityId: "MACHINE_OVERVIEW",
       action: "CREATE",
-      actor: ownerId,
+      actor: ownerSession.userId,
       result: "SUCCESS",
     },
   );

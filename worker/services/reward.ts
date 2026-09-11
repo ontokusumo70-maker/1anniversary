@@ -4,7 +4,7 @@ export type RewardAllocation = {
   rewardId: string;
   rewardType: string;
   tokenRef: string;
-  status: "WON";
+  status: "WON" | "CLAIMED" | "REDEEMED" | "USED";
   createdAt: string;
 };
 
@@ -53,8 +53,8 @@ function generateTokenRef(): string {
 /**
  * Generate server-side Reward ID.
  */
-function generateRewardId(): string {
-  return `reward_${crypto.randomUUID()}`;
+function generateRewardId(playId: string): string {
+  return `reward_${playId.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 180)}`;
 }
 
 /**
@@ -130,7 +130,7 @@ export async function getRewardByPlay(
     rewardId: row.reward_id,
     rewardType: row.type,
     tokenRef: row.token_ref,
-    status: "WON",
+    status: row.status as RewardAllocation["status"],
     createdAt: row.created_at,
   };
 }
@@ -224,7 +224,7 @@ export async function allocateReward(
     selectedPool.reward_type;
 
   const rewardId =
-    generateRewardId();
+    generateRewardId(playId);
 
   const tokenRef =
     generateTokenRef();

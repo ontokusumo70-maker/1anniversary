@@ -1,4 +1,5 @@
 import type { Env } from "../index";
+import { requireSession } from "../auth/session-guard";
 
 type RewardRow = {
   reward_id: string;
@@ -54,24 +55,6 @@ function isNonEmptyString(
   );
 }
 
-function getCustomerId(
-  request: Request,
-): string | null {
-  /*
-   * Temporary internal authentication context.
-   * Final Auth/RBAC middleware will provide
-   * the authenticated customer identity.
-   */
-  const value =
-    request.headers.get(
-      "X-Customer-ID",
-    );
-
-  return isNonEmptyString(value)
-    ? value.trim()
-    : null;
-}
-
 /*
  * ============================================================
  * GET /reward/:id
@@ -91,10 +74,10 @@ export async function handleRewardDetail(
   env: Env,
   rewardId: string,
 ): Promise<Response> {
-  const customerId =
-    getCustomerId(request);
+  const customerSession =
+    await requireSession(request, env, ["CUSTOMER"]);
 
-  if (!customerId) {
+  if (!customerSession) {
     return errorResponse(
       "UNAUTHORIZED",
       "Customer authentication is required.",
@@ -156,7 +139,7 @@ export async function handleRewardDetail(
    */
   if (
     reward.customer_id !==
-    customerId
+    customerSession.userId
   ) {
     return errorResponse(
       "FORBIDDEN",
