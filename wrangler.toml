@@ -1,4 +1,4 @@
-name = "teras-laundry-anniversary"
+name = "1anniversary"
 main = "worker/index.ts"
 compatibility_date = "2026-09-11"
 
@@ -10,13 +10,9 @@ ALLOWED_ORIGIN = "https://1anniversary.pages.dev"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "teras-laundry-anniversary"
-# database_id must be supplied from the existing Cloudflare D1 resource before deploy.
-# It is intentionally not invented here.
+database_name = "1anniversary"
+database_id = "2065718c-46e5-4004-8acb-e0e7ece5b970"
 
-[[r2_buckets]]
-binding = "R2"
-bucket_name = "teras-laundry-anniversary-assets"
 
 [observability]
 enabled = true
