@@ -1,3 +1,4 @@
+import { handleGameRequest } from './routes/game';
 import { handleMachineRequest } from './routes/machines';
 import {
   handleOwnerExportRequest,
@@ -225,6 +226,19 @@ async function handleRequest(
       200,
       origin,
     );
+  }
+
+  const gameResponse =
+    await handleGameRequest(
+      request,
+      env,
+    );
+
+  if (
+    gameResponse.status !==
+    404
+  ) {
+    return gameResponse;
   }
 
   const machineResponse =
