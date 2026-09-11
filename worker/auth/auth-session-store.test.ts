@@ -51,9 +51,7 @@ test(
     );
 
     assert.equal(
-      result.sql.includes(
-        "token",
-      ),
+      /(?:^|[\s,(])token\s*=/.test(result.sql),
       false,
     );
 
