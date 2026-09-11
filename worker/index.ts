@@ -1,4 +1,7 @@
 import { handleMachineRequest } from "./routes/machines";
+import {
+  handleOwnerExportRequest,
+} from "./routes/owner-export";
 
 export interface Env {
   DB: D1Database;
@@ -7,11 +10,9 @@ export interface Env {
 }
 
 const JSON_HEADERS = {
-  "Content-Type": "application/json; charset=utf-8",
+  "Content-Type":
+    "application/json; charset=utf-8",
 };
-
-const ALLOWED_HEADERS =
-  "Content-Type, Authorization, X-Customer-ID, X-Staff-ID, X-Owner-ID";
 
 function json(
   data: unknown,
@@ -29,7 +30,7 @@ function json(
         "Access-Control-Allow-Methods":
           "GET,POST,OPTIONS",
         "Access-Control-Allow-Headers":
-          ALLOWED_HEADERS,
+          "Content-Type, Authorization, X-Customer-ID, X-Staff-ID, X-Owner-ID",
         "Cache-Control":
           "no-store",
       },
@@ -51,7 +52,10 @@ function getAllowedOrigin(
   const requestOrigin =
     request.headers.get("Origin");
 
-  if (requestOrigin === configured) {
+  if (
+    requestOrigin ===
+    configured
+  ) {
     return configured;
   }
 
@@ -79,7 +83,7 @@ function withCors(
 
   headers.set(
     "Access-Control-Allow-Headers",
-    ALLOWED_HEADERS,
+    "Content-Type, Authorization, X-Customer-ID, X-Staff-ID, X-Owner-ID",
   );
 
   headers.set(
@@ -126,7 +130,7 @@ async function handleRequest(
           "Access-Control-Allow-Methods":
             "GET,POST,OPTIONS",
           "Access-Control-Allow-Headers":
-            ALLOWED_HEADERS,
+            "Content-Type, Authorization, X-Customer-ID, X-Staff-ID, X-Owner-ID",
           "Access-Control-Max-Age":
             "86400",
         },
@@ -154,8 +158,7 @@ async function handleRequest(
 
   if (
     request.method === "GET" &&
-    url.pathname ===
-      "/config"
+    url.pathname === "/config"
   ) {
     return json(
       {
@@ -180,18 +183,14 @@ async function handleRequest(
           dryerDurationMinutes:
             50,
           selfService: {
-            start:
-              "07:00",
-            end:
-              "21:00",
+            start: "07:00",
+            end: "21:00",
             timezone:
               "Asia/Jakarta",
           },
           dropOff: {
-            start:
-              "07:00",
-            end:
-              "23:00",
+            start: "07:00",
+            end: "23:00",
             timezone:
               "Asia/Jakarta",
           },
@@ -201,19 +200,6 @@ async function handleRequest(
       origin,
     );
   }
-
-  /*
-   * ==========================================================
-   * MACHINE STATUS ROUTES
-   * ==========================================================
-   *
-   * GET  /machines
-   * POST /staff/machines/:machineId/activate
-   * GET  /owner/machines
-   *
-   * Seluruh logic berada di:
-   * worker/routes/machines.ts
-   */
 
   const machineResponse =
     await handleMachineRequest(
@@ -228,11 +214,23 @@ async function handleRequest(
     return machineResponse;
   }
 
+  const ownerExportResponse =
+    await handleOwnerExportRequest(
+      request,
+      env,
+    );
+
+  if (
+    ownerExportResponse.status !==
+    404
+  ) {
+    return ownerExportResponse;
+  }
+
   return json(
     {
       ok: false,
-      error:
-        "NOT_FOUND",
+      error: "NOT_FOUND",
       message:
         "Endpoint not found.",
     },
