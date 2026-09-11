@@ -26,7 +26,8 @@ function json(
   return new Response(JSON.stringify(data), {
     status,
     headers: {
-      "Content-Type": "application/json; charset=utf-8",
+      "Content-Type":
+        "application/json; charset=utf-8",
       "Cache-Control": "no-store",
     },
   });
@@ -81,9 +82,9 @@ function getCustomerId(
   request: Request,
 ): string | null {
   /*
-   * Temporary internal auth context.
-   * Final production authentication is supplied
-   * by the Auth/RBAC layer.
+   * Auth/RBAC layer will provide the authenticated
+   * Customer ID. This internal context header is
+   * replaced by the final auth middleware integration.
    */
   const value =
     request.headers.get("X-Customer-ID");
@@ -93,11 +94,18 @@ function getCustomerId(
     : null;
 }
 
+/*
+ * ============================================================
+ * START
+ * ============================================================
+ */
+
 async function handleStart(
   request: Request,
   env: Env,
 ): Promise<Response> {
-  const customerId = getCustomerId(request);
+  const customerId =
+    getCustomerId(request);
 
   if (!customerId) {
     return errorResponse(
@@ -121,8 +129,12 @@ async function handleStart(
   }
 
   if (
-    !isNonEmptyString(body.transactionId) ||
-    !isNonEmptyString(body.idempotencyKey)
+    !isNonEmptyString(
+      body.transactionId,
+    ) ||
+    !isNonEmptyString(
+      body.idempotencyKey,
+    )
   ) {
     return errorResponse(
       "INVALID_REQUEST",
@@ -138,12 +150,8 @@ async function handleStart(
     body.idempotencyKey.trim();
 
   /*
-   * ----------------------------------------------------------
-   * 3.3.2 ELIGIBILITY
-   * ----------------------------------------------------------
-   *
-   * Eligibility is checked server-side BEFORE
-   * creating Play and Session.
+   * Eligibility must be checked before creating
+   * Play and Session.
    */
   const eligibility =
     await checkEligibility(
@@ -152,14 +160,9 @@ async function handleStart(
       transactionId,
     );
 
-  /*
-   * A transaction that already has a Play is
-   * not eligible for a new Play.
-   */
   if (!eligibility.eligible) {
     /*
-     * Preserve idempotent behavior for a retry of
-     * an already-created Play.
+     * Preserve idempotency for an already-created Play.
      */
     const existingPlay =
       await env.DB
@@ -189,9 +192,12 @@ async function handleStart(
       return json(
         {
           ok: true,
-          playId: existingPlay.play_id,
-          sessionId: existingPlay.session_id,
-          status: existingPlay.status,
+          playId:
+            existingPlay.play_id,
+          sessionId:
+            existingPlay.session_id,
+          status:
+            existingPlay.status,
           idempotent: true,
         },
         200,
@@ -238,28 +244,25 @@ async function handleStart(
     );
   }
 
-  /*
-   * ----------------------------------------------------------
-   * CREATE PLAY + SESSION
-   * ----------------------------------------------------------
-   */
+  const playId =
+    makeDeterministicId(
+      "play",
+      `${customerId}_${transactionId}_${idempotencyKey}`,
+    );
 
-  const playId = makeDeterministicId(
-    "play",
-    `${customerId}_${transactionId}_${idempotencyKey}`,
-  );
-
-  const sessionId = makeDeterministicId(
-    "session",
-    playId,
-  );
+  const sessionId =
+    makeDeterministicId(
+      "session",
+      playId,
+    );
 
   const startedAt = new Date();
 
-  const expiresAt = new Date(
-    startedAt.getTime() +
-      GAME_DURATION_SECONDS * 1000,
-  );
+  const expiresAt =
+    new Date(
+      startedAt.getTime() +
+        GAME_DURATION_SECONDS * 1000,
+    );
 
   try {
     await env.DB.batch([
@@ -313,11 +316,6 @@ async function handleStart(
       error,
     );
 
-    /*
-     * Concurrent/retried Start:
-     * read the existing Play instead of creating
-     * a second Play.
-     */
     const concurrentPlay =
       await env.DB
         .prepare(
@@ -342,10 +340,12 @@ async function handleStart(
       return json(
         {
           ok: true,
-          playId: concurrentPlay.play_id,
+          playId:
+            concurrentPlay.play_id,
           sessionId:
             concurrentPlay.session_id,
-          status: concurrentPlay.status,
+          status:
+            concurrentPlay.status,
           idempotent: true,
         },
         200,
@@ -373,11 +373,18 @@ async function handleStart(
   );
 }
 
+/*
+ * ============================================================
+ * FINISH VALIDATION
+ * ============================================================
+ */
+
 async function handleFinish(
   request: Request,
   env: Env,
 ): Promise<Response> {
-  const customerId = getCustomerId(request);
+  const customerId =
+    getCustomerId(request);
 
   if (!customerId) {
     return errorResponse(
@@ -400,12 +407,19 @@ async function handleFinish(
     );
   }
 
+  /*
+   * Validate request contract.
+   */
   if (
     !isNonEmptyString(body.playId) ||
     !isNonEmptyString(body.sessionId) ||
-    !isNonEmptyString(body.idempotencyKey) ||
+    !isNonEmptyString(
+      body.idempotencyKey,
+    ) ||
     !body.result ||
-    !isValidScore(body.result.score)
+    !isValidScore(
+      body.result.score,
+    )
   ) {
     return errorResponse(
       "INVALID_REQUEST",
@@ -414,6 +428,15 @@ async function handleFinish(
     );
   }
 
+  const playId =
+    body.playId.trim();
+
+  const sessionId =
+    body.sessionId.trim();
+
+  /*
+   * Query through indexed primary/session keys.
+   */
   const play =
     await env.DB
       .prepare(
@@ -423,6 +446,7 @@ async function handleFinish(
           p.customer_id,
           p.session_id,
           p.status,
+          p.finished_at,
           s.started_at,
           s.expires_at,
           s.status AS session_status
@@ -435,19 +459,23 @@ async function handleFinish(
         `,
       )
       .bind(
-        body.playId.trim(),
-        body.sessionId.trim(),
+        playId,
+        sessionId,
       )
       .first<{
         play_id: string;
         customer_id: string;
         session_id: string;
         status: string;
+        finished_at: string | null;
         started_at: string;
         expires_at: string;
         session_status: string;
       }>();
 
+  /*
+   * Play + Session must exist and match.
+   */
   if (!play) {
     return errorResponse(
       "SESSION_NOT_FOUND",
@@ -456,7 +484,13 @@ async function handleFinish(
     );
   }
 
-  if (play.customer_id !== customerId) {
+  /*
+   * Customer ownership validation.
+   */
+  if (
+    play.customer_id !==
+    customerId
+  ) {
     return errorResponse(
       "FORBIDDEN",
       "Play does not belong to this customer.",
@@ -464,6 +498,9 @@ async function handleFinish(
     );
   }
 
+  /*
+   * Idempotent Finish.
+   */
   if (
     play.status === "COMPLETED" ||
     play.status === "WON"
@@ -479,8 +516,12 @@ async function handleFinish(
     );
   }
 
+  /*
+   * Session must still be active.
+   */
   if (
-    play.session_status !== "ACTIVE"
+    play.session_status !==
+    "ACTIVE"
   ) {
     return errorResponse(
       "SESSION_EXPIRED",
@@ -489,14 +530,32 @@ async function handleFinish(
     );
   }
 
-  const now = Date.now();
+  /*
+   * Server validates actual session expiry.
+   */
+  const now =
+    Date.now();
 
   const expiresAt =
     new Date(
       play.expires_at,
     ).getTime();
 
-  if (now > expiresAt) {
+  if (
+    !Number.isFinite(
+      expiresAt,
+    )
+  ) {
+    return errorResponse(
+      "SESSION_NOT_FOUND",
+      "Session expiry is invalid.",
+      500,
+    );
+  }
+
+  if (
+    now > expiresAt
+  ) {
     await env.DB
       .prepare(
         `
@@ -506,7 +565,9 @@ async function handleFinish(
           AND status = 'ACTIVE'
         `,
       )
-      .bind(play.session_id)
+      .bind(
+        play.session_id,
+      )
       .run();
 
     return errorResponse(
@@ -516,9 +577,24 @@ async function handleFinish(
     );
   }
 
+  /*
+   * Server accepts the submitted score only as
+   * validated game-result data.
+   *
+   * No winning threshold is invented here.
+   * Reward determination remains server-side
+   * in the Reward API stage.
+   */
   const finishTime =
     new Date().toISOString();
 
+  /*
+   * Atomic state transition:
+   * STARTED → COMPLETED
+   *
+   * This prevents two concurrent Finish requests
+   * from completing the same Play twice.
+   */
   const updateResult =
     await env.DB
       .prepare(
@@ -529,6 +605,7 @@ async function handleFinish(
           finished_at = ?
         WHERE play_id = ?
           AND customer_id = ?
+          AND session_id = ?
           AND status = 'STARTED'
         `,
       )
@@ -536,10 +613,17 @@ async function handleFinish(
         finishTime,
         play.play_id,
         customerId,
+        play.session_id,
       )
       .run();
 
-  if (updateResult.meta.changes !== 1) {
+  if (
+    updateResult.meta.changes !== 1
+  ) {
+    /*
+     * Another request may have completed
+     * the Play first. Re-read state.
+     */
     const currentPlay =
       await env.DB
         .prepare(
@@ -552,7 +636,9 @@ async function handleFinish(
           LIMIT 1
           `,
         )
-        .bind(play.play_id)
+        .bind(
+          play.play_id,
+        )
         .first<{
           play_id: string;
           status: string;
@@ -563,7 +649,8 @@ async function handleFinish(
       (
         currentPlay.status ===
           "COMPLETED" ||
-        currentPlay.status === "WON"
+        currentPlay.status ===
+          "WON"
       )
     ) {
       return json(
@@ -586,18 +673,31 @@ async function handleFinish(
     );
   }
 
+  /*
+   * Close the session after successful Finish.
+   */
   await env.DB
     .prepare(
       `
       UPDATE sessions
       SET status = 'COMPLETED'
       WHERE session_id = ?
+        AND play_id = ?
         AND status = 'ACTIVE'
       `,
     )
-    .bind(play.session_id)
+    .bind(
+      play.session_id,
+      play.play_id,
+    )
     .run();
 
+  /*
+   * Reward creation is intentionally NOT performed
+   * here. It belongs to the Reward API stage,
+   * where Reward Pool and atomic reward allocation
+   * are handled server-side.
+   */
   return json(
     {
       ok: true,
@@ -608,24 +708,37 @@ async function handleFinish(
   );
 }
 
+/*
+ * ============================================================
+ * ROUTER
+ * ============================================================
+ */
+
 export async function handleGameRequest(
   request: Request,
   env: Env,
 ): Promise<Response> {
-  const url = new URL(request.url);
+  const url =
+    new URL(request.url);
 
   if (
     request.method === "POST" &&
     url.pathname === "/start"
   ) {
-    return handleStart(request, env);
+    return handleStart(
+      request,
+      env,
+    );
   }
 
   if (
     request.method === "POST" &&
     url.pathname === "/finish"
   ) {
-    return handleFinish(request, env);
+    return handleFinish(
+      request,
+      env,
+    );
   }
 
   return errorResponse(
