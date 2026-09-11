@@ -1,56 +1,16 @@
 import type { Env } from "../index";
+import { writeAuditSafe } from "../audit/logger";
 
 type RewardRow = {
   reward_id: string;
-  play_id: string;
   customer_id: string;
   type: string;
   status: string;
   token_ref: string | null;
-  created_at: string;
   claimed_at: string | null;
   redeemed_at: string | null;
   used_at: string | null;
 };
-
-type CustomerRow = {
-  customer_id: string;
-  phone_masked: string;
-};
-
-/*
- * ============================================================
- * STAFF AUTH
- * ============================================================
- *
- * Temporary internal authentication context.
- * Final Auth/RBAC middleware will provide the authenticated
- * Staff identity and role.
- */
-
-function getStaffId(
-  request: Request,
-): string | null {
-  const value =
-    request.headers.get(
-      "X-Staff-ID",
-    );
-
-  if (
-    typeof value !== "string" ||
-    value.trim().length === 0
-  ) {
-    return null;
-  }
-
-  return value.trim();
-}
-
-/*
- * ============================================================
- * RESPONSE HELPERS
- * ============================================================
- */
 
 function json(
   data: unknown,
@@ -85,213 +45,44 @@ function errorResponse(
   );
 }
 
-/*
- * ============================================================
- * GET /staff/scan/:token
- * ============================================================
- *
- * QR flow:
- *
- * Customer:
- *   WON → CLAIMED → QR
- *
- * Staff:
- *   Scan QR
- *      ↓
- *   Validate reward
- *      ↓
- *   Display reward + masked phone + status
- *
- * Redeem action is handled separately.
- */
-
-export async function handleStaffScan(
+function getStaffId(
   request: Request,
-  env: Env,
-  tokenRef: string,
-): Promise<Response> {
-  /*
-   * ----------------------------------------------------------
-   * 1. Staff authentication
-   * ----------------------------------------------------------
-   */
-
-  const staffId =
-    getStaffId(request);
-
-  if (!staffId) {
-    return errorResponse(
-      "UNAUTHORIZED",
-      "Staff authentication is required.",
-      401,
+): string | null {
+  const value =
+    request.headers.get(
+      "X-Staff-ID",
     );
+
+  return value?.trim()
+    ? value.trim()
+    : null;
+}
+
+function maskPhone(
+  phone: string,
+): string {
+  if (phone.length <= 4) {
+    return "****";
   }
 
-  if (
-    tokenRef.trim().length === 0
-  ) {
-    return errorResponse(
-      "INVALID_REQUEST",
-      "QR token is required.",
-      400,
-    );
-  }
-
-  /*
-   * ----------------------------------------------------------
-   * 2. Lookup reward by opaque token
-   * ----------------------------------------------------------
-   */
-
-  const reward =
-    await env.DB
-      .prepare(
-        `
-        SELECT
-          reward_id,
-          play_id,
-          customer_id,
-          type,
-          status,
-          token_ref,
-          created_at,
-          claimed_at,
-          redeemed_at,
-          used_at
-        FROM rewards
-        WHERE token_ref = ?
-        LIMIT 1
-        `,
-      )
-      .bind(
-        tokenRef.trim(),
-      )
-      .first<RewardRow>();
-
-  if (!reward) {
-    return errorResponse(
-      "REWARD_NOT_FOUND",
-      "QR reward was not found.",
-      404,
-    );
-  }
-
-  /*
-   * ----------------------------------------------------------
-   * 3. Load masked customer phone
-   * ----------------------------------------------------------
-   *
-   * Staff hanya mendapatkan masked phone.
-   * Tidak mengembalikan nomor telepon penuh.
-   */
-
-  const customer =
-    await env.DB
-      .prepare(
-        `
-        SELECT
-          customer_id,
-          phone_masked
-        FROM customers
-        WHERE customer_id = ?
-        LIMIT 1
-        `,
-      )
-      .bind(
-        reward.customer_id,
-      )
-      .first<CustomerRow>();
-
-  if (!customer) {
-    return errorResponse(
-      "INTERNAL_ERROR",
-      "Customer record was not found.",
-      500,
-    );
-  }
-
-  /*
-   * ----------------------------------------------------------
-   * 4. Validate reward lifecycle
-   * ----------------------------------------------------------
-   *
-   * QR yang valid untuk proses Staff harus berasal
-   * dari reward yang sudah CLAIMED.
-   */
-
-  const redeemable =
-    reward.status === "CLAIMED";
-
-  /*
-   * ----------------------------------------------------------
-   * 5. Return Staff Validation Page data
-   * ----------------------------------------------------------
-   */
-
-  return json(
-    {
-      ok: true,
-      reward: {
-        rewardId:
-          reward.reward_id,
-
-        rewardType:
-          reward.type,
-
-        status:
-          reward.status,
-
-        phoneMasked:
-          customer.phone_masked,
-
-        tokenRef:
-          reward.token_ref,
-
-        claimedAt:
-          reward.claimed_at,
-
-        redeemedAt:
-          reward.redeemed_at,
-
-        usedAt:
-          reward.used_at,
-
-        redeemable,
-      },
-    },
-    200,
+  return (
+    phone.slice(0, 2) +
+    "****" +
+    phone.slice(-2)
   );
 }
 
 /*
  * ============================================================
- * POST /staff/redeem
+ * STAFF SCAN
  * ============================================================
- *
- * Valid Staff scan → automatic/explicit backend transition:
- *
- * CLAIMED → REDEEMED
- *
- * No customer input code.
- * No manual reward code entry.
- *
- * Atomic state transition prevents double redemption.
  */
 
-type RedeemRequest = {
-  tokenRef: string;
-};
-
-export async function handleStaffRedeem(
+export async function handleStaffScan(
   request: Request,
   env: Env,
+  token: string,
 ): Promise<Response> {
-  /*
-   * ----------------------------------------------------------
-   * 1. Staff authentication
-   * ----------------------------------------------------------
-   */
-
   const staffId =
     getStaffId(request);
 
@@ -303,44 +94,20 @@ export async function handleStaffRedeem(
     );
   }
 
-  /*
-   * ----------------------------------------------------------
-   * 2. Validate request
-   * ----------------------------------------------------------
-   */
-
-  let body: RedeemRequest;
-
-  try {
-    body =
-      await request.json() as RedeemRequest;
-  } catch {
-    return errorResponse(
-      "INVALID_REQUEST",
-      "Invalid JSON request body.",
-      400,
-    );
-  }
-
-  if (
-    typeof body.tokenRef !==
-      "string" ||
-    body.tokenRef.trim()
-      .length === 0
-  ) {
-    return errorResponse(
-      "INVALID_REQUEST",
-      "tokenRef is required.",
-      400,
-    );
-  }
-
   const tokenRef =
-    body.tokenRef.trim();
+    token.trim();
+
+  if (!tokenRef) {
+    return errorResponse(
+      "INVALID_REQUEST",
+      "Token is required.",
+      400,
+    );
+  }
 
   /*
    * ----------------------------------------------------------
-   * 3. Find reward
+   * 1. Lookup reward by opaque token
    * ----------------------------------------------------------
    */
 
@@ -350,12 +117,10 @@ export async function handleStaffRedeem(
         `
         SELECT
           reward_id,
-          play_id,
           customer_id,
           type,
           status,
           token_ref,
-          created_at,
           claimed_at,
           redeemed_at,
           used_at
@@ -370,74 +135,169 @@ export async function handleStaffRedeem(
   if (!reward) {
     return errorResponse(
       "REWARD_NOT_FOUND",
-      "QR reward was not found.",
+      "Reward token was not found.",
       404,
     );
   }
 
   /*
    * ----------------------------------------------------------
-   * 4. Already redeemed = idempotent success
+   * 2. Customer lookup for masked phone
    * ----------------------------------------------------------
    */
 
-  if (
-    reward.status === "REDEEMED"
-  ) {
-    return json(
-      {
-        ok: true,
-        reward: {
-          rewardId:
-            reward.reward_id,
-
-          rewardType:
-            reward.type,
-
-          status:
-            "REDEEMED",
-
-          tokenRef:
-            reward.token_ref,
-
-          redeemedAt:
-            reward.redeemed_at,
-        },
-
-        idempotent: true,
-      },
-      200,
-    );
-  }
+  const customer =
+    await env.DB
+      .prepare(
+        `
+        SELECT phone
+        FROM customers
+        WHERE customer_id = ?
+        LIMIT 1
+        `,
+      )
+      .bind(
+        reward.customer_id,
+      )
+      .first<{
+        phone: string;
+      }>();
 
   /*
    * ----------------------------------------------------------
-   * 5. Reward must be CLAIMED
+   * 3. Determine redeemability
    * ----------------------------------------------------------
    */
 
-  if (
-    reward.status !== "CLAIMED"
-  ) {
-    return errorResponse(
-      "INVALID_REWARD_STATE",
-      "Reward is not available for redemption.",
-      409,
-    );
-  }
+  const redeemable =
+    reward.status ===
+    "CLAIMED";
 
   /*
    * ----------------------------------------------------------
-   * 6. Atomic CLAIMED → REDEEMED
+   * 4. AUDIT: SCAN SUCCESS
    * ----------------------------------------------------------
    *
-   * Only one concurrent request can succeed.
+   * Scan berhasil karena:
+   * - token ditemukan
+   * - reward ditemukan
+   * - customer terkait tersedia
+   *
+   * SCAN tidak mengubah status reward.
+   */
+
+  await writeAuditSafe(
+    env,
+    {
+      entityType: "REWARD",
+      entityId:
+        reward.reward_id,
+      action: "SCAN",
+      actor: staffId,
+      result: "SUCCESS",
+    },
+  );
+
+  /*
+   * ----------------------------------------------------------
+   * 5. Response
+   * ----------------------------------------------------------
+   */
+
+  return json(
+    {
+      ok: true,
+      rewardId:
+        reward.reward_id,
+      rewardType:
+        reward.type,
+      status:
+        reward.status,
+      redeemable,
+      customer: {
+        customerId:
+          reward.customer_id,
+        phone:
+          customer?.phone
+            ? maskPhone(
+                customer.phone,
+              )
+            : null,
+      },
+      claimedAt:
+        reward.claimed_at,
+      redeemedAt:
+        reward.redeemed_at,
+      usedAt:
+        reward.used_at,
+    },
+    200,
+  );
+}
+
+/*
+ * ============================================================
+ * STAFF REDEEM
+ * ============================================================
+ */
+
+export async function handleStaffRedeem(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  const staffId =
+    getStaffId(request);
+
+  if (!staffId) {
+    return errorResponse(
+      "UNAUTHORIZED",
+      "Staff authentication is required.",
+      401,
+    );
+  }
+
+  let body: {
+    rewardId: string;
+  };
+
+  try {
+    body =
+      await request.json() as {
+        rewardId: string;
+      };
+  } catch {
+    return errorResponse(
+      "INVALID_REQUEST",
+      "Invalid JSON request body.",
+      400,
+    );
+  }
+
+  if (
+    typeof body.rewardId !==
+      "string" ||
+    !body.rewardId.trim()
+  ) {
+    return errorResponse(
+      "INVALID_REQUEST",
+      "rewardId is required.",
+      400,
+    );
+  }
+
+  const rewardId =
+    body.rewardId.trim();
+
+  /*
+   * ----------------------------------------------------------
+   * 1. Atomic CLAIMED → REDEEMED
+   * ----------------------------------------------------------
    */
 
   const redeemedAt =
     new Date().toISOString();
 
-  const updateResult =
+  const result =
     await env.DB
       .prepare(
         `
@@ -446,116 +306,96 @@ export async function handleStaffRedeem(
           status = 'REDEEMED',
           redeemed_at = ?
         WHERE reward_id = ?
-          AND token_ref = ?
           AND status = 'CLAIMED'
         `,
       )
       .bind(
         redeemedAt,
-        reward.reward_id,
-        tokenRef,
+        rewardId,
       )
       .run();
 
   /*
    * ----------------------------------------------------------
-   * 7. Race-condition protection
+   * 2. Successful redeem
    * ----------------------------------------------------------
    */
 
   if (
-    updateResult.meta.changes !== 1
+    result.meta.changes === 1
   ) {
-    const current =
-      await env.DB
-        .prepare(
-          `
-          SELECT
-            reward_id,
-            type,
-            status,
-            token_ref,
-            redeemed_at
-          FROM rewards
-          WHERE reward_id = ?
-          LIMIT 1
-          `,
-        )
-        .bind(
-          reward.reward_id,
-        )
-        .first<{
-          reward_id: string;
-          type: string;
-          status: string;
-          token_ref: string | null;
-          redeemed_at: string | null;
-        }>();
+    await writeAuditSafe(
+      env,
+      {
+        entityType: "REWARD",
+        entityId: rewardId,
+        action: "REDEEM",
+        actor: staffId,
+        result: "SUCCESS",
+      },
+    );
 
-    if (
-      current &&
-      current.status ===
-        "REDEEMED"
-    ) {
-      return json(
-        {
-          ok: true,
-          reward: {
-            rewardId:
-              current.reward_id,
-
-            rewardType:
-              current.type,
-
-            status:
-              "REDEEMED",
-
-            tokenRef:
-              current.token_ref,
-
-            redeemedAt:
-              current.redeemed_at,
-          },
-
-          idempotent: true,
-        },
-        200,
-      );
-    }
-
-    return errorResponse(
-      "REDEEM_CONFLICT",
-      "Reward could not be redeemed.",
-      409,
+    return json(
+      {
+        ok: true,
+        rewardId,
+        status: "REDEEMED",
+        redeemedAt,
+      },
+      200,
     );
   }
 
   /*
    * ----------------------------------------------------------
-   * 8. Success
+   * 3. Idempotent already redeemed
    * ----------------------------------------------------------
    */
 
-  return json(
-    {
-      ok: true,
-      reward: {
+  const reward =
+    await env.DB
+      .prepare(
+        `
+        SELECT
+          reward_id,
+          status,
+          redeemed_at
+        FROM rewards
+        WHERE reward_id = ?
+        LIMIT 1
+        `,
+      )
+      .bind(rewardId)
+      .first<{
+        reward_id: string;
+        status: string;
+        redeemed_at: string | null;
+      }>();
+
+  if (
+    reward &&
+    reward.status ===
+      "REDEEMED"
+  ) {
+    return json(
+      {
+        ok: true,
         rewardId:
           reward.reward_id,
-
-        rewardType:
-          reward.type,
-
         status:
           "REDEEMED",
-
-        tokenRef:
-          reward.token_ref,
-
-        redeemedAt,
+        redeemedAt:
+          reward.redeemed_at,
+        idempotent: true,
       },
-    },
-    200,
+      200,
+    );
+  }
+
+  return errorResponse(
+    "INVALID_REWARD_STATE",
+    "Reward is not redeemable.",
+    409,
   );
 }
 
@@ -572,30 +412,24 @@ export async function handleStaffRedeemRequest(
   const url =
     new URL(request.url);
 
-  /*
-   * GET /staff/scan/:token
-   */
-  const scanMatch =
-    url.pathname.match(
-      /^\/staff\/scan\/([^/]+)$/,
-    );
-
   if (
     request.method === "GET" &&
-    scanMatch
+    url.pathname.startsWith(
+      "/staff/scan/",
+    )
   ) {
+    const token =
+      url.pathname.slice(
+        "/staff/scan/".length,
+      );
+
     return handleStaffScan(
       request,
       env,
-      decodeURIComponent(
-        scanMatch[1],
-      ),
+      decodeURIComponent(token),
     );
   }
 
-  /*
-   * POST /staff/redeem
-   */
   if (
     request.method === "POST" &&
     url.pathname ===
@@ -609,7 +443,7 @@ export async function handleStaffRedeemRequest(
 
   return errorResponse(
     "NOT_FOUND",
-    "Staff redeem endpoint not found.",
+    "Staff endpoint not found.",
     404,
   );
 }
