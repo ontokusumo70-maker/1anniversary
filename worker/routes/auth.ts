@@ -497,18 +497,23 @@ async function verifyOtpRequest(
         customer_id,
         phone_hash,
         phone_masked,
+        name,
+        email,
         created_at
       )
-      VALUES (?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?)
       ON CONFLICT(phone_hash)
       DO UPDATE SET
-        phone_masked = excluded.phone_masked
+        phone_masked = excluded.phone_masked,
+        email = excluded.email
       `,
     )
     .bind(
       userId,
       challenge.phoneHash,
       maskPhone(phone),
+      "",
+      email,
       new Date().toISOString(),
     )
     .run();
