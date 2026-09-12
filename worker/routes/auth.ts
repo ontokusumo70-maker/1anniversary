@@ -1,13 +1,11 @@
 import type { Env } from "../index";
 import type { UserRole } from "../auth/types";
-
 import {
   createOtpChallenge,
   hashEmail,
   hashPhone,
   verifyOtp,
 } from "../auth/otp";
-
 import {
   consumeOtp,
   countRecentOtpChallenges,
@@ -15,18 +13,9 @@ import {
   loadOtpChallenge,
   persistOtpChallenge,
 } from "../auth/otp-store";
-
-import {
-  createAndPersistAuthSession,
-} from "../auth/auth-session";
-
-import {
-  sendOtpEmail,
-} from "../auth/gmail";
-
-import {
-  writeAuditSafe,
-} from "../audit/logger";
+import { createAndPersistAuthSession } from "../auth/auth-session";
+import { sendOtpEmail } from "../auth/gmail";
+import { writeAuditSafe } from "../audit/logger";
 
 const MAX_PHONE = 32;
 const MAX_EMAIL = 254;
@@ -49,19 +38,14 @@ type AuthEnv = Env & {
   GMAIL_SENDER_EMAIL?: string;
 };
 
-function json(
-  data: unknown,
-  status = 200,
-): Response {
+function json(data: unknown, status = 200): Response {
   return new Response(
     JSON.stringify(data),
     {
       status,
       headers: {
-        "Content-Type":
-          "application/json; charset=utf-8",
-        "Cache-Control":
-          "no-store",
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store",
       },
     },
   );
@@ -82,9 +66,7 @@ function errorResponse(
   );
 }
 
-function isPhone(
-  value: unknown,
-): value is string {
+function isPhone(value: unknown): value is string {
   return (
     typeof value === "string" &&
     value.trim().length > 0 &&
@@ -93,9 +75,7 @@ function isPhone(
   );
 }
 
-function isEmail(
-  value: unknown,
-): value is string {
+function isEmail(value: unknown): value is string {
   if (
     typeof value !== "string" ||
     value.trim().length === 0 ||
@@ -104,16 +84,12 @@ function isEmail(
     return false;
   }
 
-  const email = value.trim();
-
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-    email,
+    value.trim(),
   );
 }
 
-function isOtp(
-  value: unknown,
-): value is string {
+function isOtp(value: unknown): value is string {
   return (
     typeof value === "string" &&
     value.length === MAX_OTP &&
@@ -121,47 +97,31 @@ function isOtp(
   );
 }
 
-function normalizePhone(
-  phone: string,
-): string {
+function normalizePhone(phone: string): string {
   return phone.replace(/[^\d+]/g, "");
 }
 
-function normalizeEmail(
-  email: string,
-): string {
+function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-function maskPhone(
-  phone: string,
-): string {
-  const digits =
-    phone.replace(/\D/g, "");
+function maskPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
 
   return digits.length <= 4
     ? "****"
     : `${digits.slice(0, 2)}****${digits.slice(-2)}`;
 }
 
-function timingSafeEqual(
-  a: string,
-  b: string,
-): boolean {
+function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) {
     return false;
   }
 
   let diff = 0;
 
-  for (
-    let i = 0;
-    i < a.length;
-    i++
-  ) {
-    diff |=
-      a.charCodeAt(i) ^
-      b.charCodeAt(i);
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
   }
 
   return diff === 0;
@@ -171,48 +131,24 @@ async function resolveRole(
   env: AuthEnv,
   phone: string,
 ): Promise<UserRole> {
-  const target =
-    await hashPhone(phone);
+  const target = await hashPhone(phone);
 
-  const candidates:
-    Array<
-      [UserRole, string | undefined]
-    > = [
-      [
-        "STAFF",
-        env.STAFF_PHONE,
-      ],
-      [
-        "OWNER",
-        env.OWNER_PHONE_1,
-      ],
-      [
-        "OWNER",
-        env.OWNER_PHONE_2,
-      ],
-    ];
+  const candidates: Array<
+    [UserRole, string | undefined]
+  > = [
+    ["STAFF", env.STAFF_PHONE],
+    ["OWNER", env.OWNER_PHONE_1],
+    ["OWNER", env.OWNER_PHONE_2],
+  ];
 
-  for (
-    const [
-      role,
-      secretPhone,
-    ] of candidates
-  ) {
+  for (const [role, secretPhone] of candidates) {
     if (!secretPhone) {
       continue;
     }
 
-    const secretHash =
-      await hashPhone(
-        secretPhone,
-      );
+    const secretHash = await hashPhone(secretPhone);
 
-    if (
-      timingSafeEqual(
-        target,
-        secretHash,
-      )
-    ) {
+    if (timingSafeEqual(target, secretHash)) {
       return role;
     }
   }
@@ -220,9 +156,7 @@ async function resolveRole(
   return "CUSTOMER";
 }
 
-function gmailConfigured(
-  env: AuthEnv,
-): boolean {
+function gmailConfigured(env: AuthEnv): boolean {
   return Boolean(
     env.GMAIL_CLIENT_ID?.trim() &&
     env.GMAIL_CLIENT_SECRET?.trim() &&
@@ -241,11 +175,10 @@ async function requestOtp(
   };
 
   try {
-    body =
-      await request.json() as {
-        phone?: unknown;
-        email?: unknown;
-      };
+    body = await request.json() as {
+      phone?: unknown;
+      email?: unknown;
+    };
   } catch {
     return errorResponse(
       "INVALID_REQUEST",
@@ -270,30 +203,14 @@ async function requestOtp(
     );
   }
 
-  const phone =
-    normalizePhone(body.phone);
+  const phone = normalizePhone(body.phone);
+  const email = normalizeEmail(body.email);
+  const role = await resolveRole(env, phone);
 
-  const email =
-    normalizeEmail(body.email);
-
-  const role =
-    await resolveRole(
-      env,
-      phone,
-    );
-
-  /*
-   * Staff and Owner do not use OTP.
-   * They authenticate using their
-   * Cloudflare Secret phone number.
-   */
-  if (
-    role === "STAFF" ||
-    role === "OWNER"
-  ) {
+  if (role !== "CUSTOMER") {
     return errorResponse(
       "OTP_NOT_REQUIRED",
-      "Staff and Owner must sign in with phone number only.",
+      "Staff and Owner must login with phone number only.",
       400,
     );
   }
@@ -306,8 +223,7 @@ async function requestOtp(
     );
   }
 
-  const phoneHash =
-    await hashPhone(phone);
+  const phoneHash = await hashPhone(phone);
 
   await env.DB
     .prepare(
@@ -317,9 +233,7 @@ async function requestOtp(
         AND expires_at <= ?
       `,
     )
-    .bind(
-      new Date().toISOString(),
-    )
+    .bind(new Date().toISOString())
     .run();
 
   const recentCount =
@@ -329,10 +243,7 @@ async function requestOtp(
       OTP_REQUEST_WINDOW_SECONDS,
     );
 
-  if (
-    recentCount >=
-    MAX_OTP_REQUESTS_PER_WINDOW
-  ) {
+  if (recentCount >= MAX_OTP_REQUESTS_PER_WINDOW) {
     return errorResponse(
       "RATE_LIMITED",
       "Too many OTP requests. Try again later.",
@@ -340,10 +251,7 @@ async function requestOtp(
     );
   }
 
-  const {
-    challenge,
-    otp,
-  } =
+  const { challenge, otp } =
     await createOtpChallenge(
       phone,
       "CUSTOMER",
@@ -358,21 +266,17 @@ async function requestOtp(
   try {
     await sendOtpEmail(
       {
-        GMAIL_CLIENT_ID:
-          env.GMAIL_CLIENT_ID!,
-        GMAIL_CLIENT_SECRET:
-          env.GMAIL_CLIENT_SECRET!,
-        GMAIL_REFRESH_TOKEN:
-          env.GMAIL_REFRESH_TOKEN!,
-        GMAIL_SENDER_EMAIL:
-          env.GMAIL_SENDER_EMAIL!,
+        GMAIL_CLIENT_ID: env.GMAIL_CLIENT_ID!,
+        GMAIL_CLIENT_SECRET: env.GMAIL_CLIENT_SECRET!,
+        GMAIL_REFRESH_TOKEN: env.GMAIL_REFRESH_TOKEN!,
+        GMAIL_SENDER_EMAIL: env.GMAIL_SENDER_EMAIL!,
       },
       email,
       otp,
     );
   } catch (error) {
     console.error(
-      "Gmail OTP delivery failed",
+      "GMAIL_OTP_DELIVERY_FAILED",
       error,
     );
 
@@ -392,32 +296,19 @@ async function requestOtp(
     env,
     {
       entityType: "SESSION",
-      entityId:
-        challenge.challengeId,
+      entityId: challenge.challengeId,
       action: "CREATE",
       actor: phoneHash,
       result: "SUCCESS",
     },
   );
 
-  const response:
-    Record<string, unknown> = {
-      ok: true,
-      challengeId:
-        challenge.challengeId,
-      expiresAt:
-        challenge.expiresAt,
-    };
-
-  if (
-    env.ENVIRONMENT !==
-    "production"
-  ) {
-    response.devOtp = otp;
-  }
-
   return json(
-    response,
+    {
+      ok: true,
+      challengeId: challenge.challengeId,
+      expiresAt: challenge.expiresAt,
+    },
     201,
   );
 }
@@ -428,19 +319,18 @@ async function verifyOtpRequest(
 ): Promise<Response> {
   let body: {
     challengeId?: unknown;
-    otp?: unknown;
     phone?: unknown;
     email?: unknown;
+    otp?: unknown;
   };
 
   try {
-    body =
-      await request.json() as {
-        challengeId?: unknown;
-        otp?: unknown;
-        phone?: unknown;
-        email?: unknown;
-      };
+    body = await request.json() as {
+      challengeId?: unknown;
+      phone?: unknown;
+      email?: unknown;
+      otp?: unknown;
+    };
   } catch {
     return errorResponse(
       "INVALID_REQUEST",
@@ -450,13 +340,11 @@ async function verifyOtpRequest(
   }
 
   if (
-    typeof body.challengeId !==
-      "string" ||
-    body.challengeId.length >
-      128 ||
-    !isOtp(body.otp) ||
+    typeof body.challengeId !== "string" ||
+    body.challengeId.length > 128 ||
     !isPhone(body.phone) ||
-    !isEmail(body.email)
+    !isEmail(body.email) ||
+    !isOtp(body.otp)
   ) {
     return errorResponse(
       "INVALID_REQUEST",
@@ -465,11 +353,8 @@ async function verifyOtpRequest(
     );
   }
 
-  const phone =
-    normalizePhone(body.phone);
-
-  const email =
-    normalizeEmail(body.email);
+  const phone = normalizePhone(body.phone);
+  const email = normalizeEmail(body.email);
 
   const submittedPhoneHash =
     await hashPhone(phone);
@@ -509,10 +394,7 @@ async function verifyOtpRequest(
     );
 
   if (!result.valid) {
-    if (
-      result.reason ===
-      "OTP_INVALID"
-    ) {
+    if (result.reason === "OTP_INVALID") {
       const incremented =
         await incrementOtpAttempt(
           env,
@@ -529,8 +411,7 @@ async function verifyOtpRequest(
     }
 
     return errorResponse(
-      result.reason ??
-        "OTP_INVALID",
+      result.reason ?? "OTP_INVALID",
       "OTP is invalid or expired.",
       401,
     );
@@ -550,9 +431,6 @@ async function verifyOtpRequest(
     );
   }
 
-  let userId =
-    `customer_${challenge.phoneHash.slice(0, 32)}`;
-
   const existing =
     await env.DB
       .prepare(
@@ -563,16 +441,14 @@ async function verifyOtpRequest(
         LIMIT 1
         `,
       )
-      .bind(
-        challenge.phoneHash,
-      )
+      .bind(challenge.phoneHash)
       .first<{
         customer_id: string;
       }>();
 
-  userId =
+  const userId =
     existing?.customer_id ??
-    userId;
+    `customer_${challenge.phoneHash.slice(0, 32)}`;
 
   await env.DB
     .prepare(
@@ -586,8 +462,7 @@ async function verifyOtpRequest(
       VALUES (?, ?, ?, ?)
       ON CONFLICT(phone_hash)
       DO UPDATE SET
-        phone_masked =
-          excluded.phone_masked
+        phone_masked = excluded.phone_masked
       `,
     )
     .bind(
@@ -604,8 +479,7 @@ async function verifyOtpRequest(
       {
         userId,
         role: "CUSTOMER",
-        ttlSeconds:
-          CUSTOMER_SESSION_TTL,
+        ttlSeconds: CUSTOMER_SESSION_TTL,
       },
     );
 
@@ -613,8 +487,7 @@ async function verifyOtpRequest(
     env,
     {
       entityType: "SESSION",
-      entityId:
-        session.sessionId,
+      entityId: session.sessionId,
       action: "CREATE",
       actor: userId,
       result: "SUCCESS",
@@ -624,14 +497,10 @@ async function verifyOtpRequest(
   return json(
     {
       ok: true,
-      token:
-        session.token,
-      role:
-        session.role,
-      userId:
-        session.userId,
-      expiresAt:
-        session.expiresAt,
+      token: session.token,
+      role: session.role,
+      userId: session.userId,
+      expiresAt: session.expiresAt,
     },
     200,
   );
@@ -646,10 +515,9 @@ async function loginStaffOwner(
   };
 
   try {
-    body =
-      await request.json() as {
-        phone?: unknown;
-      };
+    body = await request.json() as {
+      phone?: unknown;
+    };
   } catch {
     return errorResponse(
       "INVALID_REQUEST",
@@ -666,19 +534,10 @@ async function loginStaffOwner(
     );
   }
 
-  const phone =
-    normalizePhone(body.phone);
+  const phone = normalizePhone(body.phone);
+  const role = await resolveRole(env, phone);
 
-  const role =
-    await resolveRole(
-      env,
-      phone,
-    );
-
-  if (
-    role !== "STAFF" &&
-    role !== "OWNER"
-  ) {
+  if (role !== "STAFF" && role !== "OWNER") {
     return errorResponse(
       "UNAUTHORIZED",
       "Phone number is not authorized.",
@@ -686,8 +545,7 @@ async function loginStaffOwner(
     );
   }
 
-  const phoneHash =
-    await hashPhone(phone);
+  const phoneHash = await hashPhone(phone);
 
   const userId =
     `${role.toLowerCase()}_${phoneHash.slice(0, 32)}`;
@@ -698,8 +556,7 @@ async function loginStaffOwner(
       {
         userId,
         role,
-        ttlSeconds:
-          STAFF_SESSION_TTL,
+        ttlSeconds: STAFF_SESSION_TTL,
       },
     );
 
@@ -707,8 +564,7 @@ async function loginStaffOwner(
     env,
     {
       entityType: "SESSION",
-      entityId:
-        session.sessionId,
+      entityId: session.sessionId,
       action: "CREATE",
       actor: userId,
       result: "SUCCESS",
@@ -718,14 +574,10 @@ async function loginStaffOwner(
   return json(
     {
       ok: true,
-      token:
-        session.token,
-      role:
-        session.role,
-      userId:
-        session.userId,
-      expiresAt:
-        session.expiresAt,
+      token: session.token,
+      role: session.role,
+      userId: session.userId,
+      expiresAt: session.expiresAt,
     },
     200,
   );
@@ -735,40 +587,27 @@ export async function handleAuthRequest(
   request: Request,
   env: AuthEnv,
 ): Promise<Response> {
-  const url =
-    new URL(request.url);
+  const url = new URL(request.url);
 
   if (
     request.method === "POST" &&
-    url.pathname ===
-      "/auth/request-otp"
+    url.pathname === "/auth/request-otp"
   ) {
-    return requestOtp(
-      request,
-      env,
-    );
+    return requestOtp(request, env);
   }
 
   if (
     request.method === "POST" &&
-    url.pathname ===
-      "/auth/verify-otp"
+    url.pathname === "/auth/verify-otp"
   ) {
-    return verifyOtpRequest(
-      request,
-      env,
-    );
+    return verifyOtpRequest(request, env);
   }
 
   if (
     request.method === "POST" &&
-    url.pathname ===
-      "/auth/login"
+    url.pathname === "/auth/login"
   ) {
-    return loginStaffOwner(
-      request,
-      env,
-    );
+    return loginStaffOwner(request, env);
   }
 
   return errorResponse(
