@@ -1164,145 +1164,394 @@ if ($("scanCamera")) {
     };
 }
 
-async function loadOwner() {
+let ownerData = null;
+let ownerCurrentView = "overview";
+let ownerOperationPeriod = "daily";
+let ownerEventFilter = "ACTIVE";
+let editingEventId = null;
+let editingRewardType = null;
+
+function formatDateTime(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Jakarta",
+  }).format(date);
+}
+
+function formatDateRange(start, end) {
+  const a = formatDateTime(start);
+  const b = formatDateTime(end);
+  return `${a} – ${b}`;
+}
+
+function formatDuration(seconds) {
+  const total = Math.max(0, Number(seconds || 0));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  return hours ? `${hours}j ${minutes}m` : `${minutes}m`;
+}
+
+function ownerViews() {
+  return {
+    overview: $("ownerViewOverview"),
+    machines: $("ownerViewMachines"),
+    events: $("ownerViewEvents"),
+    "reward-pool": $("ownerViewRewardPool"),
+    "customer-trace": $("ownerViewCustomerTrace"),
+    audit: $("ownerViewAudit"),
+    "csv-export": $("ownerViewCsvExport"),
+  };
+}
+
+function setOwnerView(view) {
+  const views = ownerViews();
+  const target = views[view];
+  if (!target) return;
+  ownerCurrentView = view;
+
+  for (const [name, element] of Object.entries(views)) {
+    if (element) element.hidden = name !== view;
+  }
+
+  document.querySelectorAll("[data-owner-view]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.ownerView === view);
+  });
+
+  if (view === "machines") renderOwnerMachines();
+  if (view === "events") loadOwnerEvents();
+  if (view === "reward-pool") loadOwnerRewardPool();
+  if (view === "audit") loadOwnerAudit();
+}
+
+function renderOwnerMetrics() {
+  const data = ownerData?.metrics;
+  const target = $("ownerMetrics");
+  if (!target || !data) return;
+  const items = [
+    ["Total Konsumen", data.participants],
+    ["Play", data.play],
+    ["Won", data.won],
+    ["Claimed", data.claimed],
+    ["Redeemed", data.redeemed],
+    ["Used", data.used],
+    ["Unclaimed", data.unclaimed],
+    ["Error / Retry", data.errorRetry],
+  ];
+  target.innerHTML = items.map(([label, value]) => `<div class="owner-metric"><span>${label}</span><b>${Number(value || 0).toLocaleString("id-ID")}</b></div>`).join("");
+}
+
+function renderOwnerMachineSummary() {
+  const target = $("ownerMachineSummary");
+  if (!target) return;
+  const machines = ownerData?.machines || [];
+  target.innerHTML = machines.map((machine) => {
+    const remaining = Number(machine.remainingSeconds || 0);
+    const status = machine.status === "IN_USE" ? `TERPAKAI${remaining ? ` · ${Math.ceil(remaining / 60)} mnt` : ""}` : "IDLE";
+    return `<div class="machine-summary"><b>${machine.type === "WASHER" ? "W" : "D"}${machine.machineNumber}</b><span class="${machine.status === "IN_USE" ? "busy" : "idle"}">${status}</span></div>`;
+  }).join("");
+}
+
+function renderOwnerOperations() {
+  const target = $("ownerOperationStats");
+  if (!target || !ownerData?.operatingTime) return;
+  document.querySelectorAll("#operationPeriods button").forEach((button) => button.classList.toggle("active", button.dataset.period === ownerOperationPeriod));
+  const data = ownerData.operatingTime[ownerOperationPeriod] || { washer: {}, dryer: {} };
+  target.innerHTML = `
+    <div class="operation-stat"><span>Washer</span><b>${formatDuration(Number(data.washer?.seconds || 0))}</b></div>
+    <div class="operation-stat"><span>Dryer</span><b>${formatDuration(Number(data.dryer?.seconds || 0))}</b></div>
+  `;
+}
+
+function renderOwnerActiveEvents() {
+  const target = $("ownerActiveEvents");
+  if (!target) return;
+  const events = ownerData?.activeEvents || [];
+  if (!events.length) {
+    target.innerHTML = `<div class="owner-list-item"><small>Tidak ada event aktif.</small></div>`;
+    return;
+  }
+  target.innerHTML = events.map((event) => `
+    <button class="active-event" type="button" data-open-events="1">
+      <span><b>${escapeHtml(event.title)}</b><span>${escapeHtml(formatDateRange(event.startsAt, event.endsAt))}</span></span>
+      <span class="arrow">›</span>
+    </button>
+  `).join("");
+  target.querySelectorAll("[data-open-events]").forEach((button) => button.onclick = () => setOwnerView("events"));
+}
+
+function renderOwnerOverview() {
+  renderOwnerMetrics();
+  renderOwnerMachineSummary();
+  renderOwnerOperations();
+  renderOwnerActiveEvents();
+}
+
+function renderOwnerMachines() {
+  const target = $("ownerAllMachines");
+  if (!target) return;
+  const machines = ownerData?.machines || [];
+  target.innerHTML = machines.map((machine) => {
+    const remaining = Number(machine.remainingSeconds || 0);
+    const stateLabel = machine.status === "IN_USE" ? `TERPAKAI${remaining ? ` · ${Math.ceil(remaining / 60)} mnt` : ""}` : "IDLE";
+    return `<div class="machine-full"><h3>${machine.type === "WASHER" ? "Washer" : "Dryer"} ${machine.machineNumber}</h3><p>${machine.type === "WASHER" ? "32 menit" : "50 menit"}</p><div class="machine-state">${stateLabel}</div></div>`;
+  }).join("");
+}
+
+function renderRewardOptions() {
+  const select = $("eventRewardType");
+  if (!select) return;
+  const pools = ownerData?.rewardPool || [];
+  select.innerHTML = pools.length
+    ? pools.map((pool) => `<option value="${escapeHtml(pool.rewardType)}">${escapeHtml(pool.rewardType)}</option>`).join("")
+    : `<option value="">Belum ada reward</option>`;
+}
+
+function renderOwnerRewardList(items = ownerData?.rewardPool || []) {
+  const target = $("ownerRewardList");
+  if (!target) return;
+  target.innerHTML = items.length ? items.map((item) => `
+    <button class="owner-list-item" type="button" data-edit-reward="${escapeHtml(item.rewardType)}" style="text-align:left;width:100%">
+      <div class="row"><b>${escapeHtml(item.rewardType)}</b><span class="status-pill ${item.active ? "" : "off"}">${item.active ? "AKTIF" : "NONAKTIF"}</span></div>
+      <div class="meta"><div>Quota<strong>${Number(item.quotaTotal).toLocaleString("id-ID")}</strong></div><div>Terpakai<strong>${Number(item.quotaUsed).toLocaleString("id-ID")}</strong></div><div>Sisa<strong>${Number(item.remaining).toLocaleString("id-ID")}</strong></div></div>
+    </button>
+  `).join("") : `<div class="owner-list-item"><small>Belum ada reward.</small></div>`;
+  target.querySelectorAll("[data-edit-reward]").forEach((button) => button.onclick = () => openRewardForm(button.dataset.editReward));
+}
+
+async function loadOwnerRewardPool() {
   try {
-    const data =
-      await api(
-        "/owner/overview",
-      );
-
-    $("ownerResult").textContent =
-      JSON.stringify(
-        data,
-        null,
-        2,
-      );
-
-    $("ownerOverview").innerHTML =
-      `
-      <div>
-        Total Customer
-        <b>${data.customers}</b>
-      </div>
-      <div>
-        Total Play
-        <b>${data.plays}</b>
-      </div>
-      `;
-
-    const machines =
-      await api(
-        "/owner/machines",
-      );
-
-    $("ownerMachines").textContent =
-      JSON.stringify(
-        machines,
-        null,
-        2,
-      );
+    const data = await api("/owner/reward-pool");
+    ownerData = ownerData || {};
+    ownerData.rewardPool = data.items || [];
+    renderOwnerRewardList();
+    renderRewardOptions();
   } catch (error) {
-    $("ownerResult").textContent =
-      error.message;
+    msg("rewardFormMsg", error.message);
   }
 }
 
-if ($("loadOwner")) {
-  $("loadOwner").onclick =
-    loadOwner;
+function openRewardForm(rewardType = null) {
+  editingRewardType = rewardType;
+  const card = $("rewardFormCard");
+  if (!card) return;
+  card.hidden = false;
+  $("rewardFormTitle").textContent = rewardType ? "Edit Reward" : "Tambah Reward";
+  $("ownerRewardType").disabled = Boolean(rewardType);
+  $("ownerRewardType").value = rewardType || "";
+  const item = (ownerData?.rewardPool || []).find((row) => row.rewardType === rewardType);
+  $("rewardQuota").value = item ? item.quotaTotal : "";
+  $("rewardActive").checked = item ? item.active : true;
+  msg("rewardFormMsg", "");
 }
 
-if ($("downloadExport")) {
-  $("downloadExport").onclick =
-    async () => {
-      try {
-        const type =
-          $("ownerExport").value;
-
-        const response =
-          await fetch(
-            `${apiBase}/owner/export?type=${encodeURIComponent(
-              type,
-            )}`,
-            {
-              headers: {
-                Authorization:
-                  `Bearer ${state.token}`,
-              },
-              cache:
-                "no-store",
-            },
-          );
-
-        if (!response.ok) {
-          throw new Error(
-            (
-              await response
-                .json()
-                .catch(
-                  () => ({}),
-                )
-            ).message ||
-            `HTTP ${response.status}`,
-          );
-        }
-
-        const blob =
-          await response.blob();
-
-        const url =
-          URL.createObjectURL(
-            blob,
-          );
-
-        const link =
-          document.createElement(
-            "a",
-          );
-
-        link.href = url;
-
-        link.download =
-          `teras-laundry-owner-${type}.csv`;
-
-        link.click();
-
-        URL.revokeObjectURL(
-          url,
-        );
-      } catch (error) {
-        $("ownerResult").textContent =
-          error.message;
-      }
+async function saveReward() {
+  try {
+    const body = {
+      rewardType: $("ownerRewardType").value.trim(),
+      quotaTotal: Number($("rewardQuota").value),
+      active: $("rewardActive").checked,
     };
+    const path = editingRewardType ? `/owner/reward-pool/${encodeURIComponent(editingRewardType)}` : "/owner/reward-pool";
+    await api(path, { method: editingRewardType ? "PATCH" : "POST", body: JSON.stringify(body) });
+    $("rewardFormCard").hidden = true;
+    await loadOwnerData();
+    setOwnerView("reward-pool");
+  } catch (error) {
+    msg("rewardFormMsg", error.message);
+  }
 }
 
-if ($("traceCustomer")) {
-  $("traceCustomer").onclick =
-    async () => {
-      try {
-        const id =
-          $("traceCustomerId")
-            .value.trim();
+function eventFilterMatches(event) {
+  return ownerEventFilter === "ALL" || event.status === ownerEventFilter;
+}
 
-        const data =
-          await api(
-            `/owner/customer/${encodeURIComponent(
-              id,
-            )}`,
-          );
+function renderOwnerEvents(items = []) {
+  const target = $("ownerEventsList");
+  if (!target) return;
+  const filtered = items.filter(eventFilterMatches);
+  target.innerHTML = filtered.length ? filtered.map((event) => `
+    <button class="owner-list-item" type="button" data-edit-event="${escapeHtml(event.eventId)}" style="text-align:left;width:100%">
+      <div class="row"><b>${escapeHtml(event.title)}</b><span class="status-pill ${event.status === "ENDED" || event.status === "INACTIVE" ? "off" : ""}">${escapeHtml(event.status)}</span></div>
+      <small>${escapeHtml(formatDateRange(event.startsAt, event.endsAt))}</small>
+      <div class="meta"><div>Hadiah<strong>${escapeHtml(event.rewardType)}</strong></div><div>Jumlah<strong>${Number(event.rewardQuantity).toLocaleString("id-ID")}</strong></div></div>
+    </button>
+  `).join("") : `<div class="owner-list-item"><small>Tidak ada event pada filter ini.</small></div>`;
+  target.querySelectorAll("[data-edit-event]").forEach((button) => button.onclick = () => openEventForm(button.dataset.editEvent));
+}
 
-        $("traceResult").textContent =
-          JSON.stringify(
-            data,
-            null,
-            2,
-          );
-      } catch (error) {
-        $("traceResult").textContent =
-          error.message;
-      }
+async function loadOwnerEvents() {
+  try {
+    const data = await api("/owner/events");
+    ownerData = ownerData || {};
+    ownerData.events = data.items || [];
+    renderOwnerEvents(ownerData.events);
+    renderRewardOptions();
+  } catch (error) {
+    $("ownerEventsList").textContent = error.message;
+  }
+}
+
+function toDateTimeLocal(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(date).reduce((acc, part) => { acc[part.type] = part.value; return acc; }, {});
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+}
+
+function openEventForm(eventId = null) {
+  editingEventId = eventId;
+  const card = $("eventFormCard");
+  if (!card) return;
+  const event = (ownerData?.events || []).find((row) => row.eventId === eventId);
+  card.hidden = false;
+  $("eventFormTitle").textContent = event ? "Edit Event" : "Buat Event Baru";
+  $("eventTitle").value = event?.title || "";
+  $("eventStartsAt").value = toDateTimeLocal(event?.startsAt);
+  $("eventEndsAt").value = toDateTimeLocal(event?.endsAt);
+  renderRewardOptions();
+  if (event) $("eventRewardType").value = event.rewardType;
+  $("eventRewardQuantity").value = event?.rewardQuantity || "";
+  $("eventActive").checked = event ? event.active : true;
+  msg("eventFormMsg", "");
+}
+
+async function saveEvent() {
+  try {
+    const body = {
+      title: $("eventTitle").value.trim(),
+      startsAt: new Date($("eventStartsAt").value).toISOString(),
+      endsAt: new Date($("eventEndsAt").value).toISOString(),
+      rewardType: $("eventRewardType").value,
+      rewardQuantity: Number($("eventRewardQuantity").value),
+      active: $("eventActive").checked,
     };
+    if (!body.title || !$("eventStartsAt").value || !$("eventEndsAt").value || !body.rewardType || !Number.isInteger(body.rewardQuantity) || body.rewardQuantity < 1) {
+      throw new Error("Lengkapi data event.");
+    }
+    const path = editingEventId ? `/owner/events/${encodeURIComponent(editingEventId)}` : "/owner/events";
+    await api(path, { method: editingEventId ? "PATCH" : "POST", body: JSON.stringify(body) });
+    $("eventFormCard").hidden = true;
+    await loadOwnerData();
+    setOwnerView("events");
+  } catch (error) {
+    msg("eventFormMsg", error.message);
+  }
+}
+
+function renderCustomerTrace(data) {
+  const target = $("traceResult");
+  if (!target) return;
+  const customer = data.customer;
+  const timeline = [
+    ...(data.transactions || []).map((row) => ({ title: "Transaction", text: `${row.transaction_id} · ${row.service_type}` })),
+    ...(data.plays || []).map((row) => ({ title: "Play", text: `${row.play_id} · ${row.status}` })),
+    ...(data.rewards || []).map((row) => ({ title: "Reward", text: `${row.reward_id} · ${row.type} · ${row.status}` })),
+  ];
+  target.innerHTML = `<div class="trace-customer-card"><h2>${escapeHtml(customer.name || "Nama belum tersedia")}</h2><p>${escapeHtml(customer.customer_id)}</p><p>${escapeHtml(customer.phone_masked || "—")} · ${escapeHtml(customer.email || "—")}</p><p>Registrasi: ${escapeHtml(formatDateTime(customer.created_at))}</p><div class="trace-timeline">${timeline.length ? timeline.map((item) => `<div class="trace-step"><b>${escapeHtml(item.title)}</b><span>${escapeHtml(item.text)}</span></div>`).join("") : `<div class="trace-step"><span>Belum ada aktivitas.</span></div>`}</div></div>`;
+}
+
+async function runCustomerTrace() {
+  try {
+    const id = $("traceCustomerId").value.trim();
+    if (!id) throw new Error("Customer ID wajib diisi.");
+    renderCustomerTrace(await api(`/owner/customer/${encodeURIComponent(id)}`));
+  } catch (error) {
+    $("traceResult").textContent = error.message;
+  }
+}
+
+async function loadOwnerAudit() {
+  try {
+    const data = await api("/owner/audit?limit=100");
+    const query = ($("auditSearch")?.value || "").trim().toLowerCase();
+    const items = (data.items || []).filter((item) => !query || `${item.entity_type} ${item.entity_id} ${item.action} ${item.actor} ${item.result}`.toLowerCase().includes(query));
+    const target = $("ownerAuditList");
+    target.innerHTML = items.length ? items.map((item) => `<div class="owner-list-item audit-item"><div class="row"><b>${escapeHtml(item.action)}</b><span class="status-pill ${item.result === "SUCCESS" ? "" : "off"}">${escapeHtml(item.result)}</span></div><small>${escapeHtml(formatDateTime(item.timestamp))}</small><div class="meta"><div>Entity<strong>${escapeHtml(item.entity_type)}</strong></div><div>ID<strong>${escapeHtml(item.entity_id)}</strong></div><div>Source<strong>${escapeHtml(item.actor)}</strong></div></div></div>`).join("") : `<div class="owner-list-item"><small>Tidak ada audit.</small></div>`;
+  } catch (error) {
+    $("ownerAuditList").textContent = error.message;
+  }
+}
+
+async function loadOwnerData() {
+  try {
+    const data = await api("/owner/overview");
+    ownerData = data;
+    renderOwnerOverview();
+    renderOwnerEvents(data.activeEvents || []);
+    renderRewardOptions();
+    if (ownerCurrentView === "machines") renderOwnerMachines();
+  } catch (error) {
+    msg("ownerResult", error.message);
+    throw error;
+  }
+}
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[character]));
+}
+
+for (const button of document.querySelectorAll("[data-owner-view]")) {
+  button.addEventListener("click", () => setOwnerView(button.dataset.ownerView));
+}
+
+for (const button of document.querySelectorAll("#operationPeriods [data-period]")) {
+  button.addEventListener("click", () => {
+    ownerOperationPeriod = button.dataset.period;
+    renderOwnerOperations();
+  });
+}
+
+for (const button of document.querySelectorAll("#eventFilters [data-event-filter]")) {
+  button.addEventListener("click", () => {
+    ownerEventFilter = button.dataset.eventFilter;
+    document.querySelectorAll("#eventFilters button").forEach((item) => item.classList.toggle("active", item.dataset.eventFilter === ownerEventFilter));
+    renderOwnerEvents(ownerData?.events || []);
+  });
+}
+
+$("newEventButton")?.addEventListener("click", () => openEventForm());
+$("cancelEventButton")?.addEventListener("click", () => { $("eventFormCard").hidden = true; });
+$("saveEventButton")?.addEventListener("click", saveEvent);
+$("newRewardButton")?.addEventListener("click", () => openRewardForm());
+$("cancelRewardButton")?.addEventListener("click", () => { $("rewardFormCard").hidden = true; });
+$("saveRewardButton")?.addEventListener("click", saveReward);
+$("traceCustomer")?.addEventListener("click", runCustomerTrace);
+$("refreshAudit")?.addEventListener("click", loadOwnerAudit);
+$("auditSearch")?.addEventListener("input", loadOwnerAudit);
+
+$("downloadExport")?.addEventListener("click", async () => {
+  try {
+    const params = new URLSearchParams();
+    if ($("exportFrom").value) params.set("from", `${$("exportFrom").value}T00:00:00+07:00`);
+    if ($("exportTo").value) params.set("to", `${$("exportTo").value}T23:59:59+07:00`);
+    const response = await fetch(`${apiBase}/owner/export?${params}`, { headers: { Authorization: `Bearer ${state.token}` }, cache: "no-store" });
+    if (!response.ok) throw new Error((await response.json().catch(() => ({}))).message || `HTTP ${response.status}`);
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "teras-laundry-owner-report.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+    msg("csvExportMsg", "CSV berhasil dibuat.");
+  } catch (error) {
+    msg("csvExportMsg", error.message);
+  }
+});
+
+$("ownerLogout")?.addEventListener("click", () => {
+  clearSession();
+  window.location.href = "?role=owner";
+});
+
+async function loadOwner() {
+  ownerCurrentView = "overview";
+  setOwnerView("overview");
+  await loadOwnerData();
 }
 
 function makeQrSvg(text) {
