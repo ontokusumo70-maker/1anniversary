@@ -8,7 +8,8 @@ export type AuditEntityType =
   | "REWARD"
   | "MACHINE"
   | "EXPORT"
-  | "TRACE";
+  | "TRACE"
+  | "EVENT";
 
 export type AuditAction =
   | "START"
@@ -20,7 +21,8 @@ export type AuditAction =
   | "CREATE"
   | "UPDATE"
   | "EXPORT"
-  | "TRACE";
+  | "TRACE"
+  | "EVENT";
 
 export type AuditResult =
   | "SUCCESS"
