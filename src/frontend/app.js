@@ -204,8 +204,13 @@ function showCustomerAuth() {
     $("requestOtp").hidden = false;
   }
 
+  if ($("otpInfo")) {
+    $("otpInfo").hidden = false;
+  }
+
   if ($("staffLogin")) {
-    $("staffLogin").hidden = true;
+    $("staffLogin").hidden = false;
+    $("staffLogin").textContent = "Login Staff / Owner";
   }
 
   if ($("otpBox")) {
@@ -224,8 +229,13 @@ function showStaffOwnerAuth() {
     $("requestOtp").hidden = true;
   }
 
+  if ($("otpInfo")) {
+    $("otpInfo").hidden = true;
+  }
+
   if ($("staffLogin")) {
     $("staffLogin").hidden = false;
+    $("staffLogin").textContent = "Kembali ke Login Konsumen";
   }
 
   if ($("otpBox")) {
@@ -398,8 +408,14 @@ if ($("verifyOtp")) {
 }
 
 if ($("staffLogin")) {
-  $("staffLogin").onclick =
-    loginStaffOwner;
+  $("staffLogin").onclick = () => {
+    if ($("emailLabel")?.hidden) {
+      showCustomerAuth();
+      return;
+    }
+
+    showStaffOwnerAuth();
+  };
 }
 
 let raf = 0;
