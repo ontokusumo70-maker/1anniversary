@@ -44,12 +44,30 @@ async function resolveRole(env: AuthEnv, phone: string): Promise<UserRole> {
 }
 
 async function deliverOtp(env: AuthEnv, phone: string, otp: string): Promise<boolean> {
-  const url = env.OTP_DELIVERY_URL?.trim();
-  if (!url) return env.ENVIRONMENT !== "production";
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (env.OTP_DELIVERY_SECRET) headers.Authorization = `Bearer ${env.OTP_DELIVERY_SECRET}`;
-  const response = await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone, message: `Teras Laundry OTP: ${otp}. Berlaku 5 menit. Jangan bagikan kode ini.` }) });
-  return response.ok;
+  const token = env.OTP_DELIVERY_SECRET?.trim();
+  if (!token) return env.ENVIRONMENT !== "production";
+
+  const form = new FormData();
+  form.set("target", phone);
+  form.set("message", `Teras Laundry OTP: ${otp}. Berlaku 5 menit. Jangan bagikan kode ini.`);
+  form.set("countryCode", "62");
+
+  const response = await fetch("https://api.fonnte.com/send", {
+    method: "POST",
+    headers: { Authorization: token },
+    body: form,
+  });
+
+  if (!response.ok) return false;
+
+  let result: { status?: boolean; Status?: boolean };
+  try {
+    result = await response.json() as { status?: boolean; Status?: boolean };
+  } catch {
+    return false;
+  }
+
+  return result.status === true || result.Status === true;
 }
 
 async function requestOtp(request: Request, env: AuthEnv): Promise<Response> {
