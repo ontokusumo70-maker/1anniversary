@@ -14,11 +14,16 @@ export interface Env {
   DB: D1Database;
   ENVIRONMENT?: string;
   ALLOWED_ORIGIN?: string;
+
   STAFF_PHONE?: string;
   OWNER_PHONE_1?: string;
   OWNER_PHONE_2?: string;
-  OTP_DELIVERY_URL?: string;
-  OTP_DELIVERY_SECRET?: string;
+
+  GMAIL_CLIENT_ID?: string;
+  GMAIL_CLIENT_SECRET?: string;
+  GMAIL_REFRESH_TOKEN?: string;
+  GMAIL_SENDER_EMAIL?: string;
+
   R2?: R2Bucket;
 }
 
@@ -195,14 +200,47 @@ async function handleRequest(
     );
   }
 
-  const authResponse = await handleAuthRequest(request, env);
-  if (authResponse.status !== 404) return withCors(authResponse, origin);
+  const authResponse =
+    await handleAuthRequest(
+      request,
+      env,
+    );
 
-  const ownerResponse = await handleOwnerRequest(request, env);
-  if (ownerResponse.status !== 404) return ownerResponse;
+  if (
+    authResponse.status !==
+    404
+  ) {
+    return withCors(
+      authResponse,
+      origin,
+    );
+  }
 
-  const assetResponse = await handleAssetRequest(request, env);
-  if (assetResponse.status !== 404) return assetResponse;
+  const ownerResponse =
+    await handleOwnerRequest(
+      request,
+      env,
+    );
+
+  if (
+    ownerResponse.status !==
+    404
+  ) {
+    return ownerResponse;
+  }
+
+  const assetResponse =
+    await handleAssetRequest(
+      request,
+      env,
+    );
+
+  if (
+    assetResponse.status !==
+    404
+  ) {
+    return assetResponse;
+  }
 
   if (
     request.method === 'GET' &&
@@ -224,7 +262,10 @@ async function handleRequest(
             15,
         },
         assets: {
-          basePath: env.R2 ? '/r2-assets/' : '/assets/',
+          basePath:
+            env.R2
+              ? '/r2-assets/'
+              : '/assets/',
         },
         machineStatus: {
           washers: 5,
@@ -291,18 +332,42 @@ async function handleRequest(
     return ownerExportResponse;
   }
 
-  const claimResponse = await handleClaimRequest(request, env);
-  if (claimResponse.status !== 404) {
+  const claimResponse =
+    await handleClaimRequest(
+      request,
+      env,
+    );
+
+  if (
+    claimResponse.status !==
+    404
+  ) {
     return claimResponse;
   }
 
-  const rewardResponse = await handleRewardRequest(request, env);
-  if (rewardResponse.status !== 404) {
+  const rewardResponse =
+    await handleRewardRequest(
+      request,
+      env,
+    );
+
+  if (
+    rewardResponse.status !==
+    404
+  ) {
     return rewardResponse;
   }
 
-  const staffResponse = await handleStaffRedeemRequest(request, env);
-  if (staffResponse.status !== 404) {
+  const staffResponse =
+    await handleStaffRedeemRequest(
+      request,
+      env,
+    );
+
+  if (
+    staffResponse.status !==
+    404
+  ) {
     return staffResponse;
   }
 
