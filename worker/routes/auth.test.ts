@@ -1,5 +1,5 @@
 import { strict as assert } from "node:assert";
-import { buildOtpChallengeInsert, buildOtpChallengeLookup, buildOtpChallengeConsume } from "../auth/otp-store";
+import { buildOtpChallengeInsert, buildOtpChallengeLookup, buildOtpChallengeConsume } from "../auth/otp-store.ts";
 
 const challenge={challengeId:"challenge-1",phoneHash:"phone-hash",role:"CUSTOMER" as const,otpHash:"otp-hash",createdAt:"2026-09-11T00:00:00.000Z",expiresAt:"2026-09-11T00:05:00.000Z",attempts:0,consumed:false};
 const insert=buildOtpChallengeInsert(challenge);assert.match(insert.sql,/auth_sessions/);assert.equal(insert.params.includes("123456"),false);
