@@ -162,6 +162,7 @@ async function loadConfig() {
 }
 
 function showRole() {
+  document.body.dataset.role = state.role || "CUSTOMER";
   if ($("auth")) {
     $("auth").hidden = true;
   }
@@ -179,18 +180,21 @@ function showRole() {
   }
 
   if (state.role === "CUSTOMER") {
+    document.documentElement.style.setProperty("--game-bg", `url("${assetBasePath}background/game/game-bg.PNG")`);
     $("customer").hidden = false;
     refreshMachines();
     return;
   }
 
   if (state.role === "STAFF") {
+    document.documentElement.style.setProperty("--game-bg", `url("${assetBasePath}background/staff/staff-bg.PNG")`);
     $("staff").hidden = false;
     refreshStaffMachines();
     return;
   }
 
   if (state.role === "OWNER") {
+    document.documentElement.style.setProperty("--game-bg", `url("${assetBasePath}background/owner/owner-bg.PNG")`);
     $("owner").hidden = false;
     loadOwner();
   }
