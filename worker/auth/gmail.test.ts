@@ -10,10 +10,25 @@ const mime = buildGmailMimeMessage(
   "123456",
 );
 
-assert.match(mime, /From: Teras Laundry <teras\.binatu@gmail\.com>/);
-assert.match(mime, /To: customer@gmail\.com/);
-assert.match(mime, /Subject: Kode OTP Teras Laundry/);
-assert.match(mime, /123456/);
+assert.match(
+  mime,
+  /From: Teras Laundry <teras\.binatu@gmail\.com>/,
+);
+
+assert.match(
+  mime,
+  /To: customer@gmail\.com/,
+);
+
+assert.match(
+  mime,
+  /Subject: Kode OTP Teras Laundry/,
+);
+
+assert.match(
+  mime,
+  /123456/,
+);
 
 const raw = buildGmailRawMessage(mime);
 
