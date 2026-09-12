@@ -1,4 +1,3 @@
-import type { Env } from "../index";
 import type { OtpChallenge, UserRole } from "./types";
 
 const OTP_LENGTH = 6;
@@ -25,13 +24,22 @@ function normalizePhone(phone: string): string {
   return phone.replace(/[^\d+]/g, "");
 }
 
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 export async function hashPhone(phone: string): Promise<string> {
   return sha256(normalizePhone(phone));
+}
+
+export async function hashEmail(email: string): Promise<string> {
+  return sha256(normalizeEmail(email));
 }
 
 export async function createOtpChallenge(
   phone: string,
   role: UserRole,
+  email?: string,
 ): Promise<{
   challenge: OtpChallenge;
   otp: string;
@@ -46,6 +54,7 @@ export async function createOtpChallenge(
   const challenge: OtpChallenge = {
     challengeId: crypto.randomUUID(),
     phoneHash: await hashPhone(phone),
+    ...(email ? { emailHash: await hashEmail(email) } : {}),
     role,
     otpHash: await sha256(otp),
     createdAt: now.toISOString(),
