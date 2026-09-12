@@ -226,7 +226,7 @@ async function handleRequest(
     ownerResponse.status !==
     404
   ) {
-    return ownerResponse;
+    return withCors(ownerResponse, origin);
   }
 
   const assetResponse =
@@ -303,7 +303,7 @@ async function handleRequest(
     gameResponse.status !==
     404
   ) {
-    return gameResponse;
+    return withCors(gameResponse, origin);
   }
 
   const machineResponse =
@@ -316,7 +316,7 @@ async function handleRequest(
     machineResponse.status !==
     404
   ) {
-    return machineResponse;
+    return withCors(machineResponse, origin);
   }
 
   const ownerExportResponse =
@@ -329,7 +329,7 @@ async function handleRequest(
     ownerExportResponse.status !==
     404
   ) {
-    return ownerExportResponse;
+    return withCors(ownerExportResponse, origin);
   }
 
   const claimResponse =
@@ -342,7 +342,7 @@ async function handleRequest(
     claimResponse.status !==
     404
   ) {
-    return claimResponse;
+    return withCors(claimResponse, origin);
   }
 
   const rewardResponse =
@@ -355,7 +355,7 @@ async function handleRequest(
     rewardResponse.status !==
     404
   ) {
-    return rewardResponse;
+    return withCors(rewardResponse, origin);
   }
 
   const staffResponse =
