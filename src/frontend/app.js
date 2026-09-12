@@ -6,6 +6,7 @@ const state = {
   playId: null,
   sessionId: null,
   rewardId: null,
+  authMode: "CUSTOMER",
 };
 
 const SESSION_KEY = "teras_laundry_auth_session";
@@ -195,7 +196,9 @@ function showRole() {
   }
 }
 
-function showCustomerAuth() {
+function showCustomerAuth(clearMessage = true) {
+  state.authMode = "CUSTOMER";
+
   if ($("emailLabel")) {
     $("emailLabel").hidden = false;
   }
@@ -209,18 +212,21 @@ function showCustomerAuth() {
   }
 
   if ($("staffLogin")) {
-    $("staffLogin").hidden = false;
-    $("staffLogin").textContent = "Login Staff / Owner";
+    $("staffLogin").hidden = true;
   }
 
   if ($("otpBox")) {
     $("otpBox").hidden = true;
   }
 
-  msg("authMsg", "");
+  if (clearMessage) {
+    msg("authMsg", "");
+  }
 }
 
-function showStaffOwnerAuth() {
+function showStaffOwnerAuth(clearMessage = true) {
+  state.authMode = "STAFF_OWNER";
+
   if ($("emailLabel")) {
     $("emailLabel").hidden = true;
   }
@@ -235,17 +241,62 @@ function showStaffOwnerAuth() {
 
   if ($("staffLogin")) {
     $("staffLogin").hidden = false;
-    $("staffLogin").textContent = "Kembali ke Login Konsumen";
+    $("staffLogin").textContent = "Login";
   }
 
   if ($("otpBox")) {
     $("otpBox").hidden = true;
   }
 
-  msg(
-    "authMsg",
-    "Masukkan nomor Staff / Owner lalu tekan Login.",
-  );
+  if (clearMessage) {
+    msg("authMsg", "");
+  }
+}
+
+let authModeRequest = 0;
+let authModeTimer = null;
+
+async function detectAuthMode() {
+  const phone = $("phone")?.value.trim() || "";
+  const requestId = ++authModeRequest;
+
+  if (authModeTimer) {
+    clearTimeout(authModeTimer);
+    authModeTimer = null;
+  }
+
+  if (phone.replace(/\D/g, "").length < 8) {
+    showCustomerAuth(false);
+    return;
+  }
+
+  authModeTimer = setTimeout(async () => {
+    try {
+      const data = await api(
+        "/auth/mode",
+        {
+          method: "POST",
+          body: JSON.stringify({ phone }),
+        },
+      );
+
+      if (requestId !== authModeRequest) {
+        return;
+      }
+
+      if (data.mode === "STAFF_OWNER") {
+        showStaffOwnerAuth(false);
+      } else {
+        showCustomerAuth(false);
+      }
+    } catch {
+      if (requestId !== authModeRequest) {
+        return;
+      }
+
+      showCustomerAuth(false);
+    }
+  }, 250);
 }
 
 async function requestCustomerOtp() {
@@ -389,12 +440,20 @@ async function loginStaffOwner() {
     msg("authMsg", "");
 
     showRole();
+    return;
   } catch (error) {
     msg(
       "authMsg",
       error.message,
     );
   }
+}
+
+if ($("phone")) {
+  $("phone").addEventListener(
+    "input",
+    detectAuthMode,
+  );
 }
 
 if ($("requestOtp")) {
@@ -408,14 +467,8 @@ if ($("verifyOtp")) {
 }
 
 if ($("staffLogin")) {
-  $("staffLogin").onclick = () => {
-    if ($("emailLabel")?.hidden) {
-      showCustomerAuth();
-      return;
-    }
-
-    showStaffOwnerAuth();
-  };
+  $("staffLogin").onclick =
+    loginStaffOwner;
 }
 
 let raf = 0;
