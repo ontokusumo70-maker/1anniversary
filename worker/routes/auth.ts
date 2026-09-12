@@ -156,6 +156,46 @@ async function resolveRole(
   return "CUSTOMER";
 }
 
+async function identifyAuthMode(
+  request: Request,
+  env: AuthEnv,
+): Promise<Response> {
+  let body: {
+    phone?: unknown;
+  };
+
+  try {
+    body = await request.json() as {
+      phone?: unknown;
+    };
+  } catch {
+    return errorResponse(
+      "INVALID_REQUEST",
+      "Invalid JSON request body.",
+      400,
+    );
+  }
+
+  if (!isPhone(body.phone)) {
+    return errorResponse(
+      "INVALID_REQUEST",
+      "Phone is required.",
+      400,
+    );
+  }
+
+  const phone = normalizePhone(body.phone);
+  const role = await resolveRole(env, phone);
+
+  return json({
+    ok: true,
+    mode:
+      role === "STAFF" || role === "OWNER"
+        ? "STAFF_OWNER"
+        : "CUSTOMER",
+  });
+}
+
 function gmailConfigured(env: AuthEnv): boolean {
   return Boolean(
     env.GMAIL_CLIENT_ID?.trim() &&
@@ -588,6 +628,13 @@ export async function handleAuthRequest(
   env: AuthEnv,
 ): Promise<Response> {
   const url = new URL(request.url);
+
+  if (
+    request.method === "POST" &&
+    url.pathname === "/auth/mode"
+  ) {
+    return identifyAuthMode(request, env);
+  }
 
   if (
     request.method === "POST" &&
