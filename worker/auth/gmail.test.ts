@@ -2,7 +2,7 @@ import { strict as assert } from "node:assert";
 import {
   buildGmailMimeMessage,
   buildGmailRawMessage,
-} from "./gmail";
+} from "./gmail.ts";
 
 const mime = buildGmailMimeMessage(
   "teras.binatu@gmail.com",
