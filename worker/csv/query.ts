@@ -1,67 +1,40 @@
 /*
  * ============================================================
  * CSV EXPORT QUERY
- * Teras Laundry 1st Anniversary
- *
- * 3.9.3
- *
- * Tanggung jawab:
- * - validasi date range
- * - pagination/chunking
- * - query Customer
- * - query Play
- * - query Reward
- * - query Audit
- *
- * Authorization tetap ditangani oleh route Owner.
+ * Owner report: Customer + Machine + Event + Audit.
+ * Queries are paginated to protect D1/Worker resource limits.
  * ============================================================
  */
 
 import type { Env } from "../index";
 
-/* ============================================================
- * TYPES
- * ============================================================
- */
-
-export type ExportRange = {
-  from?: string;
-  to?: string;
-};
-
-export type Pagination = {
-  limit: number;
-  offset: number;
-};
+export type ExportRange = { from?: string; to?: string };
+export type Pagination = { limit: number; offset: number };
 
 export type CustomerExportRow = {
   customer_id: string;
-  phone_masked: string;
+  name: string;
+  phone: string;
+  email: string;
   created_at: string;
-  total_play: number;
-  total_reward: number;
-  total_redeemed: number;
+  total_customers: number;
 };
 
-export type PlayExportRow = {
-  play_id: string;
-  customer_id: string;
-  transaction_reference: string;
-  service: string;
-  time: string;
-  status: string;
+export type MachineExportRow = {
+  machine_type: string;
+  machine_number: number;
+  total_operations: number;
+  total_seconds: number;
 };
 
-export type RewardExportRow = {
-  reward_id: string;
-  customer_id: string;
+export type EventExportRow = {
+  event_id: string;
+  title: string;
+  starts_at: string;
+  ends_at: string;
   reward_type: string;
-  safe_token_reference: string;
-  win_time: string;
-  claim_time: string | null;
-  redeem_time: string | null;
-  used_time: string | null;
-  status: string;
+  reward_quantity: number;
+  active: number;
 };
 
 export type AuditExportRow = {
@@ -73,530 +46,92 @@ export type AuditExportRow = {
   result: string;
 };
 
-/* ============================================================
- * CONSTANTS
- * ============================================================
- */
-
 const DEFAULT_LIMIT = 500;
 const MAX_LIMIT = 1000;
 const MAX_OFFSET = 10_000_000;
 
-/* ============================================================
- * DATE RANGE
- * ============================================================
- */
-
-export function validateExportRange(
-  from?: string,
-  to?: string,
-): boolean {
-  if (!from && !to) {
-    return true;
-  }
-
-  const fromMs =
-    from
-      ? Date.parse(from)
-      : null;
-
-  const toMs =
-    to
-      ? Date.parse(to)
-      : null;
-
-  if (
-    from &&
-    !Number.isFinite(fromMs)
-  ) {
-    return false;
-  }
-
-  if (
-    to &&
-    !Number.isFinite(toMs)
-  ) {
-    return false;
-  }
-
-  if (
-    fromMs !== null &&
-    toMs !== null &&
-    fromMs > toMs
-  ) {
-    return false;
-  }
-
+export function validateExportRange(from?: string, to?: string): boolean {
+  if (!from && !to) return true;
+  const fromMs = from ? Date.parse(from) : null;
+  const toMs = to ? Date.parse(to) : null;
+  if (from && !Number.isFinite(fromMs)) return false;
+  if (to && !Number.isFinite(toMs)) return false;
+  if (fromMs !== null && toMs !== null && fromMs > toMs) return false;
   return true;
 }
 
-export function buildDateFilter(
-  from?: string,
-  to?: string,
-): {
-  sql: string;
-  params: string[];
-} {
+export function buildDateFilter(from?: string, to?: string): { sql: string; params: string[] } {
   const conditions: string[] = [];
   const params: string[] = [];
+  if (from) { conditions.push("created_at >= ?"); params.push(from); }
+  if (to) { conditions.push("created_at <= ?"); params.push(to); }
+  return conditions.length ? { sql: ` WHERE ${conditions.join(" AND ")}`, params } : { sql: "", params: [] };
+}
 
-  if (from) {
-    conditions.push(
-      "created_at >= ?",
-    );
-
-    params.push(from);
-  }
-
-  if (to) {
-    conditions.push(
-      "created_at <= ?",
-    );
-
-    params.push(to);
-  }
-
-  if (conditions.length === 0) {
-    return {
-      sql: "",
-      params: [],
-    };
-  }
-
+export function buildPagination(limit?: number, offset?: number): Pagination {
+  const normalizedLimit = Number.isFinite(limit) ? Math.floor(limit as number) : DEFAULT_LIMIT;
+  const normalizedOffset = Number.isFinite(offset) ? Math.floor(offset as number) : 0;
   return {
-    sql:
-      " WHERE " +
-      conditions.join(
-        " AND ",
-      ),
-    params,
+    limit: Math.min(Math.max(normalizedLimit, 1), MAX_LIMIT),
+    offset: Math.min(Math.max(normalizedOffset, 0), MAX_OFFSET),
   };
 }
 
-/* ============================================================
- * PAGINATION
- * ============================================================
- */
-
-export function buildPagination(
-  limit?: number,
-  offset?: number,
-): Pagination {
-  const normalizedLimit =
-    Number.isFinite(limit)
-      ? Math.floor(
-          limit as number,
-        )
-      : DEFAULT_LIMIT;
-
-  const normalizedOffset =
-    Number.isFinite(offset)
-      ? Math.floor(
-          offset as number,
-        )
-      : 0;
-
-  return {
-    limit: Math.min(
-      Math.max(
-        normalizedLimit,
-        1,
-      ),
-      MAX_LIMIT,
-    ),
-    offset: Math.min(
-      Math.max(
-        normalizedOffset,
-        0,
-      ),
-      MAX_OFFSET,
-    ),
-  };
-}
-
-/* ============================================================
- * CUSTOMER QUERY
- *
- * CSV minimum:
- * Customer ID
- * phone/masked phone
- * registration date
- * total Play
- * total Reward
- * total Redeemed
- *
- * phone_masked digunakan.
- * phone_hash tidak diekspor.
- * ============================================================
- */
-
-export async function queryCustomers(
-  env: Env,
-  range: ExportRange = {},
-  pagination: Pagination = buildPagination(),
-): Promise<CustomerExportRow[]> {
-  if (
-    !validateExportRange(
-      range.from,
-      range.to,
-    )
-  ) {
-    throw new Error(
-      "INVALID_EXPORT_RANGE",
-    );
-  }
-
+export async function queryCustomers(env: Env, range: ExportRange = {}, pagination: Pagination = buildPagination()): Promise<CustomerExportRow[]> {
+  if (!validateExportRange(range.from, range.to)) throw new Error("INVALID_EXPORT_RANGE");
   const conditions: string[] = [];
   const params: string[] = [];
-
-  if (range.from) {
-    conditions.push(
-      "c.created_at >= ?",
-    );
-
-    params.push(range.from);
-  }
-
-  if (range.to) {
-    conditions.push(
-      "c.created_at <= ?",
-    );
-
-    params.push(range.to);
-  }
-
-  const where =
-    conditions.length > 0
-      ? `WHERE ${conditions.join(" AND ")}`
-      : "";
-
-  const result =
-    await env.DB
-      .prepare(
-        `
-        SELECT
-          c.customer_id,
-          c.phone_masked,
-          c.created_at,
-
-          (
-            SELECT COUNT(*)
-            FROM plays p
-            WHERE p.customer_id =
-              c.customer_id
-          ) AS total_play,
-
-          (
-            SELECT COUNT(*)
-            FROM rewards r
-            WHERE r.customer_id =
-              c.customer_id
-          ) AS total_reward,
-
-          (
-            SELECT COUNT(*)
-            FROM rewards r
-            WHERE r.customer_id =
-              c.customer_id
-              AND r.status IN (
-                'REDEEMED',
-                'USED'
-              )
-          ) AS total_redeemed
-
-        FROM customers c
-        ${where}
-
-        ORDER BY
-          c.created_at ASC,
-          c.customer_id ASC
-
-        LIMIT ?
-        OFFSET ?
-        `,
-      )
-      .bind(
-        ...params,
-        pagination.limit,
-        pagination.offset,
-      )
-      .all<CustomerExportRow>();
-
+  if (range.from) { conditions.push("c.created_at >= ?"); params.push(range.from); }
+  if (range.to) { conditions.push("c.created_at <= ?"); params.push(range.to); }
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  const result = await env.DB.prepare(`
+    SELECT c.customer_id, c.name, c.phone_masked AS phone, c.email, c.created_at, COUNT(*) OVER () AS total_customers
+    FROM customers c ${where}
+    ORDER BY c.created_at ASC, c.customer_id ASC LIMIT ? OFFSET ?
+  `).bind(...params, pagination.limit, pagination.offset).all<CustomerExportRow>();
   return result.results;
 }
 
-/* ============================================================
- * PLAY QUERY
- * ============================================================
- */
-
-export async function queryPlays(
-  env: Env,
-  range: ExportRange = {},
-  pagination: Pagination = buildPagination(),
-): Promise<PlayExportRow[]> {
-  if (
-    !validateExportRange(
-      range.from,
-      range.to,
-    )
-  ) {
-    throw new Error(
-      "INVALID_EXPORT_RANGE",
-    );
-  }
-
+export async function queryMachineUsage(env: Env, range: ExportRange = {}): Promise<MachineExportRow[]> {
+  if (!validateExportRange(range.from, range.to)) throw new Error("INVALID_EXPORT_RANGE");
   const conditions: string[] = [];
   const params: string[] = [];
-
-  if (range.from) {
-    conditions.push(
-      "p.created_at >= ?",
-    );
-
-    params.push(range.from);
-  }
-
-  if (range.to) {
-    conditions.push(
-      "p.created_at <= ?",
-    );
-
-    params.push(range.to);
-  }
-
-  const where =
-    conditions.length > 0
-      ? `WHERE ${conditions.join(" AND ")}`
-      : "";
-
-  const result =
-    await env.DB
-      .prepare(
-        `
-        SELECT
-          p.play_id,
-          p.customer_id,
-          p.transaction_id
-            AS transaction_reference,
-          t.service_type
-            AS service,
-          p.created_at
-            AS time,
-          p.status
-
-        FROM plays p
-
-        INNER JOIN transactions t
-          ON t.transaction_id =
-             p.transaction_id
-
-        ${where}
-
-        ORDER BY
-          p.created_at ASC,
-          p.play_id ASC
-
-        LIMIT ?
-        OFFSET ?
-        `,
-      )
-      .bind(
-        ...params,
-        pagination.limit,
-        pagination.offset,
-      )
-      .all<PlayExportRow>();
-
+  if (range.from) { conditions.push("started_at >= ?"); params.push(range.from); }
+  if (range.to) { conditions.push("started_at <= ?"); params.push(range.to); }
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  const result = await env.DB.prepare(`
+    SELECT machine_type, machine_number, COUNT(*) AS total_operations, COALESCE(SUM(duration_seconds),0) AS total_seconds
+    FROM machine_operations ${where}
+    GROUP BY machine_type, machine_number
+    ORDER BY CASE WHEN machine_type = 'WASHER' THEN 1 ELSE 2 END, machine_number ASC
+  `).bind(...params).all<MachineExportRow>();
   return result.results;
 }
 
-/* ============================================================
- * REWARD QUERY
- *
- * IMPORTANT:
- * token_ref adalah opaque QR reference.
- * Tidak ada raw secret token tambahan yang dibuat/export.
- *
- * Migration hanya menyediakan:
- * token_ref
- * created_at
- * claimed_at
- * redeemed_at
- * used_at
- *
- * created_at dipakai sebagai win_time.
- * ============================================================
- */
-
-export async function queryRewards(
-  env: Env,
-  range: ExportRange = {},
-  pagination: Pagination = buildPagination(),
-): Promise<RewardExportRow[]> {
-  if (
-    !validateExportRange(
-      range.from,
-      range.to,
-    )
-  ) {
-    throw new Error(
-      "INVALID_EXPORT_RANGE",
-    );
-  }
-
+export async function queryEvents(env: Env, range: ExportRange = {}, pagination: Pagination = buildPagination()): Promise<EventExportRow[]> {
+  if (!validateExportRange(range.from, range.to)) throw new Error("INVALID_EXPORT_RANGE");
   const conditions: string[] = [];
   const params: string[] = [];
-
-  if (range.from) {
-    conditions.push(
-      "r.created_at >= ?",
-    );
-
-    params.push(range.from);
-  }
-
-  if (range.to) {
-    conditions.push(
-      "r.created_at <= ?",
-    );
-
-    params.push(range.to);
-  }
-
-  const where =
-    conditions.length > 0
-      ? `WHERE ${conditions.join(" AND ")}`
-      : "";
-
-  const result =
-    await env.DB
-      .prepare(
-        `
-        SELECT
-          r.reward_id,
-          r.customer_id,
-          r.type
-            AS reward_type,
-
-          /*
-           * Safe opaque reference.
-           * Tidak melakukan transformasi menjadi secret baru.
-           */
-          r.token_ref
-            AS safe_token_reference,
-
-          r.created_at
-            AS win_time,
-
-          r.claimed_at
-            AS claim_time,
-
-          r.redeemed_at
-            AS redeem_time,
-
-          r.used_at
-            AS used_time,
-
-          r.status
-
-        FROM rewards r
-
-        ${where}
-
-        ORDER BY
-          r.created_at ASC,
-          r.reward_id ASC
-
-        LIMIT ?
-        OFFSET ?
-        `,
-      )
-      .bind(
-        ...params,
-        pagination.limit,
-        pagination.offset,
-      )
-      .all<RewardExportRow>();
-
+  if (range.from) { conditions.push("starts_at >= ?"); params.push(range.from); }
+  if (range.to) { conditions.push("starts_at <= ?"); params.push(range.to); }
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  const result = await env.DB.prepare(`
+    SELECT event_id, title, starts_at, ends_at, reward_type, reward_quantity, active
+    FROM events ${where} ORDER BY starts_at ASC, event_id ASC LIMIT ? OFFSET ?
+  `).bind(...params, pagination.limit, pagination.offset).all<EventExportRow>();
   return result.results;
 }
 
-/* ============================================================
- * AUDIT QUERY
- * ============================================================
- */
-
-export async function queryAudit(
-  env: Env,
-  range: ExportRange = {},
-  pagination: Pagination = buildPagination(),
-): Promise<AuditExportRow[]> {
-  if (
-    !validateExportRange(
-      range.from,
-      range.to,
-    )
-  ) {
-    throw new Error(
-      "INVALID_EXPORT_RANGE",
-    );
-  }
-
+export async function queryAudit(env: Env, range: ExportRange = {}, pagination: Pagination = buildPagination()): Promise<AuditExportRow[]> {
+  if (!validateExportRange(range.from, range.to)) throw new Error("INVALID_EXPORT_RANGE");
   const conditions: string[] = [];
   const params: string[] = [];
-
-  if (range.from) {
-    conditions.push(
-      "a.timestamp >= ?",
-    );
-
-    params.push(range.from);
-  }
-
-  if (range.to) {
-    conditions.push(
-      "a.timestamp <= ?",
-    );
-
-    params.push(range.to);
-  }
-
-  const where =
-    conditions.length > 0
-      ? `WHERE ${conditions.join(" AND ")}`
-      : "";
-
-  const result =
-    await env.DB
-      .prepare(
-        `
-        SELECT
-          a.timestamp,
-          a.entity_type,
-          a.entity_id,
-          a.action,
-          a.actor,
-          a.result
-
-        FROM audit_log a
-
-        ${where}
-
-        ORDER BY
-          a.timestamp ASC,
-          a.audit_id ASC
-
-        LIMIT ?
-        OFFSET ?
-        `,
-      )
-      .bind(
-        ...params,
-        pagination.limit,
-        pagination.offset,
-      )
-      .all<AuditExportRow>();
-
+  if (range.from) { conditions.push("timestamp >= ?"); params.push(range.from); }
+  if (range.to) { conditions.push("timestamp <= ?"); params.push(range.to); }
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  const result = await env.DB.prepare(`
+    SELECT timestamp, entity_type, entity_id, action, actor, result
+    FROM audit_log ${where} ORDER BY timestamp ASC, audit_id ASC LIMIT ? OFFSET ?
+  `).bind(...params, pagination.limit, pagination.offset).all<AuditExportRow>();
   return result.results;
 }
