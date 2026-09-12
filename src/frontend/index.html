@@ -3,207 +3,136 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#58a85b">
+  <meta name="theme-color" content="#0b8f61">
   <title>Teras Laundry • 1st Anniversary</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
-<body>
-<main class="app">
-
-  <header class="hero">
-    <img id="brand" src="/assets/branding/branding.png" alt="Teras Laundry">
+<body data-role="CUSTOMER">
+<main class="app-shell">
+  <header class="topbar">
+    <div class="brand-lockup">
+      <img id="brand" src="/assets/branding/branding.png" alt="Teras Laundry">
+      <div>
+        <span class="anniversary-kicker">TERAS LAUNDRY</span>
+        <strong>1st ANNIVERSARY</strong>
+        <small>10 HARI MENUJU 1 TAHUN</small>
+      </div>
+    </div>
+    <div class="anniversary-coin"><img src="/assets/coin/coin_1st_front.png" alt="1st anniversary coin"></div>
   </header>
 
-  <section id="auth" class="card">
-    <label>
-      Nomor WhatsApp
-      <input
-        id="phone"
-        inputmode="tel"
-        autocomplete="tel"
-        maxlength="32"
-        placeholder="08xxxxxxxxxx"
-      >
-    </label>
-
-    <label id="emailLabel">
-      Email
-      <input
-        id="email"
-        type="email"
-        inputmode="email"
-        autocomplete="email"
-        maxlength="254"
-        placeholder="nama@gmail.com"
-      >
-    </label>
-
-    <div class="authActions">
-      <button id="requestOtp">Kirim OTP</button>
-      <p id="otpInfo" class="msg" style="font-size:12px; margin:8px 0 12px;">
-        check email anda untuk melihat kode otp
-      </p>
-      <button id="staffLogin" type="button" hidden>Login</button>
+  <section id="auth" class="screen screen-customer auth-screen">
+    <div class="poster-panel">
+      <div class="poster-copy">
+        <span class="eyebrow">SELAMAT DATANG</span>
+        <h1>Main, kumpulkan coin,<br>dan dapatkan reward.</h1>
+        <p>Pengalaman anniversary singkat untuk member Teras Laundry.</p>
+      </div>
+      <img class="mascot mascot-auth" src="/assets/mascot/mascot_happy.png" alt="Teras Laundry mascot">
+      <div class="auth-card glass-card">
+        <div class="step-chip"><span>1</span> Verifikasi member</div>
+        <label>Nomor WhatsApp<input id="phone" inputmode="tel" autocomplete="tel" maxlength="32" placeholder="08xxxxxxxxxx"></label>
+        <label id="emailLabel">Email<input id="email" type="email" inputmode="email" autocomplete="email" maxlength="254" placeholder="nama@gmail.com"></label>
+        <div class="authActions">
+          <button id="requestOtp" class="primary-button">Kirim OTP</button>
+          <p id="otpInfo" class="msg helper">check email anda untuk melihat kode otp</p>
+          <button id="staffLogin" class="secondary-button" type="button" hidden>Login</button>
+        </div>
+        <div id="otpBox" class="otp-box" hidden>
+          <div class="step-chip"><span>2</span> Masukkan kode OTP</div>
+          <label>OTP 6 digit<input id="otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456"></label>
+          <button id="verifyOtp" class="primary-button">Verifikasi OTP</button>
+        </div>
+        <p id="authMsg" class="msg status-msg"></p>
+      </div>
     </div>
-
-    <div id="otpBox" hidden>
-      <label>
-        OTP 6 digit
-        <input
-          id="otp"
-          inputmode="numeric"
-          autocomplete="one-time-code"
-          maxlength="6"
-          placeholder="123456"
-        >
-      </label>
-
-      <button id="verifyOtp">Verifikasi OTP</button>
-    </div>
-
-    <p id="authMsg" class="msg"></p>
   </section>
 
-  <section id="customer" hidden>
-    <div class="card">
-      <h2>Coin Catch</h2>
-
-      <label>
-        ID Transaksi
-        <input
-          id="transactionId"
-          maxlength="128"
-          placeholder="Masukkan ID transaksi"
-        >
-      </label>
-
-      <button id="startGame">Mulai Game</button>
-
-      <div id="gameBox" hidden>
-        <div class="gameHud">
-          <span>Waktu <b id="time">15</b></span>
-          <span>Skor <b id="score">0</b></span>
-        </div>
-
-        <canvas
-          id="game"
-          width="360"
-          height="520"
-          aria-label="Coin Catch"
-        ></canvas>
-      </div>
-
-      <div id="rewardBox" hidden>
-        <h3 id="rewardTitle">
-          REWARD BERHASIL DIKLAIM
-        </h3>
-        <p id="rewardType"></p>
-        <div id="qr"></div>
-        <code id="token"></code>
-      </div>
-
-      <p id="gameMsg" class="msg"></p>
+  <section id="customer" class="screen screen-customer" hidden>
+    <div class="screen-heading">
+      <div><span class="eyebrow">CUSTOMER</span><h1>Selamat datang di<br>Teras Laundry Anniversary.</h1></div>
+      <img src="/assets/mascot/mascot_celebrate.png" alt="Celebrating mascot" class="heading-mascot">
     </div>
 
-    <div class="card">
-      <h3>Status Mesin</h3>
-      <button id="refreshMachines">
-        Refresh Status Mesin
-      </button>
+    <div class="menu-grid">
+      <div class="feature-card game-feature">
+        <div class="feature-copy"><span class="eyebrow">ANNIVERSARY GAME</span><h2>COIN CATCH</h2><p>Tangkap coin selama 15 detik.</p></div>
+        <img src="/assets/coin/coin_1st_persp.png" alt="Anniversary coin" class="feature-coin">
+      </div>
+      <div class="service-card"><span>MEMBER</span><strong>1 transaksi = 1 Play</strong><small>Server menentukan eligibility & reward.</small></div>
+    </div>
+
+    <div class="card game-card">
+      <div class="card-title-row"><div><span class="eyebrow">PLAY</span><h2>Mulai permainan</h2></div><span class="timer-pill">15 DETIK</span></div>
+      <label>ID Transaksi<input id="transactionId" maxlength="128" placeholder="Masukkan ID transaksi"></label>
+      <button id="startGame" class="primary-button">MULAI GAME</button>
+      <div id="gameBox" hidden>
+        <div class="gameHud"><span>WAKTU <b id="time">15</b></span><span>SKOR <b id="score">0</b></span></div>
+        <div class="game-stage"><canvas id="game" width="360" height="520" aria-label="Coin Catch"></canvas><img class="game-mascot" src="/assets/mascot/mascot_run.png" alt="Running mascot"></div>
+      </div>
+      <div id="rewardBox" class="reward-card" hidden>
+        <img src="/assets/mascot/mascot_celebrate.png" alt="Reward mascot" class="reward-mascot">
+        <div><span class="eyebrow">REWARD</span><h3 id="rewardTitle">REWARD BERHASIL DIKLAIM</h3><p id="rewardType"></p></div>
+        <div id="qr"></div><code id="token"></code>
+      </div>
+      <p id="gameMsg" class="msg status-msg"></p>
+    </div>
+
+    <div class="card machine-card">
+      <div class="card-title-row"><div><span class="eyebrow">OUTLET</span><h2>Status Mesin</h2></div><button id="refreshMachines" class="icon-button">Refresh</button></div>
+      <p class="section-note">Customer View Only • 5 Washer + 5 Dryer</p>
       <div id="machines" class="machineGrid"></div>
     </div>
   </section>
 
-  <section id="staff" hidden>
-    <div class="card">
-      <h2>Staff Validation</h2>
-
-      <p id="scannerSupport" class="msg">
-        Scan QR reward menggunakan kamera.
-      </p>
-
-      <button id="scanCamera">
-        Scan QR dengan Kamera
-      </button>
-
-      <video
-        id="camera"
-        playsinline
-        autoplay
-        hidden
-      ></video>
-
+  <section id="staff" class="screen screen-staff" hidden>
+    <div class="role-hero">
+      <div><span class="eyebrow">CASHIER / STAFF</span><h1>Staff Validation</h1><p>Scan QR. Validasi member. Redeem otomatis pada scan pertama yang valid.</p></div>
+      <img src="/assets/mascot/mascot_point.png" alt="Staff mascot">
+    </div>
+    <div class="card scanner-card">
+      <div class="step-chip"><span>1</span> Scan QR Reward</div>
+      <p id="scannerSupport" class="section-note">Scan QR reward menggunakan kamera.</p>
+      <button id="scanCamera" class="primary-button">SCAN QR DENGAN KAMERA</button>
+      <video id="camera" playsinline autoplay hidden></video>
       <pre id="staffResult"></pre>
     </div>
-
-    <div class="card">
-      <h3>Aktivasi Mesin</h3>
-      <div
-        id="staffMachines"
-        class="machineGrid"
-      ></div>
+    <div class="card machine-card">
+      <div class="card-title-row"><div><span class="eyebrow">OPERASIONAL</span><h2>Aktivasi Mesin</h2></div></div>
+      <div id="staffMachines" class="machineGrid"></div>
     </div>
   </section>
 
-  <section id="owner" hidden>
-    <div class="card">
-      <h2>Owner Dashboard</h2>
-
-      <button id="loadOwner">
-        Refresh Overview
-      </button>
-
-      <div
-        id="ownerOverview"
-        class="stats"
-      ></div>
-
-      <label>
-        Customer Trace
-        <input
-          id="traceCustomerId"
-          maxlength="128"
-          placeholder="Customer ID"
-        >
-      </label>
-
-      <button id="traceCustomer">
-        Lihat Customer Trace
-      </button>
-
-      <pre id="traceResult"></pre>
-      <pre id="ownerResult"></pre>
-
-      <h3>Export CSV</h3>
-
-      <select id="ownerExport">
-        <option value="customers">
-          Customers
-        </option>
-        <option value="plays">
-          Plays
-        </option>
-        <option value="rewards">
-          Rewards
-        </option>
-        <option value="audit">
-          Audit
-        </option>
-      </select>
-
-      <button id="downloadExport">
-        Download CSV
-      </button>
+  <section id="owner" class="screen screen-owner" hidden>
+    <div class="role-hero owner-hero">
+      <div><span class="eyebrow">OWNER CONTROL</span><h1>Dashboard Anniversary</h1><p>Overview • Reward Pool • Customer Trace • Audit • CSV Export</p></div>
+      <img src="/assets/mascot/mascot_think.png" alt="Owner mascot">
     </div>
-
-    <div class="card">
-      <h3>Machine Overview</h3>
+    <div class="owner-nav"><span>Overview</span><span>Reward Pool</span><span>Customer Trace</span><span>Audit</span><span>CSV Export</span></div>
+    <div class="card owner-card">
+      <div class="card-title-row"><div><span class="eyebrow">OVERVIEW</span><h2>Participation</h2></div><button id="loadOwner" class="icon-button">Refresh</button></div>
+      <div id="ownerOverview" class="stats"></div>
+      <p id="ownerResult" class="msg status-msg"></p>
+    </div>
+    <div class="card owner-card">
+      <div class="step-chip"><span>1</span> Customer Trace</div>
+      <label>Customer ID<input id="traceCustomerId" maxlength="128" placeholder="Customer ID"></label>
+      <button id="traceCustomer" class="secondary-button">Lihat Customer Trace</button>
+      <pre id="traceResult"></pre>
+    </div>
+    <div class="card owner-card">
+      <div class="step-chip"><span>2</span> CSV Export</div>
+      <select id="ownerExport"><option value="customers">Customers</option><option value="plays">Plays</option><option value="rewards">Rewards</option><option value="audit">Audit</option></select>
+      <button id="downloadExport" class="primary-button">DOWNLOAD CSV</button>
+    </div>
+    <div class="card owner-card">
+      <div class="card-title-row"><div><span class="eyebrow">STATUS MESIN</span><h2>10 Mesin</h2></div></div>
       <pre id="ownerMachines"></pre>
     </div>
   </section>
 
+  <footer class="footer-mark"><img src="/assets/branding/branding.png" alt="Teras Laundry"><span>1st Anniversary 2026 • 1–10 November</span></footer>
 </main>
-
 <script src="./app.js" defer></script>
 </body>
 </html>
