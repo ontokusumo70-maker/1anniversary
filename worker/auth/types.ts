@@ -12,6 +12,7 @@ export interface AuthSession {
 export interface OtpChallenge {
   challengeId: string;
   phoneHash: string;
+  emailHash?: string;
   role: UserRole;
   otpHash: string;
   createdAt: string;
