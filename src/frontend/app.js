@@ -151,6 +151,11 @@ async function loadConfig() {
         `url("${assetBasePath}background/game/game-bg.PNG")`,
       );
 
+      document.documentElement.style.setProperty(
+        "--owner-bg",
+        `url("${assetBasePath}background/owner/owner-bg.PNG")`,
+      );
+
       if (coinImage) {
         coinImage.src =
           `${assetBasePath}coin/coin_1st_front.png`;
@@ -197,6 +202,63 @@ function showRole() {
     document.documentElement.style.setProperty("--game-bg", `url("${assetBasePath}background/owner/owner-bg.PNG")`);
     $("owner").hidden = false;
     loadOwner();
+  }
+}
+
+function showOwnerLogin(clearMessage = true) {
+  if ($("ownerAuth")) {
+    $("ownerAuth").hidden = false;
+  }
+  if ($("auth")) {
+    $("auth").hidden = true;
+  }
+  if ($("customer")) {
+    $("customer").hidden = true;
+  }
+  if ($("staff")) {
+    $("staff").hidden = true;
+  }
+  if ($("owner")) {
+    $("owner").hidden = true;
+  }
+  document.body.dataset.role = "OWNER_LOGIN";
+  document.documentElement.style.setProperty(
+    "--owner-bg",
+    `url("${assetBasePath}background/owner/owner-bg.PNG")`,
+  );
+  if (clearMessage) {
+    msg("ownerAuthMsg", "");
+  }
+}
+
+async function loginOwner() {
+  try {
+    const phone = $("ownerPhone")?.value.trim() || "";
+
+    if (!phone) {
+      msg("ownerAuthMsg", "Nomor Owner wajib diisi.");
+      return;
+    }
+
+    const data = await api("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ phone }),
+    });
+
+    if (data.role !== "OWNER") {
+      throw new Error("Akses Owner tidak valid.");
+    }
+
+    state.token = data.token;
+    state.role = data.role;
+    state.userId = data.userId;
+    state.expiresAt = data.expiresAt || null;
+
+    saveSession();
+    msg("ownerAuthMsg", "");
+    showRole();
+  } catch (error) {
+    msg("ownerAuthMsg", error.message);
   }
 }
 
@@ -451,6 +513,18 @@ async function loginStaffOwner() {
       error.message,
     );
   }
+}
+
+if ($("ownerLogin")) {
+  $("ownerLogin").onclick = loginOwner;
+}
+
+if ($("ownerPhone")) {
+  $("ownerPhone").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      loginOwner();
+    }
+  });
 }
 
 if ($("phone")) {
@@ -1594,7 +1668,13 @@ function makeQrSvg(text) {
 }
 
 async function initialize() {
-  showCustomerAuth();
+  const requestedRole = new URLSearchParams(window.location.search).get("role");
+
+  if (requestedRole?.toLowerCase() === "owner") {
+    showOwnerLogin();
+  } else {
+    showCustomerAuth();
+  }
 
   await loadConfig();
 
