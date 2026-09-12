@@ -5,21 +5,7 @@ export interface GmailEnv {
   GMAIL_SENDER_EMAIL: string;
 }
 
-function base64UrlEncode(input: string): string {
-  const bytes = new TextEncoder().encode(input);
-  let binary = "";
-
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-
-  return btoa(binary)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "");
-}
-
-function createMimeMessage(
+export function buildGmailMimeMessage(
   sender: string,
   recipient: string,
   otp: string,
@@ -45,6 +31,20 @@ function createMimeMessage(
     "",
     body,
   ].join("\r\n");
+}
+
+export function buildGmailRawMessage(mimeMessage: string): string {
+  const bytes = new TextEncoder().encode(mimeMessage);
+  let binary = "";
+
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
 }
 
 async function getAccessToken(env: GmailEnv): Promise<string> {
@@ -84,13 +84,13 @@ export async function sendOtpEmail(
 ): Promise<void> {
   const accessToken = await getAccessToken(env);
 
-  const mimeMessage = createMimeMessage(
+  const mimeMessage = buildGmailMimeMessage(
     env.GMAIL_SENDER_EMAIL,
     recipient,
     otp,
   );
 
-  const raw = base64UrlEncode(mimeMessage);
+  const raw = buildGmailRawMessage(mimeMessage);
 
   const response = await fetch(
     "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
