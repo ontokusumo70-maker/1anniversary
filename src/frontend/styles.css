@@ -552,3 +552,92 @@ body[data-role="OWNER"] .machine-full::before{
   .event-card-stats b{font-size:9px}
   .event-card-stats small{font-size:6.5px}
 }
+
+
+/* FINAL16 — Event menu: match locked reference composition */
+body[data-role="OWNER"] .event-page-heading{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:start;
+  gap:12px;
+  padding-top:14px;
+  min-height:92px;
+}
+body[data-role="OWNER"] .event-page-heading h1{font-size:31px;line-height:1;margin:0 0 5px}
+body[data-role="OWNER"] .event-page-heading p{font-size:13px;line-height:1.2;margin:0;color:#66736e}
+body[data-role="OWNER"] .event-create-button{min-width:146px;min-height:53px;padding:12px 16px;border-radius:13px;font-size:12px;box-shadow:0 7px 15px rgba(16,151,101,.16)}
+body[data-role="OWNER"] .event-tabs-locked{grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 16px}
+body[data-role="OWNER"] .event-tabs-locked button{min-height:49px;border-radius:13px;font-size:12px;font-weight:800}
+body[data-role="OWNER"] .owner-event-group{gap:12px}
+body[data-role="OWNER"] .event-card-locked{
+  display:grid;
+  grid-template-columns:112px minmax(0,1fr) 18px;
+  grid-template-rows:minmax(112px,auto) 48px;
+  gap:9px 12px;
+  min-height:178px;
+  padding:12px;
+  border:1px solid #e2e9e5;
+  border-radius:13px;
+  background:#fff;
+  box-shadow:0 2px 7px rgba(25,72,51,.05);
+}
+body[data-role="OWNER"] .event-card-thumbnail{
+  grid-row:1;
+  width:112px;height:112px;
+  border-radius:9px;
+  display:grid;place-items:center;
+  overflow:hidden;
+  color:#fff;
+  text-align:center;
+  background:linear-gradient(145deg,#244f3d,#0e8060);
+}
+body[data-role="OWNER"] .event-card-thumbnail.upcoming{background:linear-gradient(145deg,#587a69,#284e40)}
+body[data-role="OWNER"] .event-card-thumbnail.completed{background:linear-gradient(145deg,#f4d991,#b48a30);color:#173629}
+body[data-role="OWNER"] .event-card-thumbnail span{font-weight:900;font-size:20px;line-height:.93;letter-spacing:-.03em}
+body[data-role="OWNER"] .event-card-thumbnail small{font-size:10px;letter-spacing:.02em}
+body[data-role="OWNER"] .event-card-copy{grid-column:2;grid-row:1;min-width:0;display:grid;align-content:start;gap:6px;padding-top:2px}
+body[data-role="OWNER"] .event-card-title-row{display:flex;align-items:flex-start;gap:7px;min-width:0}
+body[data-role="OWNER"] .event-card-title-row b{font-size:16px;line-height:1.15;white-space:normal;overflow:visible;text-overflow:clip}
+body[data-role="OWNER"] .event-status-badge{padding:5px 8px;border-radius:7px;font-size:9px;line-height:1;white-space:nowrap}
+body[data-role="OWNER"] .event-meta-row{display:flex!important;align-items:center;gap:6px;font-size:11px!important;line-height:1.15;color:#5f6d67!important;margin:0!important;white-space:nowrap}
+body[data-role="OWNER"] .event-meta-row svg{width:16px;height:16px;flex:0 0 auto}
+body[data-role="OWNER"] .event-card-arrow{grid-column:3;grid-row:1;align-self:center;font-size:27px;color:#52635c}
+body[data-role="OWNER"] .event-card-stats{
+  grid-column:1/4;grid-row:2;
+  display:grid;grid-template-columns:repeat(3,1fr);
+  align-items:center;
+  border-top:1px solid #edf0ef;
+  padding-top:8px;margin:0;
+  text-align:center;
+}
+body[data-role="OWNER"] .event-card-stats>span{display:grid;gap:2px;justify-items:center}
+body[data-role="OWNER"] .event-card-stats>span+span{border-left:1px solid #edf0ef}
+body[data-role="OWNER"] .event-card-stats b{font-size:15px;line-height:1}
+body[data-role="OWNER"] .event-card-stats small{font-size:9px;color:#68756f}
+body[data-role="OWNER"] .event-card-empty{padding:26px}
+body[data-role="OWNER"] .event-form-card{padding:15px;border-radius:12px;margin-top:12px}
+body[data-role="OWNER"] .event-form-card h3{font-size:22px;line-height:1.05}
+body[data-role="OWNER"] .event-form-subtitle{font-size:12px}
+body[data-role="OWNER"] .event-form-card textarea{width:100%;min-height:72px;resize:none;padding:10px;border:1px solid #d8e3dd;border-radius:9px;background:#fff;font-size:11px}
+body[data-role="OWNER"] .event-form-card .event-counter{display:block;text-align:right;color:#7b8782;font-size:8px;margin-top:2px}
+body[data-role="OWNER"] .event-period-grid{grid-template-columns:1fr 1fr;gap:10px}
+body[data-role="OWNER"] .event-reward-row{display:grid;grid-template-columns:1fr auto;gap:9px;align-items:end}
+body[data-role="OWNER"] .event-add-reward{min-height:38px;padding:8px 12px;border:1px solid #16885f;border-radius:9px;background:#fff;color:#167653;font-size:10px;font-weight:800}
+body[data-role="OWNER"] .event-optional{font-weight:500;color:#6c7873}
+@media(max-width:600px){
+  body[data-role="OWNER"] .event-page-heading{grid-template-columns:minmax(0,1fr) auto;gap:8px;min-height:84px}
+  body[data-role="OWNER"] .event-page-heading h1{font-size:28px}
+  body[data-role="OWNER"] .event-page-heading p{font-size:11px}
+  body[data-role="OWNER"] .event-create-button{min-width:126px;min-height:49px;padding:10px 12px;font-size:11px}
+  body[data-role="OWNER"] .event-tabs-locked{gap:7px;margin-bottom:13px}
+  body[data-role="OWNER"] .event-tabs-locked button{min-height:45px;font-size:10px}
+  body[data-role="OWNER"] .event-card-locked{grid-template-columns:96px minmax(0,1fr) 16px;grid-template-rows:minmax(96px,auto) 44px;min-height:156px;padding:10px;gap:8px 10px}
+  body[data-role="OWNER"] .event-card-thumbnail{width:96px;height:96px}
+  body[data-role="OWNER"] .event-card-thumbnail span{font-size:17px}
+  body[data-role="OWNER"] .event-card-thumbnail small{font-size:8px}
+  body[data-role="OWNER"] .event-card-title-row b{font-size:14px}
+  body[data-role="OWNER"] .event-meta-row{font-size:9px!important}
+  body[data-role="OWNER"] .event-meta-row svg{width:14px;height:14px}
+  body[data-role="OWNER"] .event-card-stats b{font-size:13px}
+  body[data-role="OWNER"] .event-card-stats small{font-size:8px}
+}
