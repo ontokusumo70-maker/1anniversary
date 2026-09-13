@@ -490,6 +490,17 @@ async function verifyOtpRequest(
     existing?.customer_id ??
     `customer_${challenge.phoneHash.slice(0, 32)}`;
 
+  const emailOwner = await env.DB.prepare(`
+    SELECT customer_id FROM customers WHERE lower(email) = lower(?) LIMIT 1
+  `).bind(email).first<{ customer_id: string }>();
+  if (emailOwner && emailOwner.customer_id !== userId) {
+    return errorResponse(
+      "EMAIL_ALREADY_REGISTERED",
+      "Email sudah terdaftar pada customer lain.",
+      409,
+    );
+  }
+
   await env.DB
     .prepare(
       `
