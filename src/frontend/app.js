@@ -1809,23 +1809,70 @@ function renderCustomerTrace(data) {
   const target = $("ownerCustomerDetail");
   if (!target) return;
   const customer = data.customer || {};
-  const journey = [];
-  (data.transactions || []).forEach((row) => journey.push({ title: "Transaction", text: `${row.transaction_id} · ${row.service_type}`, at: row.created_at }));
-  (data.plays || []).forEach((row) => journey.push({ title: "Play", text: `${row.session_id || row.play_id} · ${row.status}`, at: row.created_at }));
-  (data.rewards || []).forEach((row) => {
-    journey.push({ title: "Reward", text: `${row.reward_id} (${row.type})`, at: row.created_at });
-    if (row.token_ref) journey.push({ title: "QR Reference", text: row.token_ref, at: row.created_at });
-    if (row.redeemed_at) journey.push({ title: "Redeem", text: "Reward redeemed", at: row.redeemed_at });
-    if (row.used_at) journey.push({ title: "Used", text: "Reward used", at: row.used_at });
-  });
-  journey.sort((a, b) => Date.parse(a.at || "") - Date.parse(b.at || ""));
-  const totalPlay = Number((data.plays || []).length);
-  const totalReward = Number((data.rewards || []).length);
-  const totalRedeemed = Number((data.rewards || []).filter((row) => row.redeemed_at).length);
+  const event = data.event || null;
+  const transactions = data.transactions || [];
+  const plays = data.plays || [];
+  const rewards = data.rewards || [];
+
+  const latestTransaction = transactions[0] || null;
+  const latestPlay = plays[0] || null;
+  const latestReward = rewards[0] || null;
+  const hasTransaction = transactions.length > 0;
+  const hasPlay = plays.length > 0;
+  const hasReward = rewards.length > 0;
+  const hasQr = rewards.some((row) => row.token_ref);
+  const hasRedeem = rewards.some((row) => row.redeemed_at);
+  const hasUsed = rewards.some((row) => row.used_at);
+
+  const journey = [
+    {
+      title: "Transaction",
+      active: hasTransaction,
+      text: hasTransaction ? `${latestTransaction.transaction_id || "—"} · ${latestTransaction.service_type || "Transaction"}` : "Belum ada aktivitas",
+      at: hasTransaction ? latestTransaction.created_at : null,
+    },
+    {
+      title: "Play",
+      active: hasPlay,
+      text: hasPlay ? `${latestPlay.session_id || latestPlay.play_id || "—"}${latestPlay.status ? ` · ${latestPlay.status}` : ""}` : "Belum ada aktivitas",
+      at: hasPlay ? latestPlay.created_at : null,
+    },
+    {
+      title: "Reward",
+      active: hasReward,
+      text: hasReward ? `${latestReward.reward_id || "—"}${latestReward.type ? ` (${latestReward.type})` : ""}` : "Belum ada aktivitas",
+      at: hasReward ? latestReward.created_at : null,
+    },
+    {
+      title: "QR Reference",
+      active: hasQr,
+      text: hasQr ? String(rewards.find((row) => row.token_ref)?.token_ref || "—") : "Belum ada aktivitas",
+      at: hasQr ? (rewards.find((row) => row.token_ref)?.created_at || null) : null,
+    },
+    {
+      title: "Redeem",
+      active: hasRedeem,
+      text: hasRedeem ? "Reward redeemed" : "Belum ada aktivitas",
+      at: hasRedeem ? (rewards.find((row) => row.redeemed_at)?.redeemed_at || null) : null,
+    },
+    {
+      title: "Used",
+      active: hasUsed,
+      text: hasUsed ? "Reward used" : "Belum ada aktivitas",
+      at: hasUsed ? (rewards.find((row) => row.used_at)?.used_at || null) : null,
+    },
+  ];
+
+  const totalPlay = plays.length;
+  const totalReward = rewards.length;
+  const totalRedeemed = rewards.filter((row) => row.redeemed_at).length;
+  const eventName = event?.event_title || "—";
+  const eventPeriod = event ? `${formatCustomerDate(event.event_starts_at)} – ${formatCustomerDate(event.event_ends_at)}` : "—";
+
   target.innerHTML = `<div class="owner-customer-detail-heading"><h1>Customer Detail</h1><p>${escapeHtml(customer.customer_id || "—")}</p></div>
-    <div class="owner-customer-info-card"><div><span>Customer ID</span><b>${escapeHtml(customer.customer_id || "—")}</b></div><div><span>No. HP</span><b>${escapeHtml(customer.phone_masked || "—")}</b></div><div><span>Email ID</span><b>${escapeHtml(customer.email || "—")}</b></div><div><span>Registrasi</span><b>${escapeHtml(formatCustomerDate(customer.created_at))}</b></div><div><span>Total Play</span><b>${totalPlay}</b></div><div><span>Total Reward</span><b>${totalReward}</b></div><div><span>Total Redeemed</span><b>${totalRedeemed}</b></div><div><span>Status</span><b><em class="owner-customer-status">Active</em></b></div></div>
+    <div class="owner-customer-info-card"><div><span>Alamat Email</span><b>${escapeHtml(customer.email || "—")}</b></div><div><span>No. HP</span><b>${escapeHtml(customer.phone_masked || "—")}</b></div><div><span>Registrasi</span><b>${escapeHtml(formatCustomerDate(customer.created_at))}</b></div><div><span>Event</span><b>${escapeHtml(eventName)}</b></div><div><span>Periode Event</span><b>${escapeHtml(eventPeriod)}</b></div><div><span>Total Play</span><b>${totalPlay}</b></div><div><span>Total Reward</span><b>${totalReward}</b></div><div><span>Total Redeemed</span><b>${totalRedeemed}</b></div><div><span>Status</span><b><em class="owner-customer-status">Active</em></b></div></div>
     <h2 class="owner-customer-journey-title">Customer Journey</h2>
-    <div class="owner-customer-journey">${journey.length ? journey.map((item) => `<div class="owner-journey-item"><span class="owner-journey-dot"></span><div><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.text)}</small></div><time>${escapeHtml(formatCustomerTime(item.at))}</time></div>`).join("") : `<div class="owner-customer-empty">Belum ada aktivitas.</div>`}</div>`;
+    <div class="owner-customer-journey">${journey.map((item, index) => `<div class="owner-journey-item${item.active ? "" : " inactive"}"><span class="owner-journey-dot"></span><div><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.text)}</small></div><time>${escapeHtml(item.at ? formatCustomerTime(item.at) : "—")}</time></div>`).join("")}</div>`;
 }
 
 async function loadOwnerAudit() {
