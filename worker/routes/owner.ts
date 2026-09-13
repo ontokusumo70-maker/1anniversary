@@ -40,12 +40,51 @@ async function requireOwner(request: Request, env: Env) {
   return requireSession(request, env, ["OWNER"]);
 }
 
+function parseOwnerDateOnly(value: string | null): Date | null {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T00:00:00+07:00`);
+  return Number.isFinite(date.getTime()) ? date : null;
+}
+
+function formatOwnerDateOnly(date: Date): string {
+  const wib = new Date(date.getTime() + (7 * 60 * 60 * 1000));
+  return `${wib.getUTCFullYear()}-${String(wib.getUTCMonth() + 1).padStart(2, "0")}-${String(wib.getUTCDate()).padStart(2, "0")}`;
+}
+
+function addOwnerDays(date: Date, days: number): Date {
+  return new Date(date.getTime() + (days * 86400000));
+}
+
+function ownerPercentChange(current: number, previous: number): number {
+  if (previous === 0) return 0;
+  return Math.round(((current - previous) / previous) * 100);
+}
+
 async function handleOwnerOverview(request: Request, env: Env): Promise<Response> {
   const owner = await requireOwner(request, env);
   if (!owner) return errorResponse("UNAUTHORIZED", "Owner authentication is required.", 401);
 
   const now = new Date();
   const nowIso = now.toISOString();
+  const url = new URL(request.url);
+  const today = formatOwnerDateOnly(now);
+  const requestedFrom = url.searchParams.get("from") || today;
+  const requestedTo = url.searchParams.get("to") || requestedFrom;
+  const rangeFrom = parseOwnerDateOnly(requestedFrom);
+  const rangeTo = parseOwnerDateOnly(requestedTo);
+  if (!rangeFrom || !rangeTo || rangeFrom.getTime() > rangeTo.getTime()) {
+    return errorResponse("INVALID_DATE_RANGE", "Rentang tanggal Owner tidak valid.", 400);
+  }
+
+  const currentStartIso = rangeFrom.toISOString();
+  const currentEndExclusive = addOwnerDays(rangeTo, 1);
+  const currentEndIso = currentEndExclusive.toISOString();
+  const selectedDays = Math.max(1, Math.round((currentEndExclusive.getTime() - rangeFrom.getTime()) / 86400000));
+  const previousTo = new Date(rangeFrom.getTime() - 86400000);
+  const previousFrom = new Date(previousTo.getTime() - ((selectedDays - 1) * 86400000));
+  const previousStartIso = previousFrom.toISOString();
+  const previousEndIso = currentStartIso;
+
   const wibOffset = 7 * 60 * 60 * 1000;
   const local = new Date(now.getTime() + wibOffset);
   const year = local.getUTCFullYear();
@@ -66,15 +105,25 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
 
   const metrics = env.DB.prepare(`
     SELECT
-      (SELECT COUNT(*) FROM customers) AS participants,
+      (SELECT COUNT(*) FROM customers WHERE created_at >= ? AND created_at < ?) AS participants,
+      (SELECT COUNT(*) FROM customers WHERE created_at >= ? AND created_at < ?) AS participants_previous,
+      (SELECT COUNT(*) FROM rewards WHERE claimed_at IS NOT NULL AND claimed_at >= ? AND claimed_at < ?) AS claimed_count,
+      (SELECT COUNT(*) FROM rewards WHERE claimed_at IS NOT NULL AND claimed_at >= ? AND claimed_at < ?) AS claimed_previous,
+      (SELECT COUNT(*) FROM rewards WHERE redeemed_at IS NOT NULL AND redeemed_at >= ? AND redeemed_at < ?) AS redeemed_count,
+      (SELECT COUNT(*) FROM rewards WHERE redeemed_at IS NOT NULL AND redeemed_at >= ? AND redeemed_at < ?) AS redeemed_previous,
       (SELECT COUNT(*) FROM plays) AS play_count,
       (SELECT COUNT(*) FROM rewards WHERE status = 'WON') AS won_count,
-      (SELECT COUNT(*) FROM rewards WHERE status = 'CLAIMED') AS claimed_count,
-      (SELECT COUNT(*) FROM rewards WHERE status = 'REDEEMED') AS redeemed_count,
       (SELECT COUNT(*) FROM rewards WHERE status = 'USED') AS used_count,
       (SELECT COUNT(*) FROM rewards WHERE status NOT IN ('WON','CLAIMED','REDEEMED','USED')) AS unclaimed_count,
       (SELECT COUNT(*) FROM audit_log WHERE result IN ('FAILED','REJECTED')) AS error_retry_count
-  `);
+  `).bind(
+    currentStartIso, currentEndIso,
+    previousStartIso, previousEndIso,
+    currentStartIso, currentEndIso,
+    previousStartIso, previousEndIso,
+    currentStartIso, currentEndIso,
+    previousStartIso, previousEndIso,
+  );
 
   const rewardStatus = env.DB.prepare(`
     SELECT status, COUNT(*) AS count FROM rewards GROUP BY status ORDER BY status
@@ -171,12 +220,24 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
   return json({
     ok: true,
     serverTime: nowIso,
+    dateRange: {
+      from: requestedFrom,
+      to: requestedTo,
+      previousFrom: formatOwnerDateOnly(previousFrom),
+      previousTo: formatOwnerDateOnly(previousTo),
+    },
     metrics: {
       participants: Number(metric?.participants ?? 0),
+      participantsPrevious: Number(metric?.participants_previous ?? 0),
+      participantsChangePct: ownerPercentChange(Number(metric?.participants ?? 0), Number(metric?.participants_previous ?? 0)),
       play: Number(metric?.play_count ?? 0),
       won: Number(metric?.won_count ?? statusMap.get("WON") ?? 0),
       claimed: Number(metric?.claimed_count ?? statusMap.get("CLAIMED") ?? 0),
+      claimedPrevious: Number(metric?.claimed_previous ?? 0),
+      claimedChangePct: ownerPercentChange(Number(metric?.claimed_count ?? 0), Number(metric?.claimed_previous ?? 0)),
       redeemed: Number(metric?.redeemed_count ?? statusMap.get("REDEEMED") ?? 0),
+      redeemedPrevious: Number(metric?.redeemed_previous ?? 0),
+      redeemedChangePct: ownerPercentChange(Number(metric?.redeemed_count ?? 0), Number(metric?.redeemed_previous ?? 0)),
       used: Number(metric?.used_count ?? statusMap.get("USED") ?? 0),
       unclaimed: Number(metric?.unclaimed_count ?? 0),
       errorRetry: Number(metric?.error_retry_count ?? 0),
