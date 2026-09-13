@@ -666,3 +666,112 @@ body[data-role="OWNER"] .reward-detail-events>div{display:grid;gap:5px}
 body[data-role="OWNER"] .reward-detail-events section{display:grid;gap:2px;padding:6px;border-radius:6px;background:#f4f7f5}
 body[data-role="OWNER"] .reward-detail-events small{font-size:8px;color:#637069}
 body[data-role="OWNER"] .event-detail-actions,body[data-role="OWNER"] .reward-detail-actions{grid-template-columns:1fr}
+
+/* LOCKED VISUAL SOURCE OF TRUTH — REWARD POOL + EVENT */
+body[data-role="OWNER"] .owner-view{padding:0 3px 24px;background:#fff}
+body[data-role="OWNER"] .locked-module-heading{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;padding:15px 0 9px;min-height:67px}
+body[data-role="OWNER"] .locked-module-heading h1{margin:0;color:#111b17;font-size:25px;line-height:1.02;letter-spacing:-.6px}
+body[data-role="OWNER"] .locked-module-heading p{margin:4px 0 0;color:#718079;font-size:10px;line-height:1.2}
+body[data-role="OWNER"] .locked-add-button{height:39px;min-height:39px;padding:0 12px;border-radius:9px;background:#078f61;color:#fff;box-shadow:none;font-size:10px;font-weight:800;white-space:nowrap}
+body[data-role="OWNER"] .locked-add-button span{font-size:15px;vertical-align:-1px}
+body[data-role="OWNER"] .locked-module-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin:0 0 8px;border-bottom:1px solid #dfe7e3}
+body[data-role="OWNER"] .locked-module-tabs button{height:30px;min-width:0;padding:0 3px;border:0;border-bottom:2px solid transparent;border-radius:0;background:#fff;color:#63716b;font-size:9px;font-weight:700;box-shadow:none}
+body[data-role="OWNER"] .locked-module-tabs button.active{background:#fff;color:#147955;border-bottom-color:#147955}
+
+body[data-role="OWNER"] .locked-reward-list{display:grid;gap:5px}
+body[data-role="OWNER"] .locked-reward-card{display:grid;grid-template-columns:minmax(0,1fr) 14px;gap:5px;width:100%;padding:9px 8px 8px;border:1px solid #e3e9e6;border-radius:8px;background:#fff;color:#1f2b25;text-align:left;box-shadow:none}
+body[data-role="OWNER"] .locked-card-main{display:grid;min-width:0;gap:5px}
+body[data-role="OWNER"] .locked-card-title-row{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0}
+body[data-role="OWNER"] .locked-card-title-row>b{min-width:0;color:#18231e;font-size:10px;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body[data-role="OWNER"] .locked-status{display:inline-flex;align-items:center;justify-content:center;flex:none;padding:4px 7px;border-radius:5px;background:#def3e6;color:#167b58;font-size:7px;font-style:normal;font-weight:800;line-height:1}
+body[data-role="OWNER"] .locked-status.inactive{background:#edf0ef;color:#68756f}
+body[data-role="OWNER"] .locked-stock-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:#66746d;font-size:7.5px;line-height:1.2}
+body[data-role="OWNER"] .locked-stock-row>span{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+body[data-role="OWNER"] .locked-stock-row svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+body[data-role="OWNER"] .locked-stock-row b{color:#27332d;font-weight:800}
+body[data-role="OWNER"] .locked-used-label{color:#50625a;font-size:7.5px;font-weight:600}
+body[data-role="OWNER"] .locked-event-reference{display:grid;grid-template-columns:15px minmax(0,1fr);gap:4px;align-items:start;padding-left:1px}
+body[data-role="OWNER"] .locked-reference-icon{display:grid;place-items:center;color:#4e655b;width:14px;height:14px}
+body[data-role="OWNER"] .locked-reference-icon svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+body[data-role="OWNER"] .locked-event-reference>b,.locked-event-reference span>b{display:block;color:#26322c;font-size:7.5px;line-height:1.15}
+body[data-role="OWNER"] .locked-event-reference small{display:block;margin-top:2px;color:#68766f;font-size:7px;line-height:1.1}
+body[data-role="OWNER"] .locked-no-event{color:#8a9590;font-size:7.5px}
+body[data-role="OWNER"] .locked-card-arrow{align-self:center;color:#52645c;font-size:20px;line-height:1;text-align:right}
+body[data-role="OWNER"] .locked-empty{padding:24px 10px;color:#87928d;font-size:9px;text-align:center}
+
+body[data-role="OWNER"] .locked-detail-back,body[data-role="OWNER"] .locked-form-back{margin:0;padding:11px 0 4px;border:0;background:transparent;color:#28795c;font-size:9px;font-weight:700;box-shadow:none}
+body[data-role="OWNER"] .locked-detail-heading{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:center;padding:7px 0 10px;min-height:56px}
+body[data-role="OWNER"] .locked-detail-heading h1{font-size:23px}
+body[data-role="OWNER"] .locked-detail-heading p{font-size:9px}
+body[data-role="OWNER"] .locked-detail-heading .owner-outline-button{height:34px;min-height:34px;padding:0 10px;border:1px solid #16845f;border-radius:7px;background:#fff;color:#147955;font-size:9px;font-weight:800;box-shadow:none;white-space:nowrap}
+body[data-role="OWNER"] .locked-detail-card{width:100%;padding:0;border:1px solid #e1e7e4;border-radius:8px;background:#fff;overflow:hidden}
+body[data-role="OWNER"] .locked-detail-rows{display:grid}
+body[data-role="OWNER"] .locked-detail-rows>div{display:grid;grid-template-columns:31% minmax(0,69%);gap:7px;padding:7px 8px;border-bottom:1px solid #edf1ef;min-height:29px;align-items:start}
+body[data-role="OWNER"] .locked-detail-rows>div:last-child{border-bottom:0}
+body[data-role="OWNER"] .locked-detail-rows>div>span{color:#25312b;font-size:7.5px;line-height:1.35}
+body[data-role="OWNER"] .locked-detail-rows>div>b{color:#5d6b65;font-size:7.5px;line-height:1.35;font-weight:500;overflow-wrap:anywhere}
+body[data-role="OWNER"] .locked-detail-rows .locked-status{vertical-align:top}
+body[data-role="OWNER"] .locked-detail-event-row{grid-template-columns:31% minmax(0,69%)!important}
+body[data-role="OWNER"] .locked-detail-events{display:grid;gap:5px}
+body[data-role="OWNER"] .locked-detail-events section{display:grid;gap:3px;padding:6px;border-radius:6px;background:#f4f7f5}
+body[data-role="OWNER"] .locked-detail-events section>b{color:#27332d;font-size:7.5px}
+body[data-role="OWNER"] .locked-detail-events section>small{display:flex;align-items:flex-start;gap:3px;color:#65736d;font-size:7px;line-height:1.25}
+body[data-role="OWNER"] .locked-detail-events svg{width:11px;height:11px;flex:none;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+body[data-role="OWNER"] .locked-delete-row{display:flex;justify-content:flex-end;margin-top:8px}
+body[data-role="OWNER"] .locked-delete-row .danger-button{height:32px;min-height:32px;padding:0 10px;border:1px solid #e4a19b;border-radius:7px;background:#fff;color:#c44a42;font-size:8px;font-weight:800;box-shadow:none}
+
+body[data-role="OWNER"] .locked-form-view{padding:0 0 22px;background:#fff}
+body[data-role="OWNER"] .locked-form-view h3{margin:0;color:#101a16;font-size:23px;line-height:1.04;letter-spacing:-.5px}
+body[data-role="OWNER"] .locked-form-subtitle{margin:4px 0 17px;color:#77837e;font-size:9px}
+body[data-role="OWNER"] .locked-form-view label{display:block;margin:0 0 13px;color:#1c2822;font-size:9px;font-weight:800}
+body[data-role="OWNER"] .locked-form-view input,
+body[data-role="OWNER"] .locked-form-view select,
+body[data-role="OWNER"] .locked-form-view textarea{display:block;width:100%;margin-top:6px;border:1px solid #dbe3df;border-radius:7px;background:#fff;color:#26322d;outline:none;box-shadow:none;font-size:9px}
+body[data-role="OWNER"] .locked-form-view input,body[data-role="OWNER"] .locked-form-view select{height:39px;padding:0 9px}
+body[data-role="OWNER"] .locked-form-view textarea{height:61px;padding:8px 9px;resize:none;line-height:1.35}
+body[data-role="OWNER"] .locked-form-view input::placeholder,body[data-role="OWNER"] .locked-form-view textarea::placeholder{color:#9ba5a1}
+body[data-role="OWNER"] .required-mark{color:#c64a43}
+body[data-role="OWNER"] .locked-optional{font-weight:500;color:#76827c}
+body[data-role="OWNER"] .locked-counter{display:block;margin-top:-10px;margin-bottom:11px;color:#718079;font-size:7px;text-align:right;font-weight:500}
+body[data-role="OWNER"] .locked-field-title{margin:0 0 6px;color:#1c2822;font-size:9px;font-weight:800}
+body[data-role="OWNER"] .locked-date-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:13px}
+body[data-role="OWNER"] .locked-date-grid label{margin:0}
+body[data-role="OWNER"] .locked-date-grid label>span{display:block;color:#66736d;font-size:8px;font-weight:500;margin-bottom:5px}
+body[data-role="OWNER"] .locked-date-input{position:relative}
+body[data-role="OWNER"] .locked-date-icon{position:absolute;left:8px;top:50%;z-index:2;width:14px;height:14px;transform:translateY(-50%);color:#50655c;pointer-events:none}
+body[data-role="OWNER"] .locked-date-icon svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+body[data-role="OWNER"] .locked-date-input input{margin-top:0!important;padding-left:29px!important;color:#5d6a64}
+body[data-role="OWNER"] .locked-form-view input[type="date"]::-webkit-calendar-picker-indicator{opacity:0}
+body[data-role="OWNER"] .locked-field-note{display:block;margin-top:4px;color:#66766e;font-size:7.5px;font-weight:500}
+body[data-role="OWNER"] .locked-form-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:5px}
+body[data-role="OWNER"] .locked-form-actions button{width:100%;height:38px;min-height:38px;padding:0 8px;border-radius:7px;font-size:9px;font-weight:800;box-shadow:none}
+body[data-role="OWNER"] .locked-form-actions .secondary-button{border:1px solid #9fd5c0;background:#f7fcf9;color:#147955}
+body[data-role="OWNER"] .locked-form-actions .primary-button{border:1px solid #078f61;background:#078f61;color:#fff}
+
+@media(max-width:600px){
+  body[data-role="OWNER"] .app-shell{width:100%;padding:0 8px 18px}
+  body[data-role="OWNER"] .screen-owner{padding:0 3px 18px}
+  body[data-role="OWNER"] .owner-dashboard-header{height:78px;min-height:78px;padding:5px 2px 4px}
+  body[data-role="OWNER"] .owner-brand-logo{width:55px;height:55px;flex-basis:55px}
+  body[data-role="OWNER"] .owner-brand-copy{font-size:8px;line-height:1.15}
+  body[data-role="OWNER"] .owner-brand-copy strong{font-size:10px}
+  body[data-role="OWNER"] .owner-account{padding-top:7px;gap:5px}
+  body[data-role="OWNER"] .owner-account>b{font-size:8px}
+  body[data-role="OWNER"] .owner-account button{font-size:6px;padding:3px 0}
+  body[data-role="OWNER"] .owner-account svg{width:18px;height:18px}
+  body[data-role="OWNER"] .owner-tabbar{height:48px;min-height:48px;padding:4px 0 2px}
+  body[data-role="OWNER"] .owner-tabbar button{font-size:6px;gap:2px;padding-bottom:4px}
+  body[data-role="OWNER"] .owner-nav-icon{width:19px;height:18px}
+  body[data-role="OWNER"] .locked-module-heading h1{font-size:24px}
+  body[data-role="OWNER"] .locked-module-heading p{font-size:9px}
+  body[data-role="OWNER"] .locked-add-button{height:38px;min-height:38px;font-size:9px;padding:0 10px}
+  body[data-role="OWNER"] .locked-module-tabs button{font-size:8px;height:30px}
+  body[data-role="OWNER"] .locked-card-title-row>b{font-size:10px}
+  body[data-role="OWNER"] .locked-stock-row,body[data-role="OWNER"] .locked-used-label{font-size:7px}
+  body[data-role="OWNER"] .locked-event-reference>b,body[data-role="OWNER"] .locked-event-reference span>b{font-size:7px}
+  body[data-role="OWNER"] .locked-event-reference small{font-size:6.7px}
+  body[data-role="OWNER"] .locked-detail-heading h1{font-size:22px}
+  body[data-role="OWNER"] .locked-detail-heading .owner-outline-button{height:32px;min-height:32px;font-size:8px}
+  body[data-role="OWNER"] .locked-form-view h3{font-size:22px}
+  body[data-role="OWNER"] .locked-form-subtitle{font-size:9px}
+}
