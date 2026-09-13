@@ -1917,21 +1917,30 @@ function makeQrSvg(text) {
 }
 
 async function initialize() {
-  const requestedRole = new URLSearchParams(window.location.search).get("role");
-
-  if (requestedRole?.toLowerCase() === "owner") {
-    showOwnerLogin();
-  } else {
-    showCustomerAuth();
-  }
-
   await loadConfig();
 
-  if (
-    restoreSession()
-  ) {
+  if (restoreSession()) {
     showRole();
+    return;
   }
+
+  const params = new URLSearchParams(window.location.search);
+  const queryRole = params.get("role")?.toLowerCase() || "";
+  const hashRole = window.location.hash.replace(/^#/, "").toLowerCase();
+  const requestedRole = queryRole || hashRole;
+
+  if (requestedRole === "customer") {
+    showCustomerAuth();
+    return;
+  }
+
+  if (requestedRole === "staff") {
+    showCustomerAuth();
+    showStaffOwnerAuth();
+    return;
+  }
+
+  showOwnerLogin();
 }
 
 initialize();
