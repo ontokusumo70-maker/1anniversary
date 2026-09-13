@@ -189,7 +189,6 @@
     </div>
 
     <div id="ownerViewEvents" class="owner-view" hidden>
-      <button type="button" class="owner-back event-locked-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke daftar event</button>
       <div class="owner-page-heading event-page-heading">
         <div><h1>Event</h1><p>Kelola event, periode dan hadiah</p></div>
         <button id="newEventButton" class="owner-green-button event-create-button" type="button"><span>＋</span> Buat Event</button>
@@ -212,10 +211,7 @@
         </div>
         <label>Deskripsi Event<textarea id="eventDescription" maxlength="200" placeholder="Tuliskan deskripsi event (opsional)"></textarea><span class="event-counter" id="eventDescriptionCount">0/200</span></label>
         <div class="reward-heading">Hadiah Event</div>
-        <div class="event-reward-row reward-grid">
-          <label><span class="event-field-caption">Jenis Hadiah</span><select id="eventRewardType"></select></label>
-          <label><span class="event-field-caption">Jumlah Hadiah</span><input id="eventRewardQuantity" type="number" min="1" placeholder="Contoh: 100"></label>
-        </div>
+        <div id="eventRewardList" class="event-reward-list"></div>
         <button type="button" class="event-add-reward add-reward" id="eventAddReward">＋ Tambah Hadiah</button>
         <label>Syarat <span class="event-optional">(Opsional)</span><textarea id="eventCondition" maxlength="200" placeholder="Contoh: Berlaku untuk semua mesin washer"></textarea><span class="event-counter" id="eventConditionCount">0/200</span></label>
         <div class="owner-form-actions event-form-actions"><button id="cancelEventButton" class="secondary-button" type="button">Batal</button><button id="saveEventButton" class="primary-button" type="button">Simpan Event</button></div>
