@@ -1455,35 +1455,74 @@ async function saveReward() {
   }
 }
 
-function eventFilterMatches(event) {
-  if (ownerEventFilter === "ALL") return true;
-  return event.status === ownerEventFilter;
+function eventCategory(event) {
+  const now = Date.now();
+  const start = Date.parse(event.startsAt);
+  const end = Date.parse(event.endsAt);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return "COMPLETED";
+  if (event.active && now >= start && now <= end) return "ACTIVE";
+  if (now < start && event.active) return "UPCOMING";
+  return "COMPLETED";
+}
+
+function formatEventCountdown(event) {
+  const category = eventCategory(event);
+  const target = category === "UPCOMING" ? Date.parse(event.startsAt) : Date.parse(event.endsAt);
+  if (!Number.isFinite(target)) return "";
+  const diff = Math.max(0, target - Date.now());
+  const days = Math.floor(diff / 86400000);
+  if (category === "UPCOMING") return days > 0 ? `Mulai dalam ${days} hari` : "Mulai hari ini";
+  if (category === "ACTIVE") return days > 0 ? `${days} hari lagi` : "Berakhir hari ini";
+  return "Selesai";
+}
+
+function eventStatusLabel(category) {
+  if (category === "ACTIVE") return "Aktif";
+  if (category === "UPCOMING") return "Akan Datang";
+  return "Selesai";
 }
 
 function renderEventCard(event) {
-  return `<button class="owner-event-card" type="button" data-edit-event="${escapeHtml(event.eventId)}"><span class="event-card-icon">${ownerIconSvg("calendar")}</span><span class="event-card-copy"><b>${escapeHtml(event.title)}</b><small>${escapeHtml(formatDateRange(event.startsAt, event.endsAt))}</small></span><span class="event-card-arrow">›</span></button>`;
+  const category = eventCategory(event);
+  const reward = `${event.rewardType || "Reward"} × ${Number(event.rewardQuantity || 0)}`;
+  return `<button class="owner-event-card event-card-locked" type="button" data-edit-event="${escapeHtml(event.eventId)}">
+    <span class="event-card-thumbnail">${ownerIconSvg("calendar")}</span>
+    <span class="event-card-copy">
+      <span class="event-card-title-row"><b>${escapeHtml(event.title)}</b><em class="event-status-badge ${category.toLowerCase()}">${eventStatusLabel(category)}</em></span>
+      <small class="event-meta-row">${ownerIconSvg("calendar")} ${escapeHtml(formatDateRange(event.startsAt, event.endsAt))}</small>
+      <small class="event-meta-row">${ownerIconSvg("clock")} ${escapeHtml(formatEventCountdown(event))}</small>
+      <small class="event-meta-row">${ownerIconSvg("gift")} Hadiah: ${escapeHtml(reward)}</small>
+    </span>
+    <span class="event-card-arrow">›</span>
+    <span class="event-card-stats"><b>0</b><small>Participants</small><b>0</b><small>Play</small><b>0</b><small>Redeemed</small></span>
+  </button>`;
 }
 
 function renderOwnerEvents(items = []) {
   const target = $("ownerEventsList");
   if (!target) return;
   const events = items || [];
-  const active = events.filter((event) => event.status === "ACTIVE");
-  const inactive = events.filter((event) => event.status !== "ACTIVE");
-  $("activeEventCount") && ($("activeEventCount").textContent = String(active.length));
-  $("inactiveEventCount") && ($("inactiveEventCount").textContent = String(inactive.length));
-  $("allEventCount") && ($("allEventCount").textContent = String(events.length));
+  const active = events.filter((event) => eventCategory(event) === "ACTIVE");
+  const upcoming = events.filter((event) => eventCategory(event) === "UPCOMING");
+  const completed = events.filter((event) => eventCategory(event) === "COMPLETED");
 
-  let groups = [];
-  if (ownerEventFilter === "ACTIVE") {
-    groups = [{ title: "", rows: active }];
-  } else if (ownerEventFilter === "INACTIVE") {
-    groups = [{ title: "Nonaktif", rows: inactive }];
-  } else {
-    groups = [{ title: "", rows: active }, { title: "Nonaktif", rows: inactive }];
-  }
-  target.innerHTML = groups.filter((group) => group.rows.length).map((group) => `${group.title ? `<h3 class="owner-event-group-title">${group.title}</h3>` : ""}<div class="owner-event-group">${group.rows.map(renderEventCard).join("")}</div>`).join("") || `<div class="owner-event-card-empty">Tidak ada event pada filter ini.</div>`;
-  target.querySelectorAll("[data-edit-event]").forEach((button) => button.onclick = () => openEventForm(button.dataset.editEvent));
+  $("activeEventCount") && ($("activeEventCount").textContent = String(active.length));
+  $("upcomingEventCount") && ($("upcomingEventCount").textContent = String(upcoming.length));
+  $("completedEventCount") && ($("completedEventCount").textContent = String(completed.length));
+
+  const groups = {
+    ACTIVE: active,
+    UPCOMING: upcoming,
+    COMPLETED: completed,
+  };
+  const rows = groups[ownerEventFilter] || active;
+  target.innerHTML = rows.length
+    ? `<div class="owner-event-group">${rows.map(renderEventCard).join("")}</div>`
+    : `<div class="owner-event-card-empty">Tidak ada event pada filter ini.</div>`;
+
+  target.querySelectorAll("[data-edit-event]").forEach((button) => {
+    button.onclick = () => openEventForm(button.dataset.editEvent);
+  });
 }
 
 async function loadOwnerEvents() {
@@ -1643,6 +1682,7 @@ for (const button of document.querySelectorAll("#eventFilters [data-event-filter
 
 $("newEventButton")?.addEventListener("click", () => openEventForm());
 $("cancelEventButton")?.addEventListener("click", () => { $("eventFormCard").hidden = true; });
+$("cancelEventTop")?.addEventListener("click", () => { $("eventFormCard").hidden = true; });
 $("saveEventButton")?.addEventListener("click", saveEvent);
 $("newRewardButton")?.addEventListener("click", () => openRewardForm());
 $("cancelRewardButton")?.addEventListener("click", () => { $("rewardFormCard").hidden = true; });
