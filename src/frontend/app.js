@@ -1394,22 +1394,10 @@ function renderOwnerMachines() {
 function renderRewardOptions() {
   const select = $("eventRewardType");
   if (!select) return;
-  const pools = ownerData?.rewardPool || [];
+  const pools = (ownerData?.rewardPool || []).filter((pool) => pool.active);
   select.innerHTML = pools.length
     ? pools.map((pool) => `<option value="${escapeHtml(pool.rewardType)}">${escapeHtml(pool.rewardType)}</option>`).join("")
-    : `<option value="">Belum ada reward</option>`;
-}
-
-function renderOwnerRewardList(items = ownerData?.rewardPool || []) {
-  const target = $("ownerRewardList");
-  if (!target) return;
-  target.innerHTML = items.length ? items.map((item) => `
-    <button class="owner-list-item" type="button" data-edit-reward="${escapeHtml(item.rewardType)}" style="text-align:left;width:100%">
-      <div class="row"><b>${escapeHtml(item.rewardType)}</b><span class="status-pill ${item.active ? "" : "off"}">${item.active ? "AKTIF" : "NONAKTIF"}</span></div>
-      <div class="meta"><div>Quota<strong>${Number(item.quotaTotal).toLocaleString("id-ID")}</strong></div><div>Terpakai<strong>${Number(item.quotaUsed).toLocaleString("id-ID")}</strong></div><div>Sisa<strong>${Number(item.remaining).toLocaleString("id-ID")}</strong></div></div>
-    </button>
-  `).join("") : `<div class="owner-list-item"><small>Belum ada reward.</small></div>`;
-  target.querySelectorAll("[data-edit-reward]").forEach((button) => button.onclick = () => openRewardForm(button.dataset.editReward));
+    : `<option value="">Belum ada reward aktif</option>`;
 }
 
 async function loadOwnerRewardPool() {
@@ -1424,34 +1412,116 @@ async function loadOwnerRewardPool() {
   }
 }
 
+function resetRewardForm() {
+  editingRewardType = null;
+  $("ownerRewardType").disabled = false;
+  $("ownerRewardType").value = "";
+  $("rewardDescription").value = "";
+  $("rewardQuota").value = "";
+  $("rewardValidFrom").value = "";
+  $("rewardValidUntil").value = "";
+  $("rewardTerms").value = "";
+  $("rewardTermsCount").textContent = "0/200";
+  $("rewardActive").checked = true;
+}
+
 function openRewardForm(rewardType = null) {
   editingRewardType = rewardType;
-  const card = $("rewardFormCard");
-  if (!card) return;
-  card.hidden = false;
+  $("rewardPoolListView").hidden = true;
+  $("rewardDetailView").hidden = true;
+  $("rewardFormCard").hidden = false;
+  const item = (ownerData?.rewardPool || []).find((row) => row.rewardType === rewardType);
   $("rewardFormTitle").textContent = rewardType ? "Edit Reward" : "Tambah Reward";
   $("ownerRewardType").disabled = Boolean(rewardType);
   $("ownerRewardType").value = rewardType || "";
-  const item = (ownerData?.rewardPool || []).find((row) => row.rewardType === rewardType);
-  $("rewardQuota").value = item ? item.quotaTotal : "";
-  $("rewardActive").checked = item ? item.active : true;
+  $("rewardDescription").value = item?.description || "";
+  $("rewardQuota").value = item?.quotaTotal ?? "";
+  $("rewardValidFrom").value = item?.validFrom || "";
+  $("rewardValidUntil").value = item?.validUntil || "";
+  $("rewardTerms").value = item?.terms || "";
+  $("rewardTermsCount").textContent = `${($("rewardTerms").value || "").length}/200`;
+  $("rewardActive").checked = item ? Boolean(item.active) : true;
   msg("rewardFormMsg", "");
+}
+
+function openRewardDetail(rewardType) {
+  const item = (ownerData?.rewardPool || []).find((row) => row.rewardType === rewardType);
+  if (!item) return;
+  selectedRewardType = rewardType;
+  $("rewardPoolListView").hidden = true;
+  $("rewardFormCard").hidden = true;
+  $("rewardDetailView").hidden = false;
+  $("toggleRewardButton").textContent = item.active ? "Nonaktifkan" : "Aktifkan";
+  $("rewardDetailCard").innerHTML = `
+    <div class="reward-detail-summary">
+      <div><h2>${escapeHtml(item.rewardType)}</h2><p>${escapeHtml(item.description || "—")}</p></div>
+      <span class="status-pill ${item.active ? "" : "off"}">${item.active ? "Aktif" : "Nonaktif"}</span>
+    </div>
+    <div class="reward-detail-rows">
+      <div><span>Jenis Hadiah</span><b>${escapeHtml(item.rewardType)}</b></div>
+      <div><span>Deskripsi</span><b>${escapeHtml(item.description || "—")}</b></div>
+      <div><span>Total Stok</span><b>${Number(item.quotaTotal).toLocaleString("id-ID")}</b></div>
+      <div><span>Stok Tersisa</span><b>${Number(item.remaining).toLocaleString("id-ID")}</b></div>
+      <div><span>Sudah Digunakan</span><b>${Number(item.quotaUsed).toLocaleString("id-ID")}</b></div>
+      <div><span>Periode Berlaku</span><b>${escapeHtml(formatRewardPeriod(item.validFrom, item.validUntil))}</b></div>
+      <div><span>Syarat &amp; Ketentuan</span><b>${escapeHtml(item.terms || "—")}</b></div>
+      <div><span>Dibuat Oleh</span><b>${escapeHtml(item.createdBy || "Owner")}</b></div>
+      <div><span>Tanggal Dibuat</span><b>${escapeHtml(formatDateTime(item.createdAt))}</b></div>
+      <div><span>Terakhir Diubah</span><b>${escapeHtml(formatDateTime(item.updatedAt))}</b></div>
+    </div>`;
+  msg("rewardDetailMsg", "");
+}
+
+function closeRewardViews() {
+  $("rewardFormCard").hidden = true;
+  $("rewardDetailView").hidden = true;
+  $("rewardPoolListView").hidden = false;
+  selectedRewardType = null;
 }
 
 async function saveReward() {
   try {
     const body = {
       rewardType: $("ownerRewardType").value.trim(),
+      description: $("rewardDescription").value.trim(),
       quotaTotal: Number($("rewardQuota").value),
+      validFrom: $("rewardValidFrom").value || null,
+      validUntil: $("rewardValidUntil").value || null,
+      terms: $("rewardTerms").value.trim(),
       active: $("rewardActive").checked,
     };
     const path = editingRewardType ? `/owner/reward-pool/${encodeURIComponent(editingRewardType)}` : "/owner/reward-pool";
     await api(path, { method: editingRewardType ? "PATCH" : "POST", body: JSON.stringify(body) });
-    $("rewardFormCard").hidden = true;
+    closeRewardViews();
     await loadOwnerData();
+    await loadOwnerRewardPool();
     setOwnerView("reward-pool");
   } catch (error) {
     msg("rewardFormMsg", error.message);
+  }
+}
+
+async function toggleSelectedReward() {
+  const item = (ownerData?.rewardPool || []).find((row) => row.rewardType === selectedRewardType);
+  if (!item) return;
+  try {
+    await api(`/owner/reward-pool/${encodeURIComponent(selectedRewardType)}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        rewardType: selectedRewardType,
+        description: item.description || "",
+        quotaTotal: Number(item.quotaTotal),
+        validFrom: item.validFrom || null,
+        validUntil: item.validUntil || null,
+        terms: item.terms || "",
+        active: !item.active,
+      }),
+    });
+    await loadOwnerData();
+    await loadOwnerRewardPool();
+    openRewardDetail(selectedRewardType);
+  } catch (error) {
+    msg("rewardDetailMsg", error.message);
   }
 }
 
@@ -1491,11 +1561,12 @@ function eventThumbnailLabel(event) {
 
 function renderEventCard(event) {
   const category = eventCategory(event);
-  const rewards = Array.isArray(event.rewards) && event.rewards.length
-    ? event.rewards
-    : [{ rewardType: event.rewardType || "Reward", rewardQuantity: Number(event.rewardQuantity || 0) }];
-  const reward = rewards.map((item) => `${item.rewardType || "Reward"} × ${Number(item.rewardQuantity || 0)}`).join(" • ");
+  const reward = `${event.rewardType || "Reward"} × ${Number(event.rewardQuantity || 0)}`;
+  const title = String(event.title || "");
+  const posterClass = title.toUpperCase().includes("DRYER") ? "dryer" : title.toUpperCase().includes("ANNIVERSARY") ? "anniversary" : "wash";
+  const posterText = posterClass === "dryer" ? "DRYER<br><b>5X</b><br><small>GRATIS 1X</small>" : posterClass === "anniversary" ? "<b>1st</b><br>ANNIVERSARY<br><small>Special Reward</small>" : "CUCI<br><b>10X</b><br><small>GRATIS 1X</small>";
   return `<button class="owner-event-card event-card-locked" type="button" data-edit-event="${escapeHtml(event.eventId)}">
+    <span class="event-card-thumbnail event-thumb-${posterClass} ${category.toLowerCase()}"><span>${posterText}</span></span>
     <span class="event-card-copy">
       <span class="event-card-title-row"><b>${escapeHtml(event.title)}</b><em class="event-status-badge ${category.toLowerCase()}">${eventStatusLabel(category)}</em></span>
       <small class="event-meta-row">${ownerIconSvg("calendar")} <span>${escapeHtml(formatDateRange(event.startsAt, event.endsAt))}</span></small>
@@ -1549,44 +1620,6 @@ function toDateInput(value) {
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
-function eventRewardRowsFromEvent(event) {
-  if (Array.isArray(event?.rewards) && event.rewards.length) return event.rewards;
-  if (event?.rewardType) return [{ rewardType: event.rewardType, rewardQuantity: Number(event.rewardQuantity || 0) }];
-  return [{ rewardType: "", rewardQuantity: "" }];
-}
-
-function renderEventRewardRows(rows = [{ rewardType: "", rewardQuantity: "" }]) {
-  const target = $("eventRewardList");
-  if (!target) return;
-  const pools = ownerData?.rewardPool || [];
-  const options = pools.length
-    ? `<option value="">Pilih hadiah</option>${pools.map((pool) => `<option value="${escapeHtml(pool.rewardType)}">${escapeHtml(pool.rewardType)}</option>`).join("")}`
-    : `<option value="">Belum ada reward</option>`;
-  target.innerHTML = rows.map((row, index) => `
-    <div class="event-reward-row reward-grid" data-reward-index="${index}">
-      <label><span class="event-field-caption">Jenis Hadiah</span><select class="event-reward-type">${options}</select></label>
-      <label><span class="event-field-caption">Jumlah Hadiah</span><input class="event-reward-quantity" type="number" min="1" placeholder="Contoh: 100" value="${escapeHtml(row.rewardQuantity ?? "")}"></label>
-      ${index > 0 ? `<button type="button" class="event-remove-reward" data-remove-reward="${index}">Hapus Hadiah</button>` : ""}
-    </div>`).join("");
-  target.querySelectorAll(".event-reward-type").forEach((select, index) => {
-    select.value = rows[index]?.rewardType || "";
-  });
-  target.querySelectorAll("[data-remove-reward]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const current = readEventRewardRows();
-      current.splice(Number(button.dataset.removeReward), 1);
-      renderEventRewardRows(current);
-    });
-  });
-}
-
-function readEventRewardRows() {
-  return Array.from(document.querySelectorAll("#eventRewardList .event-reward-row")).map((row) => ({
-    rewardType: row.querySelector(".event-reward-type")?.value?.trim() || "",
-    rewardQuantity: Number(row.querySelector(".event-reward-quantity")?.value),
-  }));
-}
-
 function openEventForm(eventId = null) {
   editingEventId = eventId;
   const card = $("eventFormCard");
@@ -1598,7 +1631,8 @@ function openEventForm(eventId = null) {
   $("eventStartsAt").value = toDateInput(event?.startsAt);
   $("eventEndsAt").value = toDateInput(event?.endsAt);
   renderRewardOptions();
-  renderEventRewardRows(eventRewardRowsFromEvent(event));
+  if (event) $("eventRewardType").value = event.rewardType;
+  $("eventRewardQuantity").value = event?.rewardQuantity || "";
   msg("eventFormMsg", "");
 }
 
@@ -1610,12 +1644,12 @@ async function saveEvent() {
       title: $("eventTitle").value.trim(),
       startsAt: startValue ? new Date(`${startValue}T00:00:00+07:00`).toISOString() : "",
       endsAt: endValue ? new Date(`${endValue}T23:59:59+07:00`).toISOString() : "",
-      rewards: readEventRewardRows(),
+      rewardType: $("eventRewardType").value,
+      rewardQuantity: Number($("eventRewardQuantity").value),
       active: editingEventId ? Boolean((ownerData?.events || []).find((row) => row.eventId === editingEventId)?.active) : true,
     };
-    const validRewards = body.rewards.length > 0 && body.rewards.every((reward) => reward.rewardType && Number.isInteger(reward.rewardQuantity) && reward.rewardQuantity > 0);
-    if (!body.title || !$("eventStartsAt").value || !$("eventEndsAt").value || !validRewards) {
-      throw new Error("Lengkapi data event dan hadiah.");
+    if (!body.title || !$("eventStartsAt").value || !$("eventEndsAt").value || !body.rewardType || !Number.isInteger(body.rewardQuantity) || body.rewardQuantity < 1) {
+      throw new Error("Lengkapi data event.");
     }
     const path = editingEventId ? `/owner/events/${encodeURIComponent(editingEventId)}` : "/owner/events";
     await api(path, { method: editingEventId ? "PATCH" : "POST", body: JSON.stringify(body) });
@@ -1724,11 +1758,6 @@ for (const button of document.querySelectorAll("#eventFilters [data-event-filter
 }
 
 $("newEventButton")?.addEventListener("click", () => openEventForm());
-$("eventAddReward")?.addEventListener("click", () => {
-  const rows = readEventRewardRows();
-  rows.push({ rewardType: "", rewardQuantity: "" });
-  renderEventRewardRows(rows);
-});
 $("cancelEventButton")?.addEventListener("click", () => { $("eventFormCard").hidden = true; });
 
 $("eventDescription")?.addEventListener("input", () => { $("eventDescriptionCount").textContent = `${$("eventDescription").value.length}/200`; });
@@ -1736,8 +1765,16 @@ $("eventCondition")?.addEventListener("input", () => { $("eventConditionCount").
 $("cancelEventTop")?.addEventListener("click", () => { $("eventFormCard").hidden = true; });
 $("saveEventButton")?.addEventListener("click", saveEvent);
 $("newRewardButton")?.addEventListener("click", () => openRewardForm());
-$("cancelRewardButton")?.addEventListener("click", () => { $("rewardFormCard").hidden = true; });
+$("cancelRewardButton")?.addEventListener("click", closeRewardViews);
+$("cancelRewardTop")?.addEventListener("click", closeRewardViews);
+$("rewardDetailBack")?.addEventListener("click", closeRewardViews);
+$("editRewardButton")?.addEventListener("click", () => { if (selectedRewardType) openRewardForm(selectedRewardType); });
+$("toggleRewardButton")?.addEventListener("click", toggleSelectedReward);
 $("saveRewardButton")?.addEventListener("click", saveReward);
+$("rewardTerms")?.addEventListener("input", () => { $("rewardTermsCount").textContent = `${$("rewardTerms").value.length}/200`; });
+for (const button of document.querySelectorAll("#rewardPoolTabs [data-reward-filter]")) {
+  button.addEventListener("click", () => { ownerRewardFilter = button.dataset.rewardFilter; renderOwnerRewardList(); });
+}
 $("loadOwner")?.addEventListener("click", loadOwnerData);
 $("traceCustomer")?.addEventListener("click", runCustomerTrace);
 $("refreshAudit")?.addEventListener("click", loadOwnerAudit);
