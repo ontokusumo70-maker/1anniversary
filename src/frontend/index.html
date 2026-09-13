@@ -118,33 +118,120 @@
   </section>
 
   <section id="owner" class="screen screen-owner" hidden>
-    <div class="role-hero owner-hero">
-      <div><span class="eyebrow">OWNER CONTROL</span><h1>Dashboard Anniversary</h1><p>Overview • Reward Pool • Customer Trace • Audit • CSV Export</p></div>
-      <img src="/assets/mascot/mascot_think.png" alt="Owner mascot">
+    <header class="owner-dashboard-header">
+      <div class="owner-brand-block">
+        <img src="/assets/branding/branding.png" alt="Teras Laundry" class="owner-brand-logo">
+        <div class="owner-brand-copy"><span>Bersih</span><span>Lebih Mudah</span><span>Lebih Bahagia</span><strong>1st Anniversary</strong></div>
+      </div>
+      <div class="owner-account"><b>Owner</b><button id="ownerLogout" type="button" aria-label="Logout Owner"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"/><path d="M14 8l4 4-4 4M8 12h10"/></svg><span>Logout</span></button></div>
+    </header>
+
+    <nav class="owner-tabbar" aria-label="Owner menu">
+      <button type="button" data-owner-view="overview" class="active"><span class="owner-nav-icon" data-owner-icon="overview"></span><span>Overview</span></button>
+      <button type="button" data-owner-view="reward-pool"><span class="owner-nav-icon" data-owner-icon="reward"></span><span>Reward Pool</span></button>
+      <button type="button" data-owner-view="customer-trace"><span class="owner-nav-icon" data-owner-icon="customer"></span><span>Customer Trace</span></button>
+      <button type="button" data-owner-view="events"><span class="owner-nav-icon" data-owner-icon="event"></span><span>Event</span></button>
+      <button type="button" data-owner-view="audit"><span class="owner-nav-icon" data-owner-icon="audit"></span><span>Audit</span></button>
+      <button type="button" data-owner-view="csv-export"><span class="owner-nav-icon" data-owner-icon="csv"></span><span>CSV Export</span></button>
+    </nav>
+
+    <div id="ownerViewOverview" class="owner-view">
+      <div class="owner-page-heading">
+        <div><h1>Overview</h1><p>Ringkasan hari ini</p></div>
+        <button id="loadOwner" class="owner-date-button" type="button"><span class="owner-inline-icon" data-owner-icon="calendar"></span><span class="owner-date-label">12 Aug 2026</span><span class="owner-chevron">⌄</span></button>
+      </div>
+
+      <div id="ownerMetrics" class="owner-metric-grid"></div>
+
+      <section class="owner-section-block">
+        <div class="owner-section-title"><h2>Status Mesin</h2><button type="button" data-owner-view="machines">Lihat Semua <b>›</b></button></div>
+        <div id="ownerMachineSummary" class="owner-machine-summary"></div>
+      </section>
+
+      <section class="owner-section-block">
+        <div class="owner-section-title"><h2>Statistik Operasional</h2></div>
+        <div id="operationPeriods" class="owner-period-tabs">
+          <button type="button" data-period="daily" class="active">Harian</button>
+          <button type="button" data-period="weekly">Mingguan</button>
+          <button type="button" data-period="monthly">Bulanan</button>
+          <button type="button" data-period="yearly">Tahunan</button>
+        </div>
+        <div id="ownerOperationStats" class="owner-operation-grid"></div>
+      </section>
+
+      <section class="owner-section-block">
+        <div class="owner-section-title"><h2>Event Aktif</h2><button type="button" data-owner-view="events">Lihat Semua <b>›</b></button></div>
+        <div id="ownerActiveEvents" class="owner-list"></div>
+      </section>
+      <p id="ownerResult" class="msg status-msg owner-dashboard-msg"></p>
     </div>
-    <div class="owner-nav"><span>Overview</span><span>Reward Pool</span><span>Customer Trace</span><span>Audit</span><span>CSV Export</span></div>
-    <div class="card owner-card">
-      <div class="card-title-row"><div><span class="eyebrow">OVERVIEW</span><h2>Participation</h2></div><button id="loadOwner" class="icon-button">Refresh</button></div>
-      <div id="ownerOverview" class="stats"></div>
-      <p id="ownerResult" class="msg status-msg"></p>
+
+    <div id="ownerViewMachines" class="owner-view" hidden>
+      <button type="button" class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</button>
+      <div class="owner-page-heading compact"><div><h1>Status Mesin</h1><p>Monitor real-time semua mesin</p></div></div>
+      <div id="machineFilters" class="owner-filter-tabs machine-tabs">
+        <button type="button" data-machine-filter="ALL" class="active">Semua (10)</button>
+        <button type="button" data-machine-filter="WASHER">Washer (5)</button>
+        <button type="button" data-machine-filter="DRYER">Dryer (5)</button>
+      </div>
+      <div id="ownerAllMachines" class="owner-machine-list"></div>
+      <div class="owner-status-legend">
+        <h3>Keterangan Status</h3>
+        <div><span class="status-dot idle"></span><b>Idle</b><small>Mesin tersedia</small></div>
+        <div><span class="status-dot busy"></span><b>Terpakai</b><small>Mesin sedang digunakan</small></div>
+        <p><span class="owner-inline-icon" data-owner-icon="clock"></span> Waktu menunjukkan sisa estimasi (hh:mm:ss)</p>
+      </div>
     </div>
-    <div class="card owner-card">
-      <div class="step-chip"><span>1</span> Customer Trace</div>
-      <label>Customer ID<input id="traceCustomerId" maxlength="128" placeholder="Customer ID"></label>
-      <button id="traceCustomer" class="secondary-button">Lihat Customer Trace</button>
-      <pre id="traceResult"></pre>
+
+    <div id="ownerViewEvents" class="owner-view" hidden>
+      <button type="button" class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</button>
+      <div class="owner-page-heading compact"><div><h1>Event</h1><p>Daftar semua event</p></div><button id="newEventButton" class="owner-green-button" type="button"><span>＋</span> Tambah Event</button></div>
+      <div id="eventFilters" class="owner-filter-tabs event-tabs">
+        <button data-event-filter="ACTIVE" class="active">Aktif (<span id="activeEventCount">3</span>)</button>
+        <button data-event-filter="INACTIVE">Nonaktif (<span id="inactiveEventCount">1</span>)</button>
+        <button data-event-filter="ALL">Semua (<span id="allEventCount">4</span>)</button>
+      </div>
+      <div id="ownerEventsList" class="owner-event-groups"></div>
+      <div id="eventFormCard" class="owner-form-card" hidden>
+        <h3 id="eventFormTitle">Buat Event Baru</h3>
+        <label>Nama Event<input id="eventTitle"></label>
+        <label>Mulai<input id="eventStartsAt" type="datetime-local"></label>
+        <label>Selesai<input id="eventEndsAt" type="datetime-local"></label>
+        <label>Reward<select id="eventRewardType"></select></label>
+        <label>Jumlah<input id="eventRewardQuantity" type="number" min="1"></label>
+        <label class="owner-check"><input id="eventActive" type="checkbox"> Aktif</label>
+        <div class="owner-form-actions"><button id="cancelEventButton" class="secondary-button" type="button">Batal</button><button id="saveEventButton" class="primary-button" type="button">Simpan</button></div>
+        <p id="eventFormMsg" class="msg status-msg"></p>
+      </div>
     </div>
-    <div class="card owner-card">
-      <div class="step-chip"><span>2</span> CSV Export</div>
-      <select id="ownerExport"><option value="customers">Customers</option><option value="plays">Plays</option><option value="rewards">Rewards</option><option value="audit">Audit</option></select>
-      <button id="downloadExport" class="primary-button">DOWNLOAD CSV</button>
+
+    <div id="ownerViewRewardPool" class="owner-view" hidden>
+      <div class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</div>
+      <div class="owner-page-heading compact"><div><h1>Reward Pool</h1><p>Kelola quota reward</p></div><button id="newRewardButton" class="owner-green-button" type="button">＋ Tambah</button></div>
+      <div id="ownerRewardList" class="owner-list"></div>
+      <div id="rewardFormCard" class="owner-form-card" hidden><h3 id="rewardFormTitle">Tambah Reward</h3><label>Reward Type<input id="ownerRewardType"></label><label>Quota<input id="rewardQuota" type="number" min="1"></label><label class="owner-check"><input id="rewardActive" type="checkbox"> Aktif</label><div class="owner-form-actions"><button id="cancelRewardButton" class="secondary-button" type="button">Batal</button><button id="saveRewardButton" class="primary-button" type="button">Simpan</button></div><p id="rewardFormMsg" class="msg status-msg"></p></div>
     </div>
-    <div class="card owner-card">
-      <div class="card-title-row"><div><span class="eyebrow">STATUS MESIN</span><h2>10 Mesin</h2></div></div>
-      <pre id="ownerMachines"></pre>
+
+    <div id="ownerViewCustomerTrace" class="owner-view" hidden>
+      <div class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</div>
+      <div class="owner-page-heading compact"><div><h1>Customer Trace</h1><p>Customer → Transaction → Play → Reward</p></div></div>
+      <div class="owner-trace-form"><label>Customer ID<input id="traceCustomerId" maxlength="128" placeholder="Customer ID"></label><button id="traceCustomer" class="primary-button" type="button">Lihat Customer Trace</button></div>
+      <div id="traceResult" class="owner-trace-result"></div>
+    </div>
+
+    <div id="ownerViewAudit" class="owner-view" hidden>
+      <div class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</div>
+      <div class="owner-page-heading compact"><div><h1>Audit</h1><p>Riwayat aktivitas sistem</p></div><button id="refreshAudit" class="owner-date-button" type="button">↻ Refresh</button></div>
+      <input id="auditSearch" class="owner-search" placeholder="Cari audit...">
+      <div id="ownerAuditList" class="owner-list"></div>
+    </div>
+
+    <div id="ownerViewCsvExport" class="owner-view" hidden>
+      <div class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</div>
+      <div class="owner-page-heading compact"><div><h1>CSV Export</h1><p>Export data Owner</p></div></div>
+      <div class="owner-export-card"><label>Dari<input id="exportFrom" type="date"></label><label>Sampai<input id="exportTo" type="date"></label><button id="downloadExport" class="primary-button" type="button">DOWNLOAD CSV</button><p id="csvExportMsg" class="msg status-msg"></p></div>
     </div>
   </section>
-
   <footer class="footer-mark"><img src="/assets/branding/branding.png" alt="Teras Laundry"><span>1st Anniversary 2026 • 1–10 November</span></footer>
 </main>
 <script src="./app.js" defer></script>
