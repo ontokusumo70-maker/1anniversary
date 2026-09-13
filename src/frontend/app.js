@@ -1172,6 +1172,10 @@ let ownerServerTimeReceivedAt = 0;
 let ownerRealtimeTimer = null;
 let ownerCurrentView = "overview";
 let ownerOperationPeriod = "daily";
+let ownerCustomerPage = 1;
+let ownerCustomerSearch = "";
+let ownerCustomerData = { total: 0, page: 1, pageSize: 10, items: [] };
+let ownerSelectedCustomerId = null;
 
 function getWibDateInputValue(offsetDays = 0) {
   const now = new Date(Date.now() + (7 * 60 * 60 * 1000));
@@ -1305,6 +1309,7 @@ function setOwnerView(view) {
   if (view === "machines") renderOwnerMachines();
   if (view === "events") loadOwnerEvents();
   if (view === "reward-pool") loadOwnerRewardPool();
+  if (view === "customer-trace") loadOwnerCustomers();
 }
 
 function renderOwnerMetrics() {
@@ -1720,26 +1725,107 @@ async function deleteEvent() {
   }
 }
 
-function renderCustomerTrace(data) {
-  const target = $("traceResult");
-  if (!target) return;
-  const customer = data.customer;
-  const timeline = [
-    ...(data.transactions || []).map((row) => ({ title: "Transaction", text: `${row.transaction_id} · ${row.service_type}` })),
-    ...(data.plays || []).map((row) => ({ title: "Play", text: `${row.play_id} · ${row.status}` })),
-    ...(data.rewards || []).map((row) => ({ title: "Reward", text: `${row.reward_id} · ${row.type} · ${row.status}` })),
-  ];
-  target.innerHTML = `<div class="trace-customer-card"><h2>${escapeHtml(customer.name || "Nama belum tersedia")}</h2><p>${escapeHtml(customer.customer_id)}</p><p>${escapeHtml(customer.phone_masked || "—")} · ${escapeHtml(customer.email || "—")}</p><p>Registrasi: ${escapeHtml(formatDateTime(customer.created_at))}</p><div class="trace-timeline">${timeline.length ? timeline.map((item) => `<div class="trace-step"><b>${escapeHtml(item.title)}</b><span>${escapeHtml(item.text)}</span></div>`).join("") : `<div class="trace-step"><span>Belum ada aktivitas.</span></div>`}</div></div>`;
+function formatCustomerDate(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Jakarta" }).format(date);
 }
 
-async function runCustomerTrace() {
-  try {
-    const id = $("traceCustomerId").value.trim();
-    if (!id) throw new Error("Customer ID wajib diisi.");
-    renderCustomerTrace(await api(`/owner/customer/${encodeURIComponent(id)}`));
-  } catch (error) {
-    $("traceResult").textContent = error.message;
+function formatCustomerTime(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jakarta" }).format(date).replace(",", "");
+}
+
+function renderCustomerTraceList(data) {
+  const target = $("ownerCustomerList");
+  if (!target) return;
+  ownerCustomerData = data || { total: 0, page: 1, pageSize: 10, items: [] };
+  const items = ownerCustomerData.items || [];
+  const total = Number(ownerCustomerData.total || 0);
+  const page = Number(ownerCustomerData.page || 1);
+  const pageSize = Number(ownerCustomerData.pageSize || 10);
+  const from = total ? ((page - 1) * pageSize) + 1 : 0;
+  const to = Math.min(page * pageSize, total);
+  $("ownerCustomerTotal") && ($("ownerCustomerTotal").textContent = `${total.toLocaleString("id-ID")} Customers`);
+  target.innerHTML = items.length ? `<div class="owner-customer-table-wrap"><table class="owner-customer-table"><thead><tr><th>#</th><th>Email ID</th><th>No. HP</th><th>Play</th><th>Reward</th><th>Status</th><th></th></tr></thead><tbody>${items.map((item, index) => `<tr data-customer-id="${escapeHtml(item.customerId)}"><td>${from + index}</td><td>${escapeHtml(item.email || "—")}</td><td>${escapeHtml(item.phoneMasked || "—")}</td><td>${Number(item.totalPlay || 0)}</td><td>${Number(item.totalReward || 0)}</td><td><span class="owner-customer-status">Active</span></td><td><button type="button" class="owner-customer-open" aria-label="Buka detail customer">›</button></td></tr>`).join("")}</tbody></table></div>` : `<div class="owner-customer-empty">Belum ada customer terdaftar.</div>`;
+  target.querySelectorAll("[data-customer-id]").forEach((row) => row.addEventListener("click", () => openCustomerDetail(row.dataset.customerId)));
+  renderCustomerPagination(total, page, pageSize);
+}
+
+function renderCustomerPagination(total, page, pageSize) {
+  const target = $("ownerCustomerPagination");
+  const summary = $("ownerCustomerPaginationSummary");
+  if (!target) return;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  if (summary) summary.textContent = total ? `${((page - 1) * pageSize) + 1} – ${Math.min(page * pageSize, total)} dari ${total}` : "0 dari 0";
+  if (totalPages <= 1) { target.innerHTML = ""; return; }
+  const buttons = [];
+  buttons.push(`<button type="button" data-customer-page="${Math.max(1, page - 1)}" ${page === 1 ? "disabled" : ""}>‹</button>`);
+  const pages = [];
+  if (totalPages <= 7) for (let i = 1; i <= totalPages; i++) pages.push(i);
+  else {
+    pages.push(1);
+    if (page > 4) pages.push("…");
+    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) pages.push(i);
+    if (page < totalPages - 3) pages.push("…");
+    pages.push(totalPages);
   }
+  pages.forEach((item) => buttons.push(item === "…" ? `<span class="owner-customer-page-gap">…</span>` : `<button type="button" data-customer-page="${item}" class="${item === page ? "active" : ""}">${item}</button>`));
+  buttons.push(`<button type="button" data-customer-page="${Math.min(totalPages, page + 1)}" ${page === totalPages ? "disabled" : ""}>›</button>`);
+  target.innerHTML = buttons.join("");
+  target.querySelectorAll("[data-customer-page]").forEach((button) => button.addEventListener("click", () => { ownerCustomerPage = Number(button.dataset.customerPage); loadOwnerCustomers(); }));
+}
+
+async function loadOwnerCustomers() {
+  try {
+    const params = new URLSearchParams({ page: String(ownerCustomerPage), pageSize: "10" });
+    if (ownerCustomerSearch) params.set("search", ownerCustomerSearch);
+    renderCustomerTraceList(await api(`/owner/customers?${params.toString()}`));
+  } catch (error) {
+    const target = $("ownerCustomerList");
+    if (target) target.innerHTML = `<div class="owner-customer-empty">${escapeHtml(error.message)}</div>`;
+  }
+}
+
+async function openCustomerDetail(customerId) {
+  ownerSelectedCustomerId = customerId;
+  const listView = $("ownerCustomerListView");
+  const detailView = $("ownerCustomerDetailView");
+  if (listView) listView.hidden = true;
+  if (detailView) detailView.hidden = false;
+  const target = $("ownerCustomerDetail");
+  if (target) target.innerHTML = `<div class="owner-customer-loading">Memuat customer...</div>`;
+  try {
+    renderCustomerTrace(await api(`/owner/customer/${encodeURIComponent(customerId)}`));
+  } catch (error) {
+    if (target) target.innerHTML = `<div class="owner-customer-empty">${escapeHtml(error.message)}</div>`;
+  }
+}
+
+function renderCustomerTrace(data) {
+  const target = $("ownerCustomerDetail");
+  if (!target) return;
+  const customer = data.customer || {};
+  const journey = [];
+  (data.transactions || []).forEach((row) => journey.push({ title: "Transaction", text: `${row.transaction_id} · ${row.service_type}`, at: row.created_at }));
+  (data.plays || []).forEach((row) => journey.push({ title: "Play", text: `${row.session_id || row.play_id} · ${row.status}`, at: row.created_at }));
+  (data.rewards || []).forEach((row) => {
+    journey.push({ title: "Reward", text: `${row.reward_id} (${row.type})`, at: row.created_at });
+    if (row.token_ref) journey.push({ title: "QR Reference", text: row.token_ref, at: row.created_at });
+    if (row.redeemed_at) journey.push({ title: "Redeem", text: "Reward redeemed", at: row.redeemed_at });
+    if (row.used_at) journey.push({ title: "Used", text: "Reward used", at: row.used_at });
+  });
+  journey.sort((a, b) => Date.parse(a.at || "") - Date.parse(b.at || ""));
+  const totalPlay = Number((data.plays || []).length);
+  const totalReward = Number((data.rewards || []).length);
+  const totalRedeemed = Number((data.rewards || []).filter((row) => row.redeemed_at).length);
+  target.innerHTML = `<div class="owner-customer-detail-heading"><h1>Customer Detail</h1><p>${escapeHtml(customer.customer_id || "—")}</p></div>
+    <div class="owner-customer-info-card"><div><span>Customer ID</span><b>${escapeHtml(customer.customer_id || "—")}</b></div><div><span>No. HP</span><b>${escapeHtml(customer.phone_masked || "—")}</b></div><div><span>Email ID</span><b>${escapeHtml(customer.email || "—")}</b></div><div><span>Registrasi</span><b>${escapeHtml(formatCustomerDate(customer.created_at))}</b></div><div><span>Total Play</span><b>${totalPlay}</b></div><div><span>Total Reward</span><b>${totalReward}</b></div><div><span>Total Redeemed</span><b>${totalRedeemed}</b></div><div><span>Status</span><b><em class="owner-customer-status">Active</em></b></div></div>
+    <h2 class="owner-customer-journey-title">Customer Journey</h2>
+    <div class="owner-customer-journey">${journey.length ? journey.map((item) => `<div class="owner-journey-item"><span class="owner-journey-dot"></span><div><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.text)}</small></div><time>${escapeHtml(formatCustomerTime(item.at))}</time></div>`).join("") : `<div class="owner-customer-empty">Belum ada aktivitas.</div>`}</div>`;
 }
 
 async function loadOwnerAudit() {
@@ -1839,7 +1925,9 @@ $("eventDetailBack")?.addEventListener("click", () => { closeEventViews(); setOw
 $("editEventButton")?.addEventListener("click", () => { if (selectedEventId) openEventForm(selectedEventId); });
 $("deleteEventButton")?.addEventListener("click", deleteEvent);
 $("loadOwner")?.addEventListener("click", loadOwnerData);
-$("traceCustomer")?.addEventListener("click", runCustomerTrace);
+$("ownerCustomerSearchButton")?.addEventListener("click", () => { ownerCustomerSearch = ($("ownerCustomerSearch")?.value || "").trim(); ownerCustomerPage = 1; loadOwnerCustomers(); });
+$("ownerCustomerSearch")?.addEventListener("keydown", (event) => { if (event.key === "Enter") { ownerCustomerSearch = event.currentTarget.value.trim(); ownerCustomerPage = 1; loadOwnerCustomers(); } });
+$("ownerCustomerDetailBack")?.addEventListener("click", () => { const list = $("ownerCustomerListView"); const detail = $("ownerCustomerDetailView"); if (list) list.hidden = false; if (detail) detail.hidden = true; ownerSelectedCustomerId = null; });
 
 $("downloadExport")?.addEventListener("click", async () => {
   try {
