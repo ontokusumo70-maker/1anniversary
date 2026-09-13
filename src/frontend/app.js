@@ -1260,7 +1260,6 @@ function ownerViews() {
     events: $("ownerViewEvents"),
     "reward-pool": $("ownerViewRewardPool"),
     "customer-trace": $("ownerViewCustomerTrace"),
-    audit: $("ownerViewAudit"),
     "csv-export": $("ownerViewCsvExport"),
   };
 }
@@ -1282,7 +1281,6 @@ function setOwnerView(view) {
   if (view === "machines") renderOwnerMachines();
   if (view === "events") loadOwnerEvents();
   if (view === "reward-pool") loadOwnerRewardPool();
-  if (view === "audit") loadOwnerAudit();
 }
 
 function renderOwnerMetrics() {
@@ -1712,18 +1710,6 @@ async function runCustomerTrace() {
   }
 }
 
-async function loadOwnerAudit() {
-  try {
-    const data = await api("/owner/audit?limit=100");
-    const query = ($("auditSearch")?.value || "").trim().toLowerCase();
-    const items = (data.items || []).filter((item) => !query || `${item.entity_type} ${item.entity_id} ${item.action} ${item.actor} ${item.result}`.toLowerCase().includes(query));
-    const target = $("ownerAuditList");
-    target.innerHTML = items.length ? items.map((item) => `<div class="owner-list-item audit-item"><div class="row"><b>${escapeHtml(item.action)}</b><span class="status-pill ${item.result === "SUCCESS" ? "" : "off"}">${escapeHtml(item.result)}</span></div><small>${escapeHtml(formatDateTime(item.timestamp))}</small><div class="meta"><div>Entity<strong>${escapeHtml(item.entity_type)}</strong></div><div>ID<strong>${escapeHtml(item.entity_id)}</strong></div><div>Source<strong>${escapeHtml(item.actor)}</strong></div></div></div>`).join("") : `<div class="owner-list-item"><small>Tidak ada audit.</small></div>`;
-  } catch (error) {
-    $("ownerAuditList").textContent = error.message;
-  }
-}
-
 async function loadOwnerData(range = null) {
   try {
     const selected = range || ownerDateRangeParams();
@@ -1809,8 +1795,6 @@ $("editEventButton")?.addEventListener("click", () => { if (selectedEventId) ope
 $("deleteEventButton")?.addEventListener("click", deleteEvent);
 $("loadOwner")?.addEventListener("click", loadOwnerData);
 $("traceCustomer")?.addEventListener("click", runCustomerTrace);
-$("refreshAudit")?.addEventListener("click", loadOwnerAudit);
-$("auditSearch")?.addEventListener("input", loadOwnerAudit);
 
 $("downloadExport")?.addEventListener("click", async () => {
   try {
