@@ -220,7 +220,7 @@ body[data-role="OWNER"] .app-shell{width:min(100%,520px);max-width:520px;min-hei
 .owner-account>b{font-size:11px;color:#1d2522}
 .owner-account button{display:flex;flex-direction:column;align-items:center;gap:1px;padding:0;background:transparent;color:#4d7162;font-size:8px;font-weight:700}
 .owner-account svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.owner-tabbar{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;padding:9px 0 7px;border-bottom:1px solid #e7ebe9;background:#fff;overflow:hidden}
+.owner-tabbar{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;padding:9px 0 7px;border-bottom:1px solid #e7ebe9;background:#fff;overflow:hidden}
 .owner-tabbar button{min-width:0;padding:0 1px 8px;border-radius:0;background:#fff;color:#6d7471;font-size:8px;font-weight:600;line-height:1.15;box-shadow:none;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative}
 .owner-tabbar button.active{color:#16855e;font-weight:800}
 .owner-tabbar button.active::after{content:"";position:absolute;left:12%;right:12%;bottom:0;height:2px;border-radius:2px;background:#1aa36f}
@@ -309,7 +309,7 @@ body[data-role="OWNER"] .owner-dashboard-header{height:68px;padding:6px 4px 4px;
 .owner-account>b{font-size:10px}
 .owner-account button{font-size:7px;gap:1px}
 .owner-account svg{width:22px;height:22px}
-.owner-tabbar{height:70px;grid-template-columns:repeat(5,1fr);gap:0;padding:9px 0 5px;border-bottom:1px solid #e8ecea;background:#fff}
+.owner-tabbar{height:70px;grid-template-columns:repeat(6,1fr);gap:0;padding:9px 0 5px;border-bottom:1px solid #e8ecea;background:#fff}
 .owner-tabbar button{padding:0 1px 7px;font-size:7px;line-height:1.15;gap:4px}
 .owner-nav-icon{width:24px;height:22px;font-size:0;color:#65766f}
 .owner-nav-icon svg,.owner-inline-icon svg,.owner-metric-icon svg,.owner-machine-icon svg,.operation-stat-icon svg,.event-card-icon svg,.active-event-icon svg,.machine-row-icon svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.55;stroke-linecap:round;stroke-linejoin:round}
@@ -527,7 +527,7 @@ body[data-role="OWNER"] .machine-full::before{
 .event-meta-row{display:flex!important;align-items:center;gap:5px;font-size:8px!important;color:#6e7b76!important;margin:0!important;white-space:nowrap}
 .event-meta-row svg{width:12px;height:12px;flex:0 0 auto}
 .event-card-arrow{grid-column:3;grid-row:1;align-self:center;font-size:23px}
-.event-card-stats{grid-column:1/4;display:grid;grid-template-columns:repeat(5,1fr);align-items:center;border-top:1px solid #edf0ef;padding-top:7px;margin-top:1px;text-align:center}
+.event-card-stats{grid-column:1/4;display:grid;grid-template-columns:repeat(6,1fr);align-items:center;border-top:1px solid #edf0ef;padding-top:7px;margin-top:1px;text-align:center}
 .event-card-stats b{font-size:10px;line-height:1}
 .event-card-stats small{font-size:7px;color:#75827d}
 .event-form-card{padding:14px;margin-top:14px;border-radius:10px}
@@ -774,4 +774,13 @@ body[data-role="OWNER"] .locked-form-actions .primary-button{border:1px solid #0
   body[data-role="OWNER"] .locked-detail-heading .owner-outline-button{height:32px;min-height:32px;font-size:8px}
   body[data-role="OWNER"] .locked-form-view h3{font-size:22px}
   body[data-role="OWNER"] .locked-form-subtitle{font-size:9px}
+}
+
+/* OWNER NAV SIZE LOCK — 5 BUSINESS MENUS */
+body[data-role="OWNER"] .owner-tabbar{grid-template-columns:repeat(5,1fr)}
+body[data-role="OWNER"] .owner-tabbar button{font-size:8px;gap:5px}
+body[data-role="OWNER"] .owner-nav-icon{width:27px;height:25px}
+@media(max-width:600px){
+  body[data-role="OWNER"] .owner-tabbar button{font-size:8px;gap:5px}
+  body[data-role="OWNER"] .owner-nav-icon{width:27px;height:25px}
 }
