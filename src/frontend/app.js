@@ -1482,11 +1482,18 @@ function eventStatusLabel(category) {
   return "Selesai";
 }
 
+function eventThumbnailLabel(event) {
+  const title = String(event.title || "").toUpperCase();
+  if (title.includes("DRYER")) return "DRYER<br>5X<br><small>GRATIS 1X</small>";
+  if (title.includes("ANNIVERSARY")) return "1st<br>ANNIVERSARY<br><small>SPECIAL</small>";
+  return "CUCI<br>10X<br><small>GRATIS 1X</small>";
+}
+
 function renderEventCard(event) {
   const category = eventCategory(event);
   const reward = `${event.rewardType || "Reward"} × ${Number(event.rewardQuantity || 0)}`;
   return `<button class="owner-event-card event-card-locked" type="button" data-edit-event="${escapeHtml(event.eventId)}">
-    <span class="event-card-thumbnail">${ownerIconSvg("calendar")}</span>
+    <span class="event-card-thumbnail ${category.toLowerCase()}"><span>${eventThumbnailLabel(event)}</span></span>
     <span class="event-card-copy">
       <span class="event-card-title-row"><b>${escapeHtml(event.title)}</b><em class="event-status-badge ${category.toLowerCase()}">${eventStatusLabel(category)}</em></span>
       <small class="event-meta-row">${ownerIconSvg("calendar")} ${escapeHtml(formatDateRange(event.startsAt, event.endsAt))}</small>
@@ -1494,7 +1501,7 @@ function renderEventCard(event) {
       <small class="event-meta-row">${ownerIconSvg("gift")} Hadiah: ${escapeHtml(reward)}</small>
     </span>
     <span class="event-card-arrow">›</span>
-    <span class="event-card-stats"><b>0</b><small>Participants</small><b>0</b><small>Play</small><b>0</b><small>Redeemed</small></span>
+    <span class="event-card-stats"><span><b>0</b><small>Participants</small></span><span><b>0</b><small>Play</small></span><span><b>0</b><small>Redeemed</small></span></span>
   </button>`;
 }
 
@@ -1510,11 +1517,7 @@ function renderOwnerEvents(items = []) {
   $("upcomingEventCount") && ($("upcomingEventCount").textContent = String(upcoming.length));
   $("completedEventCount") && ($("completedEventCount").textContent = String(completed.length));
 
-  const groups = {
-    ACTIVE: active,
-    UPCOMING: upcoming,
-    COMPLETED: completed,
-  };
+  const groups = { ACTIVE: active, UPCOMING: upcoming, COMPLETED: completed };
   const rows = groups[ownerEventFilter] || active;
   target.innerHTML = rows.length
     ? `<div class="owner-event-group">${rows.map(renderEventCard).join("")}</div>`
@@ -1716,6 +1719,21 @@ $("ownerLogout")?.addEventListener("click", () => {
   clearSession();
   window.location.href = "?role=owner";
 });
+
+
+function bindEventFormCounters() {
+  const pairs = [["eventDescription", "eventDescriptionCount"], ["eventCondition", "eventConditionCount"]];
+  pairs.forEach(([inputId, counterId]) => {
+    const input = $(inputId);
+    const counter = $(counterId);
+    if (!input || !counter || input.dataset.counterBound) return;
+    input.dataset.counterBound = "1";
+    const update = () => { counter.textContent = `${input.value.length}/200`; };
+    input.addEventListener("input", update);
+    update();
+  });
+}
+bindEventFormCounters();
 
 async function loadOwner() {
   mountOwnerIcons();
