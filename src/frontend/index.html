@@ -131,7 +131,6 @@
       <button type="button" data-owner-view="reward-pool"><span class="owner-nav-icon" data-owner-icon="reward"></span><span>Reward Pool</span></button>
       <button type="button" data-owner-view="customer-trace"><span class="owner-nav-icon" data-owner-icon="customer"></span><span>Customer Trace</span></button>
       <button type="button" data-owner-view="events"><span class="owner-nav-icon" data-owner-icon="event"></span><span>Event</span></button>
-      <button type="button" data-owner-view="audit"><span class="owner-nav-icon" data-owner-icon="audit"></span><span>Audit</span></button>
       <button type="button" data-owner-view="csv-export"><span class="owner-nav-icon" data-owner-icon="csv"></span><span>CSV Export</span></button>
     </nav>
 
@@ -270,13 +269,6 @@
       <div class="owner-page-heading compact"><div><h1>Customer Trace</h1><p>Customer → Transaction → Play → Reward</p></div></div>
       <div class="owner-trace-form"><label>Customer ID<input id="traceCustomerId" maxlength="128" placeholder="Customer ID"></label><button id="traceCustomer" class="primary-button" type="button">Lihat Customer Trace</button></div>
       <div id="traceResult" class="owner-trace-result"></div>
-    </div>
-
-    <div id="ownerViewAudit" class="owner-view" hidden>
-      <div class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</div>
-      <div class="owner-page-heading compact"><div><h1>Audit</h1><p>Riwayat aktivitas sistem</p></div><button id="refreshAudit" class="owner-date-button" type="button">↻ Refresh</button></div>
-      <input id="auditSearch" class="owner-search" placeholder="Cari audit...">
-      <div id="ownerAuditList" class="owner-list"></div>
     </div>
 
     <div id="ownerViewCsvExport" class="owner-view" hidden>
