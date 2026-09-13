@@ -349,14 +349,38 @@ async function handleCustomerTrace(request: Request, env: Env, customerId: strin
   `).bind(id).first<{ customer_id: string; name: string; phone_masked: string; email: string; created_at: string }>();
   if (!customer) return errorResponse("CUSTOMER_NOT_FOUND", "Customer was not found.", 404);
 
-  const [transactions, plays, rewards] = await env.DB.batch([
+  const [transactions, plays, rewards, eventParticipation] = await env.DB.batch([
     env.DB.prepare(`SELECT transaction_id, service_type, amount, created_at FROM transactions WHERE customer_id = ? ORDER BY created_at DESC`).bind(id),
     env.DB.prepare(`SELECT play_id, transaction_id, session_id, status, created_at, finished_at FROM plays WHERE customer_id = ? ORDER BY created_at DESC`).bind(id),
-    env.DB.prepare(`SELECT reward_id, play_id, type, status, created_at, claimed_at, redeemed_at, used_at FROM rewards WHERE customer_id = ? ORDER BY created_at DESC`).bind(id),
+    env.DB.prepare(`SELECT reward_id, play_id, type, status, created_at, claimed_at, redeemed_at, used_at, token_ref FROM rewards WHERE customer_id = ? ORDER BY created_at DESC`).bind(id),
+    env.DB.prepare(`
+      SELECT e.event_id, e.title AS event_title, e.starts_at AS event_starts_at, e.ends_at AS event_ends_at
+      FROM plays p
+      INNER JOIN events e
+        ON p.created_at >= e.starts_at
+       AND p.created_at < e.ends_at
+      WHERE p.customer_id = ?
+      ORDER BY p.created_at DESC, e.starts_at DESC, e.event_id DESC
+      LIMIT 1
+    `).bind(id),
   ]);
 
+  const event = (eventParticipation.results?.[0] as {
+    event_id?: string;
+    event_title?: string;
+    event_starts_at?: string;
+    event_ends_at?: string;
+  } | undefined) ?? null;
+
   await writeAuditSafe(env, { entityType: "CUSTOMER", entityId: id, action: "TRACE", actor: owner.userId, result: "SUCCESS" });
-  return json({ ok: true, customer, transactions: transactions.results ?? [], plays: plays.results ?? [], rewards: rewards.results ?? [] });
+  return json({
+    ok: true,
+    customer,
+    event,
+    transactions: transactions.results ?? [],
+    plays: plays.results ?? [],
+    rewards: rewards.results ?? [],
+  });
 }
 
 async function handleAudit(request: Request, env: Env): Promise<Response> {
