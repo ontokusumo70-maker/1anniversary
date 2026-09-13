@@ -168,6 +168,9 @@ async function loadConfig() {
 
 function showRole() {
   document.body.dataset.role = state.role || "CUSTOMER";
+  if ($("ownerAuth")) {
+    $("ownerAuth").hidden = true;
+  }
   if ($("auth")) {
     $("auth").hidden = true;
   }
@@ -1167,6 +1170,30 @@ if ($("scanCamera")) {
 let ownerData = null;
 let ownerCurrentView = "overview";
 let ownerOperationPeriod = "daily";
+
+function getWibDateInputValue(offsetDays = 0) {
+  const now = new Date(Date.now() + (7 * 60 * 60 * 1000));
+  const utcMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) + (offsetDays * 86400000);
+  const date = new Date(utcMidnight);
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
+}
+
+function ensureOwnerDateRange() {
+  const from = $("ownerDateFrom");
+  const to = $("ownerDateTo");
+  if (!from || !to) return;
+  if (!from.value) from.value = getWibDateInputValue();
+  if (!to.value) to.value = from.value;
+  if (from.value > to.value) to.value = from.value;
+}
+
+function ownerDateRangeParams() {
+  ensureOwnerDateRange();
+  const from = $("ownerDateFrom")?.value || getWibDateInputValue();
+  const to = $("ownerDateTo")?.value || from;
+  return { from, to };
+}
+
 let ownerEventFilter = "ACTIVE";
 let ownerMachineFilter = "ALL";
 let editingEventId = null;
@@ -1260,11 +1287,15 @@ function renderOwnerMetrics() {
   const target = $("ownerMetrics");
   if (!target || !data) return;
   const items = [
-    ["Total Customer", data.participants, "user", "12%"],
-    ["Reward Claimed", data.claimed, "gift", "8%"],
-    ["Reward Redeemed", data.redeemed, "percent", "20%"],
+    ["Total Customer", data.participants, "user", data.participantsChangePct],
+    ["Reward Claimed", data.claimed, "gift", data.claimedChangePct],
+    ["Reward Redeemed", data.redeemed, "percent", data.redeemedChangePct],
   ];
-  target.innerHTML = items.map(([label, value, icon, trend]) => `<div class="owner-metric-card"><span class="owner-metric-icon ${icon}">${ownerIconSvg(icon)}</span><small>${label}</small><b>${Number(value || 0).toLocaleString("id-ID")}</b><em>↑ ${trend}</em><span class="owner-metric-note">vs kemarin</span></div>`).join("");
+  target.innerHTML = items.map(([label, value, icon, change]) => {
+    const percentage = Number(change || 0);
+    const arrow = percentage > 0 ? "↑" : percentage < 0 ? "↓" : "→";
+    return `<div class="owner-metric-card"><span class="owner-metric-icon ${icon}">${ownerIconSvg(icon)}</span><small>${label}</small><b>${Number(value || 0).toLocaleString("id-ID")}</b><em>${arrow} ${Math.abs(percentage)}%</em><span class="owner-metric-note">vs sebelumnya</span></div>`;
+  }).join("");
 }
 
 function renderOwnerMachineSummary() {
@@ -1541,16 +1572,16 @@ async function loadOwnerAudit() {
   }
 }
 
-async function loadOwnerData() {
+async function loadOwnerData(range = null) {
   try {
-    const data = await api("/owner/overview");
-    ownerData = data;
-    if ($("loadOwner") && data.serverTime) {
-      const serverDate = new Date(data.serverTime);
-      const label = new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Jakarta" }).format(serverDate);
-      const dateLabel = $("loadOwner").querySelector(".owner-date-label");
-      if (dateLabel) dateLabel.textContent = label.replace(/\./g, "");
+    const selected = range || ownerDateRangeParams();
+    if (selected.from > selected.to) {
+      throw new Error("Tanggal mulai tidak boleh setelah tanggal selesai.");
     }
+    const query = new URLSearchParams({ from: selected.from, to: selected.to });
+    const data = await api(`/owner/overview?${query.toString()}`);
+    ownerData = data;
+    ensureOwnerDateRange();
     renderOwnerOverview();
     renderOwnerEvents(data.activeEvents || []);
     renderRewardOptions();
@@ -1567,6 +1598,18 @@ function escapeHtml(value) {
 
 for (const button of document.querySelectorAll("[data-owner-view]")) {
   button.addEventListener("click", () => setOwnerView(button.dataset.ownerView));
+}
+
+ensureOwnerDateRange();
+for (const input of document.querySelectorAll("#ownerDateFrom, #ownerDateTo")) {
+  input.addEventListener("change", async () => {
+    const { from, to } = ownerDateRangeParams();
+    if (from > to) {
+      if (input.id === "ownerDateFrom") $("ownerDateTo").value = from;
+      else $("ownerDateFrom").value = to;
+    }
+    await loadOwnerData();
+  });
 }
 
 for (const button of document.querySelectorAll("#operationPeriods [data-period]")) {
@@ -1629,6 +1672,7 @@ $("ownerLogout")?.addEventListener("click", () => {
 
 async function loadOwner() {
   mountOwnerIcons();
+  ensureOwnerDateRange();
   ownerCurrentView = "overview";
   setOwnerView("overview");
   await loadOwnerData();
