@@ -64,7 +64,7 @@ function corsHeaders(
     'Access-Control-Allow-Origin':
       origin,
     'Access-Control-Allow-Methods':
-      'GET,POST,OPTIONS',
+      'GET,POST,DELETE,OPTIONS',
     'Access-Control-Allow-Headers':
       'Content-Type, Authorization',
     'Vary':
