@@ -265,12 +265,19 @@
     </div>
 
     <div id="ownerViewCustomerTrace" class="owner-view" hidden>
-      <div class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</div>
-      <div class="owner-page-heading compact"><div><h1>Customer Trace</h1><p>Customer → Transaction → Play → Reward</p></div></div>
-      <div class="owner-trace-form"><label>Customer ID<input id="traceCustomerId" maxlength="128" placeholder="Customer ID"></label><button id="traceCustomer" class="primary-button" type="button">Lihat Customer Trace</button></div>
-      <div id="traceResult" class="owner-trace-result"></div>
+      <div id="ownerCustomerListView">
+        <div class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</div>
+        <div class="owner-page-heading compact owner-customer-heading"><div><h1>Customer Trace</h1><p id="ownerCustomerTotal">0 Customers</p></div></div>
+        <div class="owner-customer-search"><label><span class="owner-search-icon" aria-hidden="true">⌕</span><input id="ownerCustomerSearch" maxlength="128" placeholder="Customer ID / No. HP / Email ID" aria-label="Cari customer"></label><button id="ownerCustomerSearchButton" class="primary-button" type="button">Cari</button></div>
+        <div id="ownerCustomerList" class="owner-customer-list"></div>
+        <div class="owner-customer-pagination-summary" id="ownerCustomerPaginationSummary">0 dari 0</div>
+        <div id="ownerCustomerPagination" class="owner-customer-pagination"></div>
+      </div>
+      <div id="ownerCustomerDetailView" hidden>
+        <button type="button" class="owner-back" id="ownerCustomerDetailBack"><span class="owner-back-arrow">←</span> Kembali ke daftar</button>
+        <div id="ownerCustomerDetail" class="owner-customer-detail"></div>
+      </div>
     </div>
-
     <div id="ownerViewCsvExport" class="owner-view" hidden>
       <div class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</div>
       <div class="owner-page-heading compact"><div><h1>CSV Export</h1><p>Export data Owner</p></div></div>
