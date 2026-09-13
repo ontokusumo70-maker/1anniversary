@@ -20,6 +20,7 @@ export type AuditAction =
   | "USED"
   | "CREATE"
   | "UPDATE"
+  | "DELETE"
   | "EXPORT"
   | "TRACE"
   | "EVENT";
