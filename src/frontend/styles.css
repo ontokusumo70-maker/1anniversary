@@ -862,3 +862,92 @@ body[data-role="OWNER"] .owner-nav-icon{width:27px;height:25px}
 .owner-journey-item.inactive b{color:#8b9691}
 .owner-journey-item.inactive small{color:#a3aca8}
 .owner-journey-item.inactive time{color:#a3aca8}
+
+/* RESPONSIVE LANDSCAPE — ALL ROLES
+   Portrait baseline remains unchanged. */
+@media (orientation:landscape) and (min-width:601px){
+  html,body{min-width:0;overflow-x:hidden}
+  body{padding:0;background:#eaf7ee}
+  .app-shell{width:100%;max-width:1100px;min-height:100svh;margin:0 auto;padding:10px 18px 22px;border-radius:0;box-shadow:none;overflow-x:hidden}
+  .topbar{padding:6px 4px 10px}
+  .brand-lockup #brand{width:52px;height:52px}
+  .anniversary-coin{width:48px;height:48px}
+  .anniversary-coin img{width:46px;height:46px}
+  .screen-heading,.role-hero{padding:12px 6px 10px}
+  .screen-heading h1,.role-hero h1{font-size:24px}
+  .heading-mascot,.role-hero img{width:84px;height:84px}
+
+  /* Customer / public / staff */
+  .poster-panel{min-height:calc(100svh - 95px);padding:20px 22px}
+  .poster-copy{max-width:48%}
+  .mascot-auth{width:190px;right:8%;top:12px}
+  .auth-card{left:28%;right:28%;bottom:12px}
+  .screen-customer:not(.auth-screen),
+  .screen-staff{background-size:cover;background-position:top center}
+  .screen-customer:not(.auth-screen) .menu-grid,
+  .screen-staff .menu-grid{grid-template-columns:1.4fr 1fr 1fr;gap:12px}
+  .screen-customer:not(.auth-screen) .feature-card,
+  .screen-staff .feature-card{min-height:128px}
+  .screen-customer:not(.auth-screen) .machineGrid,
+  .screen-staff .machineGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  .screen-customer:not(.auth-screen) .stats,
+  .screen-staff .stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  .screen-customer:not(.auth-screen) .card,
+  .screen-staff .card{margin:10px 0}
+  #camera{max-height:48svh;object-fit:cover}
+
+  /* Owner dashboard */
+  body[data-role="OWNER"]{overflow-x:hidden}
+  body[data-role="OWNER"] .app-shell{width:100%;max-width:1100px;min-height:100svh;margin:0 auto;padding:0 22px 24px;background:#fff;box-shadow:none;border-radius:0}
+  body[data-role="OWNER"] .screen-owner{padding:0 4px 20px;min-height:100svh}
+  body[data-role="OWNER"] .owner-dashboard-header{min-height:72px;height:72px;padding:7px 6px 5px}
+  body[data-role="OWNER"] .owner-brand-logo{width:58px;height:58px;flex-basis:58px}
+  body[data-role="OWNER"] .owner-brand-copy{font-size:9px}
+  body[data-role="OWNER"] .owner-brand-copy strong{font-size:11px}
+  body[data-role="OWNER"] .owner-account{padding-top:7px}
+  body[data-role="OWNER"] .owner-tabbar{grid-template-columns:repeat(5,minmax(0,1fr));padding:7px 0 6px;gap:4px}
+  body[data-role="OWNER"] .owner-tabbar button{font-size:10px;gap:5px;padding-bottom:7px}
+  body[data-role="OWNER"] .owner-nav-icon{width:28px;height:26px}
+  body[data-role="OWNER"] .owner-view{padding:0 6px}
+  body[data-role="OWNER"] .owner-page-heading{padding:13px 3px 10px}
+  body[data-role="OWNER"] .owner-page-heading h1{font-size:28px}
+  body[data-role="OWNER"] .owner-page-heading p{font-size:12px}
+  body[data-role="OWNER"] .owner-metric-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  body[data-role="OWNER"] .owner-metric-card{padding:12px 9px 11px}
+  body[data-role="OWNER"] .owner-operation-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  body[data-role="OWNER"] .owner-machine-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  body[data-role="OWNER"] .owner-section-block{margin-top:14px}
+  body[data-role="OWNER"] .owner-machine-heading-meta{gap:24px}
+  body[data-role="OWNER"] .owner-machine-heading-meta p{font-size:12px}
+  body[data-role="OWNER"] .owner-machine-heading-meta #ownerMachineRealtime{font-size:11px}
+
+  /* Owner data-heavy screens use the extra horizontal room instead of clipping. */
+  body[data-role="OWNER"] .owner-customer-search{grid-template-columns:minmax(0,1fr) 132px;max-width:900px}
+  body[data-role="OWNER"] .owner-customer-table-wrap{overflow-x:auto}
+  body[data-role="OWNER"] .owner-customer-table{min-width:760px;font-size:12px}
+  body[data-role="OWNER"] .owner-customer-table th,
+  body[data-role="OWNER"] .owner-customer-table td{padding:12px 11px}
+  body[data-role="OWNER"] .owner-customer-info-card{max-width:900px}
+  body[data-role="OWNER"] .owner-customer-info-card>div{grid-template-columns:190px minmax(0,1fr)}
+  body[data-role="OWNER"] .owner-customer-journey{max-width:900px}
+  body[data-role="OWNER"] .locked-event-list,
+  body[data-role="OWNER"] .locked-reward-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  body[data-role="OWNER"] .locked-event-list .event-card-empty,
+  body[data-role="OWNER"] .locked-reward-list .event-card-empty{grid-column:1/-1}
+  body[data-role="OWNER"] .event-form-panel{max-width:900px}
+  body[data-role="OWNER"] .event-detail-card,
+  body[data-role="OWNER"] .reward-detail-card{max-width:900px}
+  body[data-role="OWNER"] .owner-machine-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  body[data-role="OWNER"] .machine-full{min-width:0}
+}
+
+@media (orientation:landscape) and (max-width:900px){
+  .app-shell{padding-left:12px;padding-right:12px}
+  body[data-role="OWNER"] .app-shell{padding-left:12px;padding-right:12px}
+  body[data-role="OWNER"] .owner-view{padding-left:3px;padding-right:3px}
+  body[data-role="OWNER"] .owner-metric-grid{gap:6px}
+  body[data-role="OWNER"] .owner-machine-summary,
+  body[data-role="OWNER"] .owner-machine-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+  body[data-role="OWNER"] .locked-event-list,
+  body[data-role="OWNER"] .locked-reward-list{grid-template-columns:1fr}
+}
