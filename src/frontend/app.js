@@ -1314,6 +1314,13 @@ function renderOwnerMachineSummary() {
   target.querySelectorAll('[data-owner-view="machines"]').forEach((button) => button.addEventListener("click", () => setOwnerView("machines")));
 }
 
+function formatOwnerShortDate(value) {
+  if (!value) return "—";
+  const date = new Date(`${value}T00:00:00+07:00`);
+  if (!Number.isFinite(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Jakarta" }).format(date);
+}
+
 function renderOwnerOperations() {
   const target = $("ownerOperationStats");
   if (!target || !ownerData?.operatingTime) return;
