@@ -209,8 +209,13 @@
           <label>Periode Event<span class="event-field-caption">Tanggal Mulai</span><input id="eventStartsAt" type="datetime-local"></label>
           <label><span class="event-field-caption">Tanggal Selesai</span><input id="eventEndsAt" type="datetime-local"></label>
         </div>
+        <label>Deskripsi Event<textarea id="eventDescription" maxlength="200" placeholder="Tuliskan deskripsi event (opsional)"></textarea><span class="event-counter" id="eventDescriptionCount">0/200</span></label>
         <label>Hadiah Event<select id="eventRewardType"></select></label>
-        <label>Jumlah Hadiah<input id="eventRewardQuantity" type="number" min="1" placeholder="Contoh: 100"></label>
+        <div class="event-reward-row">
+          <label>Jumlah Hadiah<input id="eventRewardQuantity" type="number" min="1" placeholder="Contoh: 100"></label>
+          <button type="button" class="event-add-reward" id="eventAddReward">＋ Tambah Hadiah</button>
+        </div>
+        <label>Syarat <span class="event-optional">(Opsional)</span><textarea id="eventCondition" maxlength="200" placeholder="Contoh: Berlaku untuk semua mesin washer"></textarea><span class="event-counter" id="eventConditionCount">0/200</span></label>
         <label class="owner-check"><input id="eventActive" type="checkbox"> Aktif</label>
         <div class="owner-form-actions"><button id="cancelEventButton" class="secondary-button" type="button">Batal</button><button id="saveEventButton" class="primary-button" type="button">Simpan Event</button></div>
         <p id="eventFormMsg" class="msg status-msg"></p>
