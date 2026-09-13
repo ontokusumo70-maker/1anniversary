@@ -321,14 +321,22 @@ async function handleRewardPool(request: Request, env: Env): Promise<Response> {
 
   if (request.method === "GET") {
     const result = await env.DB.prepare(`
-      SELECT reward_type, quota_total, quota_used, active FROM reward_pool ORDER BY reward_type ASC
+      SELECT reward_type, description, quota_total, quota_used, valid_from, valid_until, terms, active, created_by, created_at, updated_at
+      FROM reward_pool ORDER BY reward_type ASC
     `).all();
     return json({ ok: true, items: (result.results ?? []).map((row) => ({
       rewardType: row.reward_type,
+      description: String(row.description ?? ""),
       quotaTotal: Number(row.quota_total),
       quotaUsed: Number(row.quota_used),
       remaining: Math.max(0, Number(row.quota_total) - Number(row.quota_used)),
+      validFrom: row.valid_from ? String(row.valid_from) : null,
+      validUntil: row.valid_until ? String(row.valid_until) : null,
+      terms: String(row.terms ?? ""),
       active: Number(row.active) === 1,
+      createdBy: String(row.created_by ?? "OWNER"),
+      createdAt: row.created_at ? String(row.created_at) : null,
+      updatedAt: row.updated_at ? String(row.updated_at) : null,
     })) });
   }
 
@@ -336,35 +344,59 @@ async function handleRewardPool(request: Request, env: Env): Promise<Response> {
     return errorResponse("NOT_FOUND", "Reward Pool endpoint not found.", 404);
   }
 
-  let body: { rewardType?: unknown; quotaTotal?: unknown; active?: unknown };
+  let body: {
+    rewardType?: unknown; description?: unknown; quotaTotal?: unknown;
+    validFrom?: unknown; validUntil?: unknown; terms?: unknown; active?: unknown;
+  };
   try { body = await request.json() as typeof body; } catch { return errorResponse("INVALID_REQUEST", "Invalid JSON request body.", 400); }
 
   const rewardType = isNonEmptyString(body.rewardType, 120) ? body.rewardType.trim() : match ? decodeURIComponent(match[1]).trim() : "";
+  const description = body.description === undefined ? "" : (isNonEmptyString(body.description, 200) ? body.description.trim() : "");
+  const terms = body.terms === undefined ? "" : (isNonEmptyString(body.terms, 200) ? body.terms.trim() : "");
   const quotaTotal = parsePositiveInteger(body.quotaTotal);
+  const validFrom = body.validFrom === null || body.validFrom === undefined || body.validFrom === "" ? null : isNonEmptyString(body.validFrom, 10) && /^\d{4}-\d{2}-\d{2}$/.test(body.validFrom) ? body.validFrom : null;
+  const validUntil = body.validUntil === null || body.validUntil === undefined || body.validUntil === "" ? null : isNonEmptyString(body.validUntil, 10) && /^\d{4}-\d{2}-\d{2}$/.test(body.validUntil) ? body.validUntil : null;
   const active = body.active === undefined ? 1 : body.active ? 1 : 0;
+
   if (!rewardType || rewardType.length > 120 || quotaTotal === null) {
-    return errorResponse("INVALID_REQUEST", "Reward type and quota total are required.", 400);
+    return errorResponse("INVALID_REQUEST", "Jenis hadiah dan total stok wajib diisi.", 400);
   }
+  if ((body.validFrom !== null && body.validFrom !== undefined && body.validFrom !== "" && !validFrom) ||
+      (body.validUntil !== null && body.validUntil !== undefined && body.validUntil !== "" && !validUntil)) {
+    return errorResponse("INVALID_DATE", "Periode reward tidak valid.", 400);
+  }
+  if (validFrom && validUntil && validUntil < validFrom) {
+    return errorResponse("INVALID_DATE_RANGE", "Tanggal selesai tidak boleh sebelum tanggal mulai.", 400);
+  }
+
+  const nowIso = new Date().toISOString();
 
   if (request.method === "POST") {
     try {
-      await env.DB.prepare(`INSERT INTO reward_pool (reward_type, quota_total, quota_used, active) VALUES (?, ?, 0, ?)`).bind(rewardType, quotaTotal, active).run();
+      await env.DB.prepare(`
+        INSERT INTO reward_pool (reward_type, description, quota_total, quota_used, valid_from, valid_until, terms, active, created_by, created_at, updated_at)
+        VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(rewardType, description, quotaTotal, validFrom, validUntil, terms, active, owner.userId, nowIso, nowIso).run();
     } catch {
       return errorResponse("REWARD_EXISTS", "Reward type already exists.", 409);
     }
     await writeAuditSafe(env, { entityType: "REWARD", entityId: rewardType, action: "CREATE", actor: owner.userId, result: "SUCCESS" });
   } else {
+    if (!match) return errorResponse("INVALID_REQUEST", "Reward type is required.", 400);
     const current = await env.DB.prepare(`SELECT quota_used FROM reward_pool WHERE reward_type = ? LIMIT 1`).bind(rewardType).first<{ quota_used: number }>();
     if (!current) return errorResponse("REWARD_NOT_FOUND", "Reward type was not found.", 404);
     if (quotaTotal < Number(current.quota_used)) return errorResponse("INVALID_QUOTA", "Quota total cannot be lower than quota used.", 400);
-    const result = await env.DB.prepare(`UPDATE reward_pool SET quota_total = ?, active = ? WHERE reward_type = ?`).bind(quotaTotal, active, rewardType).run();
+    const result = await env.DB.prepare(`
+      UPDATE reward_pool
+      SET description = ?, quota_total = ?, valid_from = ?, valid_until = ?, terms = ?, active = ?, updated_at = ?
+      WHERE reward_type = ?
+    `).bind(description, quotaTotal, validFrom, validUntil, terms, active, nowIso, rewardType).run();
     if (result.meta.changes !== 1) return errorResponse("REWARD_NOT_FOUND", "Reward type was not found.", 404);
     await writeAuditSafe(env, { entityType: "REWARD", entityId: rewardType, action: "UPDATE", actor: owner.userId, result: "SUCCESS" });
   }
 
-  return json({ ok: true });
+  return json({ ok: true, rewardType });
 }
-
 async function handleEvents(request: Request, env: Env): Promise<Response> {
   const owner = await requireOwner(request, env);
   if (!owner) return errorResponse("UNAUTHORIZED", "Owner authentication is required.", 401);
@@ -377,101 +409,60 @@ async function handleEvents(request: Request, env: Env): Promise<Response> {
       SELECT event_id, title, starts_at, ends_at, reward_type, reward_quantity, active, created_at, updated_at
       FROM events ORDER BY starts_at DESC, event_id DESC LIMIT 100
     `).all();
-    const rewardRows = await env.DB.prepare(`
-      SELECT event_id, reward_type, reward_quantity, position
-      FROM event_rewards ORDER BY event_id ASC, position ASC
-    `).all();
-    const rewardsByEvent = new Map<string, Array<{ rewardType: string; rewardQuantity: number }>>();
-    for (const row of rewardRows.results ?? []) {
-      const eventId = String(row.event_id);
-      const list = rewardsByEvent.get(eventId) || [];
-      list.push({ rewardType: String(row.reward_type), rewardQuantity: Number(row.reward_quantity) });
-      rewardsByEvent.set(eventId, list);
-    }
     const now = Date.now();
-    return json({ ok: true, items: (rows.results ?? []).map((row) => {
-      const legacyReward = [{ rewardType: String(row.reward_type), rewardQuantity: Number(row.reward_quantity) }];
-      const rewards = rewardsByEvent.get(String(row.event_id)) || legacyReward;
-      return {
-        eventId: row.event_id,
-        title: row.title,
-        startsAt: row.starts_at,
-        endsAt: row.ends_at,
-        rewardType: rewards[0].rewardType,
-        rewardQuantity: rewards[0].rewardQuantity,
-        rewards,
-        active: Number(row.active) === 1,
-        status: eventStatus(String(row.starts_at), String(row.ends_at), Number(row.active), now),
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-      };
-    }) });
+    return json({ ok: true, items: (rows.results ?? []).map((row) => ({
+      eventId: row.event_id,
+      title: row.title,
+      startsAt: row.starts_at,
+      endsAt: row.ends_at,
+      rewardType: row.reward_type,
+      rewardQuantity: Number(row.reward_quantity),
+      active: Number(row.active) === 1,
+      status: eventStatus(String(row.starts_at), String(row.ends_at), Number(row.active), now),
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    })) });
   }
 
   if (request.method !== "POST" && request.method !== "PATCH") return errorResponse("NOT_FOUND", "Event endpoint not found.", 404);
 
-  let body: { title?: unknown; startsAt?: unknown; endsAt?: unknown; rewardType?: unknown; rewardQuantity?: unknown; rewards?: unknown; active?: unknown };
+  let body: { title?: unknown; startsAt?: unknown; endsAt?: unknown; rewardType?: unknown; rewardQuantity?: unknown; active?: unknown };
   try { body = await request.json() as typeof body; } catch { return errorResponse("INVALID_REQUEST", "Invalid JSON request body.", 400); }
 
   const title = isNonEmptyString(body.title, 160) ? body.title.trim() : "";
   const startsAt = isNonEmptyString(body.startsAt, 64) ? body.startsAt.trim() : "";
   const endsAt = isNonEmptyString(body.endsAt, 64) ? body.endsAt.trim() : "";
-  const submittedRewards = Array.isArray(body.rewards) ? body.rewards : [{ rewardType: body.rewardType, rewardQuantity: body.rewardQuantity }];
-  const rewards = submittedRewards.map((item) => {
-    const reward = item as { rewardType?: unknown; rewardQuantity?: unknown };
-    return {
-      rewardType: isNonEmptyString(reward.rewardType, 120) ? reward.rewardType.trim() : "",
-      rewardQuantity: parsePositiveInteger(reward.rewardQuantity),
-    };
-  });
+  const rewardType = isNonEmptyString(body.rewardType, 120) ? body.rewardType.trim() : "";
+  const rewardQuantity = parsePositiveInteger(body.rewardQuantity);
   const active = body.active === undefined ? 1 : body.active ? 1 : 0;
   const startMs = Date.parse(startsAt);
   const endMs = Date.parse(endsAt);
 
-  if (!title || !startsAt || !endsAt || !rewards.length || rewards.some((reward) => !reward.rewardType || reward.rewardQuantity === null) || !Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) {
+  if (!title || !startsAt || !endsAt || !rewardType || rewardQuantity === null || !Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) {
     return errorResponse("INVALID_REQUEST", "Event title, period, reward and quantity are required.", 400);
   }
 
-  const rewardTypes = [...new Set(rewards.map((reward) => reward.rewardType))];
-  for (const rewardType of rewardTypes) {
-    const pool = await env.DB.prepare(`SELECT reward_type FROM reward_pool WHERE reward_type = ? LIMIT 1`).bind(rewardType).first<{ reward_type: string }>();
-    if (!pool) return errorResponse("REWARD_NOT_FOUND", `Reward type was not found in Reward Pool: ${rewardType}`, 400);
-  }
+  const pool = await env.DB.prepare(`SELECT reward_type FROM reward_pool WHERE reward_type = ? LIMIT 1`).bind(rewardType).first<{ reward_type: string }>();
+  if (!pool) return errorResponse("REWARD_NOT_FOUND", "Reward type was not found in Reward Pool.", 400);
 
   const nowIso = new Date().toISOString();
 
   if (request.method === "POST") {
     const eventId = `event_${crypto.randomUUID()}`;
-    const statements = [env.DB.prepare(`
+    await env.DB.prepare(`
       INSERT INTO events (event_id, title, starts_at, ends_at, reward_type, reward_quantity, active, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(eventId, title, startsAt, endsAt, rewards[0].rewardType, rewards[0].rewardQuantity, active, nowIso, nowIso)];
-    rewards.forEach((reward, index) => {
-      statements.push(env.DB.prepare(`
-        INSERT INTO event_rewards (event_reward_id, event_id, reward_type, reward_quantity, position, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).bind(`event_reward_${crypto.randomUUID()}`, eventId, reward.rewardType, reward.rewardQuantity, index, nowIso, nowIso));
-    });
-    await env.DB.batch(statements);
+    `).bind(eventId, title, startsAt, endsAt, rewardType, rewardQuantity, active, nowIso, nowIso).run();
     await writeAuditSafe(env, { entityType: "EVENT", entityId: eventId, action: "CREATE", actor: owner.userId, result: "SUCCESS" });
     return json({ ok: true, eventId }, 201);
   }
 
   if (!match) return errorResponse("INVALID_REQUEST", "Event ID is required.", 400);
   const eventId = decodeURIComponent(match[1]);
-  const statements = [env.DB.prepare(`
+  const result = await env.DB.prepare(`
     UPDATE events SET title = ?, starts_at = ?, ends_at = ?, reward_type = ?, reward_quantity = ?, active = ?, updated_at = ?
     WHERE event_id = ?
-  `).bind(title, startsAt, endsAt, rewards[0].rewardType, rewards[0].rewardQuantity, active, nowIso, eventId),
-    env.DB.prepare(`DELETE FROM event_rewards WHERE event_id = ?`).bind(eventId)];
-  rewards.forEach((reward, index) => {
-    statements.push(env.DB.prepare(`
-      INSERT INTO event_rewards (event_reward_id, event_id, reward_type, reward_quantity, position, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).bind(`event_reward_${crypto.randomUUID()}`, eventId, reward.rewardType, reward.rewardQuantity, index, nowIso, nowIso));
-  });
-  const batch = await env.DB.batch(statements);
-  const result = batch[0];
+  `).bind(title, startsAt, endsAt, rewardType, rewardQuantity, active, nowIso, eventId).run();
   if (result.meta.changes !== 1) return errorResponse("EVENT_NOT_FOUND", "Event was not found.", 404);
   await writeAuditSafe(env, { entityType: "EVENT", entityId: eventId, action: "UPDATE", actor: owner.userId, result: "SUCCESS" });
   return json({ ok: true, eventId });
