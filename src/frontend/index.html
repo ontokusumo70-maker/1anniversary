@@ -200,6 +200,13 @@
         <button data-event-filter="COMPLETED">Selesai (<span id="completedEventCount">0</span>)</button>
       </div>
       <div id="ownerEventsList" class="owner-event-groups"></div>
+      <div id="eventDetailView" hidden>
+        <button type="button" class="owner-back" id="eventDetailBack"><span class="owner-back-arrow">←</span> Kembali ke daftar event</button>
+        <div class="owner-page-heading compact event-detail-heading"><div><h1>Detail Event</h1><p>Informasi lengkap event</p></div><button id="editEventButton" class="owner-outline-button" type="button">✎ Edit Event</button></div>
+        <div id="eventDetailCard" class="event-detail-card"></div>
+        <div class="owner-form-actions event-detail-actions"><button id="deleteEventButton" class="danger-button" type="button">Hapus Event</button></div>
+        <p id="eventDetailMsg" class="msg status-msg"></p>
+      </div>
       <div id="eventFormCard" class="owner-form-card event-form-card event-form-panel" hidden>
         <button type="button" class="event-form-back" id="cancelEventTop">← Kembali ke daftar event</button>
         <h3 id="eventFormTitle">Buat Event Baru</h3>
@@ -210,14 +217,12 @@
           <label><span class="event-field-caption">Tanggal Mulai</span><div class="event-date-field"><span class="event-date-icon owner-inline-icon" data-owner-icon="calendar"></span><input id="eventStartsAt" type="date" aria-label="Tanggal Mulai"></div></label>
           <label><span class="event-field-caption">Tanggal Selesai</span><div class="event-date-field"><span class="event-date-icon owner-inline-icon" data-owner-icon="calendar"></span><input id="eventEndsAt" type="date" aria-label="Tanggal Selesai"></div></label>
         </div>
-        <label>Deskripsi Event<textarea id="eventDescription" maxlength="200" placeholder="Tuliskan deskripsi event (opsional)"></textarea><span class="event-counter" id="eventDescriptionCount">0/200</span></label>
+        <label>Deskripsi <span class="event-optional">(Opsional)</span><textarea id="eventDescription" maxlength="200" placeholder="Tuliskan deskripsi event (opsional)"></textarea><span class="event-counter" id="eventDescriptionCount">0/200</span></label>
         <div class="reward-heading">Hadiah Event</div>
         <div class="event-reward-row reward-grid">
           <label><span class="event-field-caption">Jenis Hadiah</span><select id="eventRewardType"></select></label>
           <label><span class="event-field-caption">Jumlah Hadiah</span><input id="eventRewardQuantity" type="number" min="1" placeholder="Contoh: 100"></label>
         </div>
-        <button type="button" class="event-add-reward add-reward" id="eventAddReward">＋ Tambah Hadiah</button>
-        <label>Syarat <span class="event-optional">(Opsional)</span><textarea id="eventCondition" maxlength="200" placeholder="Contoh: Berlaku untuk semua mesin washer"></textarea><span class="event-counter" id="eventConditionCount">0/200</span></label>
         <div class="owner-form-actions event-form-actions"><button id="cancelEventButton" class="secondary-button" type="button">Batal</button><button id="saveEventButton" class="primary-button" type="button">Simpan Event</button></div>
         <p id="eventFormMsg" class="msg status-msg"></p>
       </div>
@@ -226,34 +231,25 @@
     <div id="ownerViewRewardPool" class="owner-view" hidden>
       <div id="rewardPoolListView">
         <div class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</div>
-        <div class="owner-page-heading compact reward-pool-heading"><div><h1>Reward Pool</h1><p>Kelola hadiah yang tersedia untuk event</p></div><button id="newRewardButton" class="owner-green-button reward-add-button" type="button">＋ Tambah Hadiah</button></div>
-        <div id="rewardPoolTabs" class="owner-filter-tabs reward-pool-tabs">
-          <button type="button" data-reward-filter="ACTIVE" class="active">Aktif (<span id="activeRewardCount">0</span>)</button>
-          <button type="button" data-reward-filter="INACTIVE">Nonaktif (<span id="inactiveRewardCount">0</span>)</button>
-          <button type="button" data-reward-filter="ALL">Semua (<span id="allRewardCount">0</span>)</button>
-        </div>
+        <div class="owner-page-heading compact reward-pool-heading"><div><h1>Reward Pool</h1><p>Kelola reward yang tersedia untuk event</p></div><button id="newRewardButton" class="owner-green-button reward-add-button" type="button">＋ Tambah Reward</button></div>
+        <div id="rewardFilters" class="owner-filter-tabs reward-pool-tabs"><button data-reward-filter="ACTIVE" class="active">Aktif (<span id="activeRewardCount">0</span>)</button><button data-reward-filter="INACTIVE">Nonaktif (<span id="inactiveRewardCount">0</span>)</button><button data-reward-filter="ALL">Semua (<span id="allRewardCount">0</span>)</button></div>
         <div id="ownerRewardList" class="owner-list reward-pool-list"></div>
       </div>
       <div id="rewardDetailView" hidden>
         <button type="button" class="owner-back reward-detail-back" id="rewardDetailBack"><span class="owner-back-arrow">←</span> Kembali ke daftar reward</button>
-        <div class="owner-page-heading compact reward-detail-heading"><div><h1>Detail Reward</h1><p>Informasi lengkap hadiah</p></div><button id="editRewardButton" class="reward-outline-button" type="button">✎ Edit Reward</button></div>
+        <div class="owner-page-heading compact reward-detail-heading"><div><h1>Detail Reward</h1><p>Informasi lengkap reward</p></div><button id="editRewardButton" class="owner-outline-button" type="button">✎ Edit Reward</button></div>
         <div id="rewardDetailCard" class="reward-detail-card"></div>
-        <div class="owner-form-actions reward-detail-actions"><button id="toggleRewardButton" class="secondary-button" type="button">Nonaktifkan</button><button id="saveRewardDetailButton" class="primary-button" type="button">Simpan Perubahan</button></div>
+        <div class="owner-form-actions reward-detail-actions"><button id="deleteRewardButton" class="danger-button" type="button">Hapus Reward</button></div>
         <p id="rewardDetailMsg" class="msg status-msg"></p>
       </div>
       <div id="rewardFormCard" class="owner-form-card reward-form-card" hidden>
         <button type="button" class="owner-back reward-form-back" id="cancelRewardTop">← Kembali ke daftar reward</button>
         <h3 id="rewardFormTitle">Tambah Reward</h3>
-        <p class="reward-form-subtitle">Tentukan informasi hadiah untuk digunakan pada event</p>
-        <label>Jenis Hadiah<input id="ownerRewardType" maxlength="120" placeholder="Contoh: Free Wash (Washer)"></label>
-        <label>Deskripsi<input id="rewardDescription" maxlength="200" placeholder="Contoh: Setiap 10x cuci gratis 1x cuci"></label>
+        <p class="reward-form-subtitle">Buat reward baru untuk digunakan pada event</p>
+        <label>Nama Reward<input id="ownerRewardType" maxlength="120" placeholder="Contoh: Free Wash (Washer)"></label>
+        <label>Deskripsi Reward<textarea id="rewardDescription" maxlength="200" placeholder="Tuliskan deskripsi reward"></textarea><span class="reward-form-counter" id="rewardDescriptionCount">0/200</span></label>
         <label>Total Stok<input id="rewardQuota" type="number" min="1" placeholder="Contoh: 500"></label>
-        <div class="reward-form-period-label">Periode Berlaku</div>
-        <div class="reward-form-period-grid">
-          <label><span>Mulai</span><input id="rewardValidFrom" type="date"></label>
-          <label><span>Selesai</span><input id="rewardValidUntil" type="date"></label>
-        </div>
-        <label>Syarat &amp; Ketentuan<textarea id="rewardTerms" maxlength="200" placeholder="Contoh: Berlaku untuk semua mesin washer"></textarea><span class="reward-form-counter" id="rewardTermsCount">0/200</span></label>
+        <label>Syarat &amp; Ketentuan<textarea id="rewardTerms" maxlength="200" placeholder="Tuliskan syarat dan ketentuan (opsional)"></textarea><span class="reward-form-counter" id="rewardTermsCount">0/200</span></label>
         <label class="owner-check"><input id="rewardActive" type="checkbox" checked> Aktif</label>
         <div class="owner-form-actions"><button id="cancelRewardButton" class="secondary-button" type="button">Batal</button><button id="saveRewardButton" class="primary-button" type="button">Simpan Reward</button></div>
         <p id="rewardFormMsg" class="msg status-msg"></p>
