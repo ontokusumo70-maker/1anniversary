@@ -1168,6 +1168,8 @@ if ($("scanCamera")) {
 }
 
 let ownerData = null;
+let ownerServerTimeReceivedAt = 0;
+let ownerRealtimeTimer = null;
 let ownerCurrentView = "overview";
 let ownerOperationPeriod = "daily";
 
@@ -1220,10 +1222,32 @@ function formatDateRange(start, end) {
 }
 
 function formatDuration(seconds) {
-  const total = Math.max(0, Number(seconds || 0));
-  const hours = Math.floor(total / 3600);
-  const minutes = Math.floor((total % 3600) / 60);
-  return hours ? `${hours} jam ${minutes} mnt` : `${minutes} mnt`;
+  const total = Math.max(0, Math.floor(Number(seconds || 0)));
+  const hours = String(Math.floor(total / 3600)).padStart(2, "0");
+  const minutes = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
+  return `${hours}:${minutes} mnt`;
+}
+
+function ownerRealtimeNow() {
+  const serverTime = Date.parse(ownerData?.serverTime || "");
+  if (!Number.isFinite(serverTime)) return Date.now();
+  const receivedAt = Number(ownerServerTimeReceivedAt || Date.now());
+  return serverTime + Math.max(0, Date.now() - receivedAt);
+}
+
+function formatOwnerRealtime(value) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("id-ID", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Jakarta",
+  }).format(date);
 }
 
 function ownerIconSvg(name) {
@@ -1326,10 +1350,10 @@ function renderOwnerOperations() {
   const target = $("ownerOperationStats");
   if (!target || !ownerData?.operatingTime) return;
   document.querySelectorAll("#operationPeriods button").forEach((button) => button.classList.toggle("active", button.dataset.period === ownerOperationPeriod));
-  const data = ownerData.operatingTime[ownerOperationPeriod] || { washer: {}, dryer: {} };
+  const data = ownerData.operatingTime[ownerOperationPeriod] || { washer: 0, dryer: 0 };
   target.innerHTML = `
-    <div class="operation-stat"><span class="operation-stat-icon washer-clock">${ownerIconSvg("clock")}</span><div><span>Total Waktu Operasi<br>Washer</span><b>${formatDuration(Number(data.washer?.seconds || 0))}</b></div></div>
-    <div class="operation-stat"><span class="operation-stat-icon dryer-clock">${ownerIconSvg("clock")}</span><div><span>Total Waktu Operasi<br>Dryer</span><b>${formatDuration(Number(data.dryer?.seconds || 0))}</b></div></div>
+    <div class="operation-stat"><span class="operation-stat-icon washer-clock">${ownerIconSvg("clock")}</span><div><span>Total Waktu Operasi<br>Washer</span><b>${formatDuration(Number(data.washer || 0))}</b></div></div>
+    <div class="operation-stat"><span class="operation-stat-icon dryer-clock">${ownerIconSvg("clock")}</span><div><span>Total Waktu Operasi<br>Dryer</span><b>${formatDuration(Number(data.dryer || 0))}</b></div></div>
   `;
 }
 
@@ -1370,6 +1394,8 @@ function formatRemaining(seconds) {
 function renderOwnerMachines() {
   const target = $("ownerAllMachines");
   if (!target) return;
+  const clock = $("ownerMachineRealtime");
+  if (clock) clock.textContent = formatOwnerRealtime(ownerRealtimeNow());
   const machines = ownerData?.machines || [];
   const washerCount = machines.filter((m) => m.type === "WASHER").length || 5;
   const dryerCount = machines.filter((m) => m.type === "DRYER").length || 5;
@@ -1386,7 +1412,10 @@ function renderOwnerMachines() {
     const inUse = machine.status === "IN_USE";
     const type = machine.type === "WASHER" ? "Washer" : "Dryer";
     const icon = machine.type === "WASHER" ? "washer" : "dryer";
-    const time = inUse ? formatRemaining(remaining) : "-";
+    const elapsedSeconds = inUse && machine.startedAt
+      ? Math.max(0, Math.floor((ownerRealtimeNow() - Date.parse(machine.startedAt)) / 1000))
+      : 0;
+    const time = formatDuration(elapsedSeconds);
     return `<div class="owner-machine-row"><span class="machine-row-icon">${ownerIconSvg(icon)}</span><span class="machine-row-id">${type === "Washer" ? "W" : "D"}${escapeHtml(machine.machineNumber)}</span><span class="machine-row-type">${type}</span><span class="machine-row-status ${inUse ? "busy" : "idle"}">${inUse ? "Terpakai" : "Idle"}</span><span class="machine-row-time">${time}</span></div>`;
   }).join("") || `<div class="owner-machine-row-empty">Tidak ada mesin.</div>`;
   mountOwnerIcons();
@@ -1734,6 +1763,7 @@ async function loadOwnerData(range = null) {
     const query = new URLSearchParams({ from: selected.from, to: selected.to });
     const data = await api(`/owner/overview?${query.toString()}`);
     ownerData = data;
+    ownerServerTimeReceivedAt = Date.now();
     ensureOwnerDateRange();
     renderOwnerOverview();
     renderOwnerEvents(data.activeEvents || []);
@@ -1857,6 +1887,15 @@ async function loadOwner() {
   ownerCurrentView = "overview";
   setOwnerView("overview");
   await loadOwnerData();
+  if (!ownerRealtimeTimer) {
+    ownerRealtimeTimer = window.setInterval(() => {
+      if (ownerCurrentView === "machines") {
+        const clock = $("ownerMachineRealtime");
+        if (clock) clock.textContent = formatOwnerRealtime(ownerRealtimeNow());
+        renderOwnerMachines();
+      }
+    }, 30000);
+  }
 }
 
 function makeQrSvg(text) {
