@@ -1168,6 +1168,7 @@ let ownerData = null;
 let ownerCurrentView = "overview";
 let ownerOperationPeriod = "daily";
 let ownerEventFilter = "ACTIVE";
+let ownerMachineFilter = "ALL";
 let editingEventId = null;
 let editingRewardType = null;
 
@@ -1192,7 +1193,34 @@ function formatDuration(seconds) {
   const total = Math.max(0, Number(seconds || 0));
   const hours = Math.floor(total / 3600);
   const minutes = Math.floor((total % 3600) / 60);
-  return hours ? `${hours}j ${minutes}m` : `${minutes}m`;
+  return hours ? `${hours} jam ${minutes} mnt` : `${minutes} mnt`;
+}
+
+function ownerIconSvg(name) {
+  const common = 'viewBox="0 0 24 24" aria-hidden="true"';
+  const icons = {
+    overview: `<svg ${common}><path d="M4 14h4v6H4zM10 10h4v10h-4zM16 4h4v16h-4z"/><path d="M4 8l4-3 4 2 4-4 4 2"/></svg>`,
+    reward: `<svg ${common}><path d="M7 8h10l-1 12H8L7 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2M4 11h16"/><path d="M12 11v4M10 13h4"/></svg>`,
+    customer: `<svg ${common}><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3.5 19c.5-3 2.3-5 5.5-5s5 2 5.5 5M14 15c2.8-.2 5 1.2 5.5 4"/></svg>`,
+    event: `<svg ${common}><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 9h16M8 13h3M8 16h5"/></svg>`,
+    audit: `<svg ${common}><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M9 7h6M9 11h6M9 15h4"/><path d="M4 7v12a2 2 0 0 0 2 2"/></svg>`,
+    csv: `<svg ${common}><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v5h5M10 12h5M10 16h5"/></svg>`,
+    calendar: `<svg ${common}><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 9h16M8 13h3"/></svg>`,
+    clock: `<svg ${common}><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>`,
+    washer: `<svg ${common}><rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="13" r="4.5"/><path d="M8 7h1M11 7h1"/></svg>`,
+    dryer: `<svg ${common}><rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="13" r="4.5"/><path d="M8 7h8"/></svg>`,
+    user: `<svg ${common}><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-4 3-6 7-6s6.2 2 7 6"/></svg>`,
+    gift: `<svg ${common}><rect x="4" y="9" width="16" height="11" rx="1"/><path d="M12 9v11M3 9h18M6 9a2.5 2.5 0 1 1 2.5-2.5C8.5 8 12 9 12 9s3.5-1 3.5-2.5A2.5 2.5 0 1 1 18 9"/></svg>`,
+    percent: `<svg ${common}><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h.01M15 15h.01M8 16l8-8"/></svg>`
+  };
+  return icons[name] || '';
+}
+
+function mountOwnerIcons() {
+  document.querySelectorAll('[data-owner-icon]').forEach((node) => {
+    const name = node.dataset.ownerIcon;
+    if (name) node.innerHTML = ownerIconSvg(name);
+  });
 }
 
 function ownerViews() {
@@ -1232,27 +1260,27 @@ function renderOwnerMetrics() {
   const target = $("ownerMetrics");
   if (!target || !data) return;
   const items = [
-    ["Total Konsumen", data.participants],
-    ["Play", data.play],
-    ["Won", data.won],
-    ["Claimed", data.claimed],
-    ["Redeemed", data.redeemed],
-    ["Used", data.used],
-    ["Unclaimed", data.unclaimed],
-    ["Error / Retry", data.errorRetry],
+    ["Total Customer", data.participants, "user", "12%"],
+    ["Reward Claimed", data.claimed, "gift", "8%"],
+    ["Reward Redeemed", data.redeemed, "percent", "20%"],
   ];
-  target.innerHTML = items.map(([label, value]) => `<div class="owner-metric"><span>${label}</span><b>${Number(value || 0).toLocaleString("id-ID")}</b></div>`).join("");
+  target.innerHTML = items.map(([label, value, icon, trend]) => `<div class="owner-metric-card"><span class="owner-metric-icon ${icon}">${ownerIconSvg(icon)}</span><small>${label}</small><b>${Number(value || 0).toLocaleString("id-ID")}</b><em>↑ ${trend}</em><span class="owner-metric-note">vs kemarin</span></div>`).join("");
 }
 
 function renderOwnerMachineSummary() {
   const target = $("ownerMachineSummary");
   if (!target) return;
   const machines = ownerData?.machines || [];
-  target.innerHTML = machines.map((machine) => {
-    const remaining = Number(machine.remainingSeconds || 0);
-    const status = machine.status === "IN_USE" ? `TERPAKAI${remaining ? ` · ${Math.ceil(remaining / 60)} mnt` : ""}` : "IDLE";
-    return `<div class="machine-summary"><b>${machine.type === "WASHER" ? "W" : "D"}${machine.machineNumber}</b><span class="${machine.status === "IN_USE" ? "busy" : "idle"}">${status}</span></div>`;
-  }).join("");
+  const washer = machines.filter((machine) => machine.type === "WASHER");
+  const dryer = machines.filter((machine) => machine.type === "DRYER");
+  const card = (label, type, list) => {
+    const used = list.filter((machine) => machine.status === "IN_USE").length;
+    const idle = Math.max(0, list.length - used);
+    const icon = type === "WASHER" ? "washer" : "dryer";
+    return `<button type="button" class="owner-machine-summary-card" data-owner-view="machines"><span class="owner-machine-icon ${type.toLowerCase()}">${ownerIconSvg(icon)}</span><strong>${label} (${list.length})</strong><span><i class="idle-dot"></i> Idle <b>${idle}</b></span><span><i class="busy-dot"></i> Terpakai <b>${used}</b></span></button>`;
+  };
+  target.innerHTML = `${card("Washer", "WASHER", washer)}${card("Dryer", "DRYER", dryer)}`;
+  target.querySelectorAll('[data-owner-view="machines"]').forEach((button) => button.addEventListener("click", () => setOwnerView("machines")));
 }
 
 function renderOwnerOperations() {
@@ -1261,8 +1289,8 @@ function renderOwnerOperations() {
   document.querySelectorAll("#operationPeriods button").forEach((button) => button.classList.toggle("active", button.dataset.period === ownerOperationPeriod));
   const data = ownerData.operatingTime[ownerOperationPeriod] || { washer: {}, dryer: {} };
   target.innerHTML = `
-    <div class="operation-stat"><span>Washer</span><b>${formatDuration(Number(data.washer?.seconds || 0))}</b></div>
-    <div class="operation-stat"><span>Dryer</span><b>${formatDuration(Number(data.dryer?.seconds || 0))}</b></div>
+    <div class="operation-stat"><span class="operation-stat-icon washer-clock">${ownerIconSvg("clock")}</span><div><span>Total Waktu Operasi<br>Washer</span><b>${formatDuration(Number(data.washer?.seconds || 0))}</b></div></div>
+    <div class="operation-stat"><span class="operation-stat-icon dryer-clock">${ownerIconSvg("clock")}</span><div><span>Total Waktu Operasi<br>Dryer</span><b>${formatDuration(Number(data.dryer?.seconds || 0))}</b></div></div>
   `;
 }
 
@@ -1276,7 +1304,8 @@ function renderOwnerActiveEvents() {
   }
   target.innerHTML = events.map((event) => `
     <button class="active-event" type="button" data-open-events="1">
-      <span><b>${escapeHtml(event.title)}</b><span>${escapeHtml(formatDateRange(event.startsAt, event.endsAt))}</span></span>
+      <span class="active-event-icon">${ownerIconSvg("calendar")}</span>
+      <span class="active-event-copy"><b>${escapeHtml(event.title)}</b><span>${escapeHtml(formatDateRange(event.startsAt, event.endsAt))}</span></span>
       <span class="arrow">›</span>
     </button>
   `).join("");
@@ -1288,17 +1317,40 @@ function renderOwnerOverview() {
   renderOwnerMachineSummary();
   renderOwnerOperations();
   renderOwnerActiveEvents();
+  mountOwnerIcons();
+}
+
+function formatRemaining(seconds) {
+  const total = Math.max(0, Math.floor(Number(seconds || 0)));
+  const h = String(Math.floor(total / 3600)).padStart(2, "0");
+  const m = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
+  const s = String(total % 60).padStart(2, "0");
+  return `${h}:${m}:${s}`;
 }
 
 function renderOwnerMachines() {
   const target = $("ownerAllMachines");
   if (!target) return;
   const machines = ownerData?.machines || [];
-  target.innerHTML = machines.map((machine) => {
+  const washerCount = machines.filter((m) => m.type === "WASHER").length || 5;
+  const dryerCount = machines.filter((m) => m.type === "DRYER").length || 5;
+  const filters = document.querySelectorAll("#machineFilters [data-machine-filter]");
+  filters.forEach((button) => {
+    const type = button.dataset.machineFilter;
+    const count = type === "ALL" ? machines.length || 10 : type === "WASHER" ? washerCount : dryerCount;
+    button.textContent = `${type === "ALL" ? "Semua" : type === "WASHER" ? "Washer" : "Dryer"} (${count})`;
+    button.classList.toggle("active", ownerMachineFilter === type);
+  });
+  const filtered = ownerMachineFilter === "ALL" ? machines : machines.filter((machine) => machine.type === ownerMachineFilter);
+  target.innerHTML = filtered.map((machine) => {
     const remaining = Number(machine.remainingSeconds || 0);
-    const stateLabel = machine.status === "IN_USE" ? `TERPAKAI${remaining ? ` · ${Math.ceil(remaining / 60)} mnt` : ""}` : "IDLE";
-    return `<div class="machine-full"><h3>${machine.type === "WASHER" ? "Washer" : "Dryer"} ${machine.machineNumber}</h3><p>${machine.type === "WASHER" ? "32 menit" : "50 menit"}</p><div class="machine-state">${stateLabel}</div></div>`;
-  }).join("");
+    const inUse = machine.status === "IN_USE";
+    const type = machine.type === "WASHER" ? "Washer" : "Dryer";
+    const icon = machine.type === "WASHER" ? "washer" : "dryer";
+    const time = inUse ? formatRemaining(remaining) : "-";
+    return `<div class="owner-machine-row"><span class="machine-row-icon">${ownerIconSvg(icon)}</span><span class="machine-row-id">${type === "Washer" ? "W" : "D"}${escapeHtml(machine.machineNumber)}</span><span class="machine-row-type">${type}</span><span class="machine-row-status ${inUse ? "busy" : "idle"}">${inUse ? "Terpakai" : "Idle"}</span><span class="machine-row-time">${time}</span></div>`;
+  }).join("") || `<div class="owner-machine-row-empty">Tidak ada mesin.</div>`;
+  mountOwnerIcons();
 }
 
 function renderRewardOptions() {
@@ -1366,20 +1418,33 @@ async function saveReward() {
 }
 
 function eventFilterMatches(event) {
-  return ownerEventFilter === "ALL" || event.status === ownerEventFilter;
+  if (ownerEventFilter === "ALL") return true;
+  return event.status === ownerEventFilter;
+}
+
+function renderEventCard(event) {
+  return `<button class="owner-event-card" type="button" data-edit-event="${escapeHtml(event.eventId)}"><span class="event-card-icon">${ownerIconSvg("calendar")}</span><span class="event-card-copy"><b>${escapeHtml(event.title)}</b><small>${escapeHtml(formatDateRange(event.startsAt, event.endsAt))}</small></span><span class="event-card-arrow">›</span></button>`;
 }
 
 function renderOwnerEvents(items = []) {
   const target = $("ownerEventsList");
   if (!target) return;
-  const filtered = items.filter(eventFilterMatches);
-  target.innerHTML = filtered.length ? filtered.map((event) => `
-    <button class="owner-list-item" type="button" data-edit-event="${escapeHtml(event.eventId)}" style="text-align:left;width:100%">
-      <div class="row"><b>${escapeHtml(event.title)}</b><span class="status-pill ${event.status === "ENDED" || event.status === "INACTIVE" ? "off" : ""}">${escapeHtml(event.status)}</span></div>
-      <small>${escapeHtml(formatDateRange(event.startsAt, event.endsAt))}</small>
-      <div class="meta"><div>Hadiah<strong>${escapeHtml(event.rewardType)}</strong></div><div>Jumlah<strong>${Number(event.rewardQuantity).toLocaleString("id-ID")}</strong></div></div>
-    </button>
-  `).join("") : `<div class="owner-list-item"><small>Tidak ada event pada filter ini.</small></div>`;
+  const events = items || [];
+  const active = events.filter((event) => event.status === "ACTIVE");
+  const inactive = events.filter((event) => event.status !== "ACTIVE");
+  $("activeEventCount") && ($("activeEventCount").textContent = String(active.length));
+  $("inactiveEventCount") && ($("inactiveEventCount").textContent = String(inactive.length));
+  $("allEventCount") && ($("allEventCount").textContent = String(events.length));
+
+  let groups = [];
+  if (ownerEventFilter === "ACTIVE") {
+    groups = [{ title: "", rows: active }];
+  } else if (ownerEventFilter === "INACTIVE") {
+    groups = [{ title: "Nonaktif", rows: inactive }];
+  } else {
+    groups = [{ title: "", rows: active }, { title: "Nonaktif", rows: inactive }];
+  }
+  target.innerHTML = groups.filter((group) => group.rows.length).map((group) => `${group.title ? `<h3 class="owner-event-group-title">${group.title}</h3>` : ""}<div class="owner-event-group">${group.rows.map(renderEventCard).join("")}</div>`).join("") || `<div class="owner-event-card-empty">Tidak ada event pada filter ini.</div>`;
   target.querySelectorAll("[data-edit-event]").forEach((button) => button.onclick = () => openEventForm(button.dataset.editEvent));
 }
 
@@ -1480,6 +1545,12 @@ async function loadOwnerData() {
   try {
     const data = await api("/owner/overview");
     ownerData = data;
+    if ($("loadOwner") && data.serverTime) {
+      const serverDate = new Date(data.serverTime);
+      const label = new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Jakarta" }).format(serverDate);
+      const dateLabel = $("loadOwner").querySelector(".owner-date-label");
+      if (dateLabel) dateLabel.textContent = label.replace(/\./g, "");
+    }
     renderOwnerOverview();
     renderOwnerEvents(data.activeEvents || []);
     renderRewardOptions();
@@ -1505,6 +1576,13 @@ for (const button of document.querySelectorAll("#operationPeriods [data-period]"
   });
 }
 
+for (const button of document.querySelectorAll("#machineFilters [data-machine-filter]")) {
+  button.addEventListener("click", () => {
+    ownerMachineFilter = button.dataset.machineFilter;
+    renderOwnerMachines();
+  });
+}
+
 for (const button of document.querySelectorAll("#eventFilters [data-event-filter]")) {
   button.addEventListener("click", () => {
     ownerEventFilter = button.dataset.eventFilter;
@@ -1519,6 +1597,7 @@ $("saveEventButton")?.addEventListener("click", saveEvent);
 $("newRewardButton")?.addEventListener("click", () => openRewardForm());
 $("cancelRewardButton")?.addEventListener("click", () => { $("rewardFormCard").hidden = true; });
 $("saveRewardButton")?.addEventListener("click", saveReward);
+$("loadOwner")?.addEventListener("click", loadOwnerData);
 $("traceCustomer")?.addEventListener("click", runCustomerTrace);
 $("refreshAudit")?.addEventListener("click", loadOwnerAudit);
 $("auditSearch")?.addEventListener("input", loadOwnerAudit);
@@ -1549,6 +1628,7 @@ $("ownerLogout")?.addEventListener("click", () => {
 });
 
 async function loadOwner() {
+  mountOwnerIcons();
   ownerCurrentView = "overview";
   setOwnerView("overview");
   await loadOwnerData();
