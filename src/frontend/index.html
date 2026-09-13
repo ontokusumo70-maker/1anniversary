@@ -1,534 +1,244 @@
-:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#143b2a;background:#eaf7ee;--green:#0b8f61;--green-dark:#056b4a;--mint:#dff7e8;--gold:#f4b51b;--cream:#fffdf5;--line:#b9ddc7;--shadow:0 18px 48px rgba(16,74,45,.14)}*{box-sizing:border-box}html{background:#eaf7ee}body{margin:0;min-height:100vh;background:#eaf7ee}button,input,select{font:inherit}.app-shell{width:min(100%,520px);min-height:100vh;margin:auto;padding:12px 12px 26px;background:linear-gradient(180deg,#f9fffb 0,#e7f7ec 100%);overflow:hidden}.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 6px 14px}.brand-lockup{display:flex;align-items:center;gap:10px}.brand-lockup #brand{width:62px;height:62px;object-fit:contain}.brand-lockup strong,.brand-lockup small,.anniversary-kicker{display:block}.anniversary-kicker,.eyebrow{font-size:10px;font-weight:900;letter-spacing:.13em;color:var(--green)}.brand-lockup strong{font-size:16px;line-height:1.05}.brand-lockup small{font-size:9px;margin-top:4px;color:#5c7567;font-weight:800}.anniversary-coin{width:54px;height:54px;display:grid;place-items:center}.anniversary-coin img{width:52px;height:52px;object-fit:contain;filter:drop-shadow(0 5px 6px rgba(131,86,0,.22))}.screen{animation:rise .28s ease-out}@keyframes rise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}.screen-customer{background:url('/assets/background/customer/costumer-bg.PNG') top center/100% auto no-repeat}.auth-screen{padding:4px 2px 8px;min-height:calc(100vh - 90px)}.poster-panel{position:relative;min-height:720px;padding:24px 14px 18px;border-radius:28px;background:linear-gradient(180deg,rgba(222,252,234,.72),rgba(244,255,247,.95) 38%,rgba(255,255,255,.98));box-shadow:var(--shadow);overflow:hidden}.poster-copy{position:relative;z-index:2;max-width:290px}.poster-copy h1{font-size:27px;line-height:1.08;margin:8px 0 10px;color:#07583e}.poster-copy p{font-size:13px;line-height:1.5;color:#537265;margin:0}.mascot-auth{position:absolute;width:165px;right:-12px;top:18px;object-fit:contain;filter:drop-shadow(0 12px 12px rgba(10,83,54,.16))}.auth-card{position:absolute;z-index:3;left:14px;right:14px;bottom:16px}.glass-card,.card{background:rgba(255,255,255,.94);border:1px solid rgba(147,199,167,.62);border-radius:22px;box-shadow:0 12px 34px rgba(18,88,52,.12);padding:16px}.step-chip{display:inline-flex;align-items:center;gap:8px;padding:7px 10px;border-radius:999px;background:#e8f8ed;color:#176b4b;font-size:11px;font-weight:850;margin-bottom:8px}.step-chip span{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--green);color:#fff}.screen label{display:block;font-size:12px;font-weight:850;color:#315846;margin:10px 0}.screen input,.screen select{display:block;width:100%;margin-top:6px;border:1px solid #b9d8c5;border-radius:13px;background:#fff;padding:12px 13px;color:#163b2b;outline:none}.screen input:focus,.screen select:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(11,143,97,.12)}button{border:0;border-radius:13px;padding:12px 14px;font-weight:900;font-size:13px;letter-spacing:.01em;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease,opacity .15s ease}button:active{transform:translateY(1px)}button:disabled{opacity:.5;cursor:not-allowed}.primary-button{width:100%;background:linear-gradient(135deg,#0b9a67,#06734f);color:#fff;box-shadow:0 8px 18px rgba(7,123,80,.2)}.secondary-button{width:100%;background:#edf8f1;color:#096545;border:1px solid #b7dcc6}.icon-button{width:auto;background:#eef8f1;color:#086747;border:1px solid #bddbc7;padding:8px 11px}.helper{font-size:11px;color:#668073;text-align:center;margin:8px 0}.msg{min-height:18px}.status-msg{font-size:12px;color:#8a4d16}.otp-box{margin-top:10px;padding-top:10px;border-top:1px dashed #c7e0cf}.screen-heading,.role-hero{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 6px 14px}.screen-heading h1,.role-hero h1{font-size:23px;line-height:1.08;margin:5px 0}.screen-heading p,.role-hero p{font-size:12px;line-height:1.45;color:#567263;margin:0}.heading-mascot,.role-hero img{width:112px;height:112px;object-fit:contain;filter:drop-shadow(0 10px 10px rgba(8,84,52,.15))}.menu-grid{display:grid;grid-template-columns:1.35fr .8fr;gap:10px;margin-bottom:12px}.feature-card{min-height:144px;border-radius:22px;padding:15px;position:relative;overflow:hidden}.game-feature{background:linear-gradient(135deg,#0d8d60,#0a694a);color:#fff}.game-feature .eyebrow{color:#b9f5d2}.game-feature h2{font-size:24px;margin:5px 0}.game-feature p{font-size:11px;margin:0;max-width:150px}.feature-coin{position:absolute;width:98px;right:-4px;bottom:-2px;filter:drop-shadow(0 10px 8px rgba(0,0,0,.18))}.service-card{border:1px solid #b9ddc7;border-radius:22px;padding:14px;background:#f8fff9;display:flex;flex-direction:column;justify-content:center;gap:6px}.service-card span{font-size:9px;font-weight:900;color:#0b8f61;letter-spacing:.12em}.service-card strong{font-size:13px;line-height:1.25}.service-card small{font-size:10px;color:#6b8175}.card{margin:12px 0}.card-title-row{display:flex;align-items:center;justify-content:space-between;gap:10px}.card h2{font-size:19px;margin:3px 0 8px}.card h3{font-size:15px;margin:0}.timer-pill{padding:7px 10px;border-radius:999px;background:#fff3ce;color:#936a00;font-size:10px;font-weight:900}.game-card{background:rgba(255,255,255,.96)}.gameHud{display:flex;justify-content:space-between;align-items:center;margin:10px 0;padding:9px 12px;border-radius:13px;background:#ecf9f0;color:#2b5d48;font-size:12px;font-weight:850}.gameHud b{font-size:18px;color:#086847}.game-stage{position:relative;border-radius:18px;overflow:hidden;background:#dff8e7}.game-stage canvas{width:100%;height:auto;display:block;background:var(--game-bg) center/cover;touch-action:none}.game-mascot{position:absolute;width:68px;right:10px;bottom:8px;pointer-events:none}.reward-card{margin-top:12px;padding:13px;border-radius:18px;background:#f0fff4;border:1px solid #b9dfc8;position:relative}.reward-mascot{width:72px;float:right;margin:-8px -4px 4px 6px}.reward-card h3{font-size:14px;max-width:220px}.reward-card p{font-size:12px}.reward-card #qr{display:grid;place-items:center;clear:both;margin:12px 0}.reward-card #qr svg{width:min(270px,75vw);height:auto;background:#fff;padding:8px;border-radius:12px}.reward-card code{display:block;word-break:break-all;background:#fff;padding:8px;border-radius:8px;font-size:10px}.section-note{font-size:11px;color:#668073;margin:0 0 10px}.machineGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.machine{border:1px solid #c6dfce;border-radius:14px;padding:10px;background:#fbfffc;min-height:86px}.machine b,.machine span{display:block}.machine b{font-size:13px}.machine span{font-size:10px;color:#668073;margin-top:3px}.machine .busy,.machine .idle{margin-top:5px;font-weight:900;color:#08704e}.machine button{margin-top:8px;width:100%;padding:8px;font-size:10px}.screen-staff{background:url('/assets/background/staff/staff-bg.PNG') top center/100% auto no-repeat}.screen-owner{background:url('/assets/background/owner/owner-bg.PNG') top center/100% auto no-repeat}.role-hero{border-radius:24px;padding:20px 15px 15px;background:rgba(245,255,248,.9);border:1px solid #b7dbc4;box-shadow:var(--shadow)}.role-hero img{width:105px;height:105px}.scanner-card{background:rgba(255,255,255,.95)}#camera{width:100%;border-radius:15px;background:#102219;margin-top:10px}pre{white-space:pre-wrap;word-break:break-word;background:#f4faf5;border:1px solid #d6e8db;padding:10px;border-radius:11px;overflow:auto;font-size:10px;color:#456457}.owner-nav{display:flex;gap:6px;overflow:auto;padding:10px 1px}.owner-nav span{white-space:nowrap;padding:7px 9px;border-radius:999px;background:#e6f6eb;color:#0b684b;font-size:9px;font-weight:900}.owner-card{background:rgba(255,255,255,.96)}.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stats div{padding:12px;border-radius:14px;border:1px solid #c4dfcd;background:#f9fffa;font-size:10px;color:#60776b}.stats b{display:block;font-size:25px;color:#086747;margin-top:4px}.footer-mark{display:flex;align-items:center;justify-content:center;gap:7px;color:#6b8375;font-size:9px;font-weight:800;padding:16px 0 3px}.footer-mark img{width:28px;height:28px;object-fit:contain}@media(min-width:700px){body{padding:18px}.app-shell{border-radius:28px;box-shadow:0 20px 70px rgba(15,74,45,.15)}}@media(max-width:380px){.app-shell{padding:8px}.poster-panel{min-height:690px}.poster-copy h1{font-size:24px}.mascot-auth{width:145px}.menu-grid{grid-template-columns:1fr}.heading-mascot,.role-hero img{width:90px;height:90px}}
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b8f61">
+  <title>Teras Laundry • 1st Anniversary</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body data-role="CUSTOMER">
+<main class="app-shell">
+  <header class="topbar">
+    <div class="brand-lockup">
+      <img id="brand" src="/assets/branding/branding.png" alt="Teras Laundry">
+      <div>
+        <span class="anniversary-kicker">TERAS LAUNDRY</span>
+        <strong>1st ANNIVERSARY</strong>
+        <small>10 HARI MENUJU 1 TAHUN</small>
+      </div>
+    </div>
+    <div class="anniversary-coin"><img src="/assets/coin/coin_1st_front.png" alt="1st anniversary coin"></div>
+  </header>
 
-/* CHECKLIST 1 — OWNER LOGIN — APPROVED VISUAL */
-.owner-login-screen{
-  position:relative;
-  display:block;
-  width:100%;
-  height:100svh;
-  min-height:100svh;
-  margin:0;
-  padding:0;
-  overflow:hidden;
-  background:url('/assets/background/owner/owner-bg.PNG') center top/cover no-repeat;
-}
+  <section id="ownerAuth" class="screen owner-login-screen" hidden>
+    <div class="owner-login-card">
+      <div class="owner-phone-wrap">
+        <svg class="owner-whatsapp-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="9.25" fill="none" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M8.4 7.8c.3-.35.7-.35 1-.08l1.2 1.15c.28.27.3.68.08 1l-.55.8c.75 1.35 1.8 2.4 3.15 3.15l.8-.55c.32-.22.73-.2 1 .08l1.15 1.2c.27.3.27.7-.08 1-.48.48-1.1.72-1.76.62-1.7-.26-3.42-1.18-4.85-2.62-1.44-1.43-2.36-3.15-2.62-4.85-.1-.66.14-1.28.62-1.76Z" fill="currentColor"/>
+        </svg>
+        <input id="ownerPhone" class="owner-login-input" inputmode="tel" autocomplete="tel" maxlength="32" placeholder="08xxxxxxxxx" aria-label="Nomor telepon">
+      </div>
+      <button id="ownerLogin" class="primary-button owner-login-button" type="button">Login<span class="owner-login-arrow" aria-hidden="true">→</span></button>
+      <p id="ownerAuthMsg" class="msg status-msg owner-login-msg"></p>
+    </div>
+  </section>
 
-/* The approval background already contains the "1st Anniversary" artwork. */
-.owner-login-screen[hidden]{
-  display:none !important;
-}
+  <section id="auth" class="screen screen-customer auth-screen">
+    <div class="poster-panel">
+      <div class="poster-copy">
+        <span class="eyebrow">SELAMAT DATANG</span>
+        <h1>Main, kumpulkan coin,<br>dan dapatkan reward.</h1>
+        <p>Pengalaman anniversary singkat untuk member Teras Laundry.</p>
+      </div>
+      <img class="mascot mascot-auth" src="/assets/mascot/mascot_happy.png" alt="Teras Laundry mascot">
+      <div class="auth-card glass-card">
+        <div class="step-chip"><span>1</span> Verifikasi member</div>
+        <label>Nomor WhatsApp<input id="phone" inputmode="tel" autocomplete="tel" maxlength="32" placeholder="08xxxxxxxxxx"></label>
+        <label id="emailLabel">Email<input id="email" type="email" inputmode="email" autocomplete="email" maxlength="254" placeholder="nama@gmail.com"></label>
+        <div class="authActions">
+          <button id="requestOtp" class="primary-button">Kirim OTP</button>
+          <p id="otpInfo" class="msg helper">check email anda untuk melihat kode otp</p>
+          <button id="staffLogin" class="secondary-button" type="button" hidden>Login</button>
+        </div>
+        <div id="otpBox" class="otp-box" hidden>
+          <div class="step-chip"><span>2</span> Masukkan kode OTP</div>
+          <label>OTP 6 digit<input id="otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456"></label>
+          <button id="verifyOtp" class="primary-button">Verifikasi OTP</button>
+        </div>
+        <p id="authMsg" class="msg status-msg"></p>
+      </div>
+    </div>
+  </section>
 
-/* Owner Login must be a clean full-screen page: no production header/footer. */
-body:has(#ownerAuth:not([hidden])) .topbar,
-body:has(#ownerAuth:not([hidden])) .footer-mark,
-body[data-role="OWNER_LOGIN"] .topbar,
-body[data-role="OWNER_LOGIN"] .footer-mark{
-  display:none !important;
-}
+  <section id="customer" class="screen screen-customer" hidden>
+    <div class="screen-heading">
+      <div><span class="eyebrow">CUSTOMER</span><h1>Selamat datang di<br>Teras Laundry Anniversary.</h1></div>
+      <img src="/assets/mascot/mascot_celebrate.png" alt="Celebrating mascot" class="heading-mascot">
+    </div>
 
-body:has(#ownerAuth:not([hidden])),
-body[data-role="OWNER_LOGIN"]{
-  min-height:100svh;
-  margin:0;
-  overflow:hidden;
-  background:#e8f7df;
-}
+    <div class="menu-grid">
+      <div class="feature-card game-feature">
+        <div class="feature-copy"><span class="eyebrow">ANNIVERSARY GAME</span><h2>COIN CATCH</h2><p>Tangkap coin selama 15 detik.</p></div>
+        <img src="/assets/coin/coin_1st_persp.png" alt="Anniversary coin" class="feature-coin">
+      </div>
+      <div class="service-card"><span>MEMBER</span><strong>1 transaksi = 1 Play</strong><small>Server menentukan eligibility & reward.</small></div>
+    </div>
 
-body:has(#ownerAuth:not([hidden])) .app-shell,
-body[data-role="OWNER_LOGIN"] .app-shell{
-  width:100%;
-  max-width:none;
-  min-height:100svh;
-  margin:0;
-  padding:0;
-  background:transparent;
-  box-shadow:none;
-}
+    <div class="card game-card">
+      <div class="card-title-row"><div><span class="eyebrow">PLAY</span><h2>Mulai permainan</h2></div><span class="timer-pill">15 DETIK</span></div>
+      <label>ID Transaksi<input id="transactionId" maxlength="128" placeholder="Masukkan ID transaksi"></label>
+      <button id="startGame" class="primary-button">MULAI GAME</button>
+      <div id="gameBox" hidden>
+        <div class="gameHud"><span>WAKTU <b id="time">15</b></span><span>SKOR <b id="score">0</b></span></div>
+        <div class="game-stage"><canvas id="game" width="360" height="520" aria-label="Coin Catch"></canvas><img class="game-mascot" src="/assets/mascot/mascot_run.png" alt="Running mascot"></div>
+      </div>
+      <div id="rewardBox" class="reward-card" hidden>
+        <img src="/assets/mascot/mascot_celebrate.png" alt="Reward mascot" class="reward-mascot">
+        <div><span class="eyebrow">REWARD</span><h3 id="rewardTitle">REWARD BERHASIL DIKLAIM</h3><p id="rewardType"></p></div>
+        <div id="qr"></div><code id="token"></code>
+      </div>
+      <p id="gameMsg" class="msg status-msg"></p>
+    </div>
 
-.owner-login-card{
-  position:absolute;
-  z-index:2;
-  top:26.17%;
-  left:25%;
-  width:43.75%;
-  min-height:0;
-  box-sizing:border-box;
-  padding:2.0% 3.0% 2.0%;
-  border:1px solid rgba(151,204,172,.48);
-  border-radius:24px;
-  background:rgba(255,255,255,.96);
-  box-shadow:0 12px 28px rgba(12,74,45,.12);
-}
+    <div class="card machine-card">
+      <div class="card-title-row"><div><span class="eyebrow">OUTLET</span><h2>Status Mesin</h2></div><button id="refreshMachines" class="icon-button">Refresh</button></div>
+      <p class="section-note">Customer View Only • 5 Washer + 5 Dryer</p>
+      <div id="machines" class="machineGrid"></div>
+    </div>
+  </section>
 
-.owner-phone-wrap{
-  position:relative;
-  display:flex;
-  align-items:center;
-  width:100%;
-  height:56px;
-  box-sizing:border-box;
-  border:1.5px solid #719d92;
-  border-radius:16px;
-  background:#fff;
-}
+  <section id="staff" class="screen screen-staff" hidden>
+    <div class="role-hero">
+      <div><span class="eyebrow">CASHIER / STAFF</span><h1>Staff Validation</h1><p>Scan QR. Validasi member. Redeem otomatis pada scan pertama yang valid.</p></div>
+      <img src="/assets/mascot/mascot_point.png" alt="Staff mascot">
+    </div>
+    <div class="card scanner-card">
+      <div class="step-chip"><span>1</span> Scan QR Reward</div>
+      <p id="scannerSupport" class="section-note">Scan QR reward menggunakan kamera.</p>
+      <button id="scanCamera" class="primary-button">SCAN QR DENGAN KAMERA</button>
+      <video id="camera" playsinline autoplay hidden></video>
+      <pre id="staffResult"></pre>
+    </div>
+    <div class="card machine-card">
+      <div class="card-title-row"><div><span class="eyebrow">OPERASIONAL</span><h2>Aktivasi Mesin</h2></div></div>
+      <div id="staffMachines" class="machineGrid"></div>
+    </div>
+  </section>
 
-.owner-whatsapp-icon{
-  flex:0 0 28px;
-  width:28px;
-  height:28px;
-  margin-left:14px;
-  color:#159b70;
-}
+  <section id="owner" class="screen screen-owner" hidden>
+    <header class="owner-dashboard-header">
+      <div class="owner-brand-block">
+        <img src="/assets/branding/branding.png" alt="Teras Laundry" class="owner-brand-logo">
+        <div class="owner-brand-copy"><span>Bersih</span><span>Lebih Mudah</span><span>Lebih Bahagia</span><strong>1st Anniversary</strong></div>
+      </div>
+      <div class="owner-account"><b>Owner</b><button id="ownerLogout" type="button" aria-label="Logout Owner"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"/><path d="M14 8l4 4-4 4M8 12h10"/></svg><span>Logout</span></button></div>
+    </header>
 
-.owner-login-input{
-  width:100%;
-  min-width:0;
-  height:100%;
-  box-sizing:border-box;
-  padding:0 14px 0 10px;
-  border:0 !important;
-  outline:0 !important;
-  box-shadow:none !important;
-  background:transparent !important;
-  color:#245f55;
-  font-size:clamp(15px,1.7vw,18px);
-}
+    <nav class="owner-tabbar" aria-label="Owner menu">
+      <button type="button" data-owner-view="overview" class="active"><span class="owner-nav-icon" data-owner-icon="overview"></span><span>Overview</span></button>
+      <button type="button" data-owner-view="reward-pool"><span class="owner-nav-icon" data-owner-icon="reward"></span><span>Reward Pool</span></button>
+      <button type="button" data-owner-view="customer-trace"><span class="owner-nav-icon" data-owner-icon="customer"></span><span>Customer Trace</span></button>
+      <button type="button" data-owner-view="events"><span class="owner-nav-icon" data-owner-icon="event"></span><span>Event</span></button>
+      <button type="button" data-owner-view="audit"><span class="owner-nav-icon" data-owner-icon="audit"></span><span>Audit</span></button>
+      <button type="button" data-owner-view="csv-export"><span class="owner-nav-icon" data-owner-icon="csv"></span><span>CSV Export</span></button>
+    </nav>
 
-.owner-login-input::placeholder{
-  color:#aeb5b5;
-  opacity:1;
-}
+    <div id="ownerViewOverview" class="owner-view">
+      <div class="owner-page-heading owner-overview-heading">
+        <div><h1>Overview</h1></div>
+        <div class="owner-date-range" aria-label="Rentang tanggal Overview">
+          <label for="ownerDateFrom">Dari<span class="owner-date-input"><span class="owner-date-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="4" y="5" width="16" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 3.5v4M16 3.5v4M4 9h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M8 12h2M12 12h2M16 12h.1M8 15.5h2M12 15.5h2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span><input id="ownerDateFrom" type="date" aria-label="Tanggal mulai"></span></label>
+          <span class="owner-date-range-arrow" aria-hidden="true">→</span>
+          <label for="ownerDateTo">Sampai<span class="owner-date-input"><span class="owner-date-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="4" y="5" width="16" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 3.5v4M16 3.5v4M4 9h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M8 12h2M12 12h2M16 12h.1M8 15.5h2M12 15.5h2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span><input id="ownerDateTo" type="date" aria-label="Tanggal selesai"></span></label>
+        </div>
+      </div>
 
-.owner-login-button{
-  position:relative;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  width:100%;
-  height:56px;
-  margin-top:12px;
-  border:0;
-  border-radius:16px;
-  background:#13a66f;
-  color:#fff;
-  font-size:clamp(15px,1.8vw,19px);
-  font-weight:600;
-  cursor:pointer;
-}
+      <div id="ownerMetrics" class="owner-metric-grid"></div>
 
-.owner-login-arrow{
-  position:absolute;
-  right:18px;
-  font-size:28px;
-  line-height:1;
-  font-weight:400;
-}
+      <section class="owner-section-block owner-event-overview-block">
+        <div class="owner-section-title"><h2>Event Aktif</h2><button type="button" data-owner-view="events">Lihat Semua <b>›</b></button></div>
+        <div id="ownerActiveEvents" class="owner-list"></div>
+      </section>
 
-.owner-login-msg{
-  display:none !important;
-}
+      <section class="owner-section-block">
+        <div class="owner-section-title"><h2>Status Mesin</h2><button type="button" data-owner-view="machines">Lihat Semua <b>›</b></button></div>
+        <div id="ownerMachineSummary" class="owner-machine-summary"></div>
+      </section>
 
-@media(max-width:600px){
-  .owner-login-card{
-    top:26.17%;
-    left:25%;
-    width:43.75%;
-    min-height:0;
-    padding:2.0% 3.0% 2.0%;
-    border-radius:18px;
-  }
+      <section class="owner-section-block">
+        <div class="owner-section-title"><h2>Statistik Operasional</h2></div>
+        <div id="operationPeriods" class="owner-period-tabs">
+          <button type="button" data-period="daily" class="active">Harian</button>
+          <button type="button" data-period="weekly">Mingguan</button>
+          <button type="button" data-period="monthly">Bulanan</button>
+          <button type="button" data-period="yearly">Tahunan</button>
+        </div>
+        <div id="ownerOperationStats" class="owner-operation-grid"></div>
+      </section>
 
-  .owner-phone-wrap,
-  .owner-login-button{
-    height:42px;
-    border-radius:12px;
-  }
+      <p id="ownerResult" class="msg status-msg owner-dashboard-msg"></p>
+    </div>
 
-  .owner-whatsapp-icon{
-    flex-basis:21px;
-    width:21px;
-    height:21px;
-    margin-left:9px;
-  }
+    <div id="ownerViewMachines" class="owner-view" hidden>
+      <button type="button" class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</button>
+      <div class="owner-page-heading compact"><div><h1>Status Mesin</h1><p>Monitor real-time semua mesin</p></div></div>
+      <div id="machineFilters" class="owner-filter-tabs machine-tabs">
+        <button type="button" data-machine-filter="ALL" class="active">Semua (10)</button>
+        <button type="button" data-machine-filter="WASHER">Washer (5)</button>
+        <button type="button" data-machine-filter="DRYER">Dryer (5)</button>
+      </div>
+      <div id="ownerAllMachines" class="owner-machine-list"></div>
+      <div class="owner-status-legend">
+        <h3>Keterangan Status</h3>
+        <div><span class="status-dot idle"></span><b>Idle</b><small>Mesin tersedia</small></div>
+        <div><span class="status-dot busy"></span><b>Terpakai</b><small>Mesin sedang digunakan</small></div>
+        <p><span class="owner-inline-icon" data-owner-icon="clock"></span> Waktu menunjukkan sisa estimasi (hh:mm:ss)</p>
+      </div>
+    </div>
 
-  .owner-login-input{
-    padding-left:7px;
-    padding-right:8px;
-    font-size:12px;
-  }
+    <div id="ownerViewEvents" class="owner-view" hidden>
+      <button type="button" class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</button>
+      <div class="owner-page-heading compact"><div><h1>Event</h1><p>Daftar semua event</p></div><button id="newEventButton" class="owner-green-button" type="button"><span>＋</span> Tambah Event</button></div>
+      <div id="eventFilters" class="owner-filter-tabs event-tabs">
+        <button data-event-filter="ACTIVE" class="active">Aktif (<span id="activeEventCount">3</span>)</button>
+        <button data-event-filter="INACTIVE">Nonaktif (<span id="inactiveEventCount">1</span>)</button>
+        <button data-event-filter="ALL">Semua (<span id="allEventCount">4</span>)</button>
+      </div>
+      <div id="ownerEventsList" class="owner-event-groups"></div>
+      <div id="eventFormCard" class="owner-form-card" hidden>
+        <h3 id="eventFormTitle">Buat Event Baru</h3>
+        <label>Nama Event<input id="eventTitle"></label>
+        <label>Mulai<input id="eventStartsAt" type="datetime-local"></label>
+        <label>Selesai<input id="eventEndsAt" type="datetime-local"></label>
+        <label>Reward<select id="eventRewardType"></select></label>
+        <label>Jumlah<input id="eventRewardQuantity" type="number" min="1"></label>
+        <label class="owner-check"><input id="eventActive" type="checkbox"> Aktif</label>
+        <div class="owner-form-actions"><button id="cancelEventButton" class="secondary-button" type="button">Batal</button><button id="saveEventButton" class="primary-button" type="button">Simpan</button></div>
+        <p id="eventFormMsg" class="msg status-msg"></p>
+      </div>
+    </div>
 
-  .owner-login-label{
-    margin-bottom:7px;
-    font-size:11px;
-  }
+    <div id="ownerViewRewardPool" class="owner-view" hidden>
+      <div class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</div>
+      <div class="owner-page-heading compact"><div><h1>Reward Pool</h1><p>Kelola quota reward</p></div><button id="newRewardButton" class="owner-green-button" type="button">＋ Tambah</button></div>
+      <div id="ownerRewardList" class="owner-list"></div>
+      <div id="rewardFormCard" class="owner-form-card" hidden><h3 id="rewardFormTitle">Tambah Reward</h3><label>Reward Type<input id="ownerRewardType"></label><label>Quota<input id="rewardQuota" type="number" min="1"></label><label class="owner-check"><input id="rewardActive" type="checkbox"> Aktif</label><div class="owner-form-actions"><button id="cancelRewardButton" class="secondary-button" type="button">Batal</button><button id="saveRewardButton" class="primary-button" type="button">Simpan</button></div><p id="rewardFormMsg" class="msg status-msg"></p></div>
+    </div>
 
-  .owner-login-arrow{
-    right:10px;
-    font-size:22px;
-  }
+    <div id="ownerViewCustomerTrace" class="owner-view" hidden>
+      <div class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</div>
+      <div class="owner-page-heading compact"><div><h1>Customer Trace</h1><p>Customer → Transaction → Play → Reward</p></div></div>
+      <div class="owner-trace-form"><label>Customer ID<input id="traceCustomerId" maxlength="128" placeholder="Customer ID"></label><button id="traceCustomer" class="primary-button" type="button">Lihat Customer Trace</button></div>
+      <div id="traceResult" class="owner-trace-result"></div>
+    </div>
 
-  .owner-login-msg{
-    display:none !important;
-  }
-}
+    <div id="ownerViewAudit" class="owner-view" hidden>
+      <div class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</div>
+      <div class="owner-page-heading compact"><div><h1>Audit</h1><p>Riwayat aktivitas sistem</p></div><button id="refreshAudit" class="owner-date-button" type="button">↻ Refresh</button></div>
+      <input id="auditSearch" class="owner-search" placeholder="Cari audit...">
+      <div id="ownerAuditList" class="owner-list"></div>
+    </div>
 
-.owner-anniversary-mark{
-  position:absolute;
-  z-index:2;
-  top:21.8%;
-  right:10.5%;
-  color:#07583e;
-  font-family:"Brush Script MT","Segoe Script","Snell Roundhand",cursive;
-  font-size:clamp(20px,3.5vw,31px);
-  line-height:1;
-  font-weight:600;
-  transform:rotate(-4deg);
-  white-space:nowrap;
-}
-
-.owner-anniversary-mark::after{
-  content:"";
-  display:block;
-  width:78%;
-  height:3px;
-  margin:5px 0 0 12%;
-  border-radius:999px;
-  background:#07583e;
-  transform:rotate(-2deg);
-}
-
-@media(max-width:600px){
-  .owner-anniversary-mark{
-    top:21.8%;
-    right:10.5%;
-    font-size:clamp(17px,3.5vw,24px);
-  }
-}
-
-/* OWNER DASHBOARD — APPROVED UI */
-body[data-role="OWNER"] .topbar,
-body[data-role="OWNER"] .footer-mark{display:none !important}
-body[data-role="OWNER"]{background:#f7faf8;overflow-x:hidden}
-body[data-role="OWNER"] .app-shell{width:min(100%,520px);max-width:520px;min-height:100svh;margin:auto;padding:0 12px 28px;background:#fff;box-shadow:none;border-radius:0}
-.screen-owner{background:#fff !important;padding:0 2px 18px;min-height:100svh}
-.owner-dashboard-header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 4px 7px;border-bottom:1px solid #edf0ee;background:#fbfffc}
-.owner-brand-block{display:flex;align-items:center;gap:7px;min-width:0}
-.owner-brand-logo{width:66px;height:66px;object-fit:contain;flex:0 0 66px}
-.owner-brand-copy{font-size:10px;line-height:1.22;color:#167252;font-weight:700;min-width:0}
-.owner-brand-copy strong{display:block;margin-top:4px;color:#b57a24;font-family:cursive;font-size:12px;font-style:italic}
-.owner-account{display:flex;align-items:flex-start;gap:9px;padding-top:9px}
-.owner-account>b{font-size:11px;color:#1d2522}
-.owner-account button{display:flex;flex-direction:column;align-items:center;gap:1px;padding:0;background:transparent;color:#4d7162;font-size:8px;font-weight:700}
-.owner-account svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.owner-tabbar{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;padding:9px 0 7px;border-bottom:1px solid #e7ebe9;background:#fff;overflow:hidden}
-.owner-tabbar button{min-width:0;padding:0 1px 8px;border-radius:0;background:#fff;color:#6d7471;font-size:8px;font-weight:600;line-height:1.15;box-shadow:none;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative}
-.owner-tabbar button.active{color:#16855e;font-weight:800}
-.owner-tabbar button.active::after{content:"";position:absolute;left:12%;right:12%;bottom:0;height:2px;border-radius:2px;background:#1aa36f}
-.owner-nav-icon{height:20px;display:grid;place-items:center;font-size:19px;line-height:1;color:#667b72;font-weight:500}
-.owner-tabbar button.active .owner-nav-icon{color:#128a60}
-.owner-view{padding:0 3px}
-.owner-page-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:15px 2px 11px}
-.owner-page-heading.compact{padding-top:7px}
-.owner-page-heading h1{font-size:25px;line-height:1.05;margin:0;color:#101a16;letter-spacing:-.03em}
-.owner-page-heading p{font-size:11px;color:#75827d;margin:3px 0 0}
-.owner-date-button{white-space:nowrap;padding:9px 10px;border:1px solid #e4e9e6;border-radius:9px;background:#fff;color:#27322e;font-size:10px;font-weight:700;box-shadow:0 2px 7px rgba(19,65,43,.04)}
-.owner-metric-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
-.owner-metric-card{min-width:0;padding:10px 7px 9px;border:1px solid #edf0ef;border-radius:9px;background:#f9fbfa;text-align:center;box-shadow:0 2px 7px rgba(25,72,51,.04)}
-.owner-metric-icon{display:block;width:23px;height:23px;margin:0 auto 5px;border:2px solid #2e9d67;border-radius:50%;position:relative}
-.owner-metric-icon.claimed{border-color:#338de8;border-radius:5px}
-.owner-metric-icon.redeemed{border-color:#f2a81b;border-radius:5px}
-.owner-metric-icon::after{content:"";position:absolute;left:5px;right:5px;bottom:4px;height:5px;border-bottom:2px solid currentColor;border-radius:50%}
-.owner-metric-card small{display:block;color:#6f7b77;font-size:8px;line-height:1.1}
-.owner-metric-card b{display:block;margin-top:3px;color:#121a17;font-size:21px;line-height:1}
-.owner-metric-card em{display:block;margin-top:5px;color:#12a064;font-size:8px;font-style:normal;font-weight:800}
-.owner-metric-note{display:block;color:#9aa39f;font-size:7px;margin-top:1px}
-.owner-section-block{margin-top:16px}
-.owner-section-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
-.owner-section-title h2{font-size:17px;line-height:1;margin:0;color:#151c19}
-.owner-section-title button{padding:0;background:transparent;color:#197a58;font-size:10px;box-shadow:none}
-.owner-section-title button b{font-size:18px;vertical-align:-2px;margin-left:2px}
-.owner-machine-summary{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-.owner-machine-summary-card{display:grid;grid-template-columns:30px 1fr;grid-template-rows:auto auto auto;column-gap:7px;align-items:center;text-align:left;padding:11px 9px;border:1px solid #edf0ef;border-radius:9px;background:#fbfcfc;color:#28332e;box-shadow:none}
-.owner-machine-summary-card strong{font-size:10px;align-self:end}
-.owner-machine-summary-card>span:not(.owner-machine-icon){font-size:8px;color:#68756f;line-height:1.45;grid-column:2}
-.owner-machine-summary-card>span b{float:right;color:#222;font-size:9px}
-.owner-machine-icon{grid-row:1 / span 3;display:grid;place-items:center;width:28px;height:38px;border:2px solid #263f38;border-radius:7px;font-size:17px;color:#31584b}
-.idle-dot,.busy-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;background:#14a265}
-.busy-dot{background:#f5b51b}
-.owner-period-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:8px}
-.owner-period-tabs button,.owner-filter-tabs button{padding:8px 3px;border:1px solid #e4e9e6;border-radius:7px;background:#fff;color:#68756f;font-size:9px;font-weight:700;box-shadow:none}
-.owner-period-tabs button.active,.owner-filter-tabs button.active{background:#139d6c;border-color:#139d6c;color:#fff}
-.owner-operation-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-.operation-stat{display:grid;grid-template-columns:28px 1fr;gap:7px;align-items:center;padding:10px;border:1px solid #edf0ef;border-radius:9px;background:#fbfcfc}
-.operation-stat::before{content:"◷";display:grid;place-items:center;width:27px;height:27px;border:2px solid #3b91df;border-radius:50%;color:#3b91df;font-size:14px}
-.operation-stat:nth-child(2)::before{border-color:#283f38;color:#283f38}
-.operation-stat span{font-size:8px;color:#7c8883;line-height:1.1}
-.operation-stat b{display:block;font-size:13px;color:#25312c;margin-top:2px}
-.owner-list{display:grid;gap:6px}
-.owner-list-item{width:100%;padding:11px 12px;border:1px solid #edf0ef;border-radius:9px;background:#fff;color:#202a25;text-align:left;box-shadow:0 2px 6px rgba(25,72,51,.03)}
-.owner-list-item .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.owner-list-item b{font-size:10px}
-.owner-list-item small{display:block;color:#8a9590;font-size:8px;margin-top:4px}
-.owner-list-item .meta{display:flex;gap:16px;margin-top:8px}
-.owner-list-item .meta>div{font-size:8px;color:#7d8883}
-.owner-list-item .meta strong{display:block;color:#26332d;font-size:9px;margin-top:2px}
-.active-event{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 10px;border:1px solid #edf0ef;border-radius:9px;background:#fff;text-align:left;color:#24302b;box-shadow:none}
-.active-event>b,.active-event span b{font-size:10px}.active-event span span{display:block;font-size:8px;color:#8a9590;margin-top:3px}.active-event .arrow{font-size:20px;color:#5d6e67}
-.owner-back{display:inline-block;padding:10px 0 7px;background:transparent;color:#28795c;font-size:10px;font-weight:700;cursor:pointer}
-.owner-filter-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin:3px 0 10px}
-.owner-filter-tabs.event-tabs{grid-template-columns:repeat(3,1fr);margin-top:4px}
-.owner-green-button{padding:9px 10px;border-radius:8px;background:#109765;color:#fff;font-size:10px;font-weight:800;box-shadow:0 4px 9px rgba(16,151,101,.15)}
-.owner-machine-list{display:grid;gap:1px;border:1px solid #edf0ef;border-radius:9px;overflow:hidden}
-.machine-full{display:grid;grid-template-columns:30px 1fr auto;align-items:center;gap:8px;padding:9px 10px;background:#fff;border-bottom:1px solid #edf0ef}
-.machine-full:last-child{border-bottom:0}
-.machine-full::before{content:"◎";display:grid;place-items:center;width:26px;height:28px;border:1.5px solid #506b61;border-radius:5px;color:#506b61}
-.machine-full h3{font-size:10px;margin:0}.machine-full p{font-size:8px;color:#88928e;margin:2px 0}.machine-state{padding:6px 8px;border-radius:5px;background:#dff6e9;color:#179460;font-size:8px;font-weight:800}.machine-full:nth-child(2) .machine-state,.machine-full:nth-child(4) .machine-state,.machine-full:nth-child(8) .machine-state{background:#fff0cc;color:#d08b05}
-.owner-status-legend{margin-top:9px;padding:11px;border:1px solid #e8edeb;border-radius:9px;background:#fbfcfc}.owner-status-legend h3{font-size:10px;margin:0 0 8px}.owner-status-legend>div{display:grid;grid-template-columns:9px 42px 1fr;gap:6px;align-items:center;font-size:8px;margin:5px 0}.status-dot{width:7px;height:7px;border-radius:50%;background:#159d65}.status-dot.busy{background:#f5b51b}.owner-status-legend small{color:#84908b}.owner-status-legend p{font-size:8px;color:#87918d;margin:9px 0 0}
-.owner-form-card,.owner-export-card,.owner-trace-form,.owner-trace-result{margin-top:10px;padding:12px;border:1px solid #e5ebe8;border-radius:9px;background:#fbfcfc}.owner-form-card h3{font-size:13px;margin:0 0 8px}.owner-form-card label,.owner-trace-form label,.owner-export-card label{display:block;font-size:9px;font-weight:800;color:#49665a;margin:7px 0}.owner-form-card input,.owner-form-card select,.owner-trace-form input,.owner-export-card input,.owner-search{width:100%;padding:9px 10px;margin-top:4px;border:1px solid #d8e3dd;border-radius:8px;background:#fff;font-size:10px}.owner-check{display:flex !important;align-items:center;gap:7px}.owner-check input{width:auto!important;margin:0!important}.owner-form-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}.owner-form-actions button{width:100%}.owner-search{margin:4px 0 9px}.owner-trace-form .primary-button,.owner-export-card .primary-button{margin-top:6px}.trace-customer-card{font-size:10px}.trace-customer-card h2{font-size:15px;margin:0}.trace-customer-card p{font-size:9px;color:#7a8881;margin:4px 0}.trace-timeline{display:grid;gap:6px;margin-top:10px}.trace-step{padding:8px;border-left:3px solid #15a36e;background:#fff;border-radius:0 7px 7px 0}.trace-step b{display:block;font-size:9px}.trace-step span{display:block;font-size:8px;color:#7d8883;margin-top:2px}
-.owner-dashboard-msg{margin:5px 0 0;text-align:center;font-size:9px}
-
-@media(max-width:600px){
-  body[data-role="OWNER"] .app-shell{padding-left:9px;padding-right:9px}
-  .owner-brand-logo{width:60px;height:60px;flex-basis:60px}
-  .owner-brand-copy{font-size:9px}.owner-brand-copy strong{font-size:11px}
-  .owner-account>b{font-size:10px}
-  .owner-tabbar button{font-size:7px}.owner-nav-icon{font-size:17px}
-  .owner-page-heading h1{font-size:23px}
-}
-
-/* FINAL OWNER DASHBOARD APPROVAL LOCK — 01 OVERVIEW / 02 STATUS MESIN / 03 EVENT */
-body[data-role="OWNER"]{background:#f7faf8;overflow-x:hidden}
-body[data-role="OWNER"] .app-shell{width:min(100%,520px);max-width:520px;min-height:100svh;margin:auto;padding:0 10px 18px;background:#fff;box-shadow:none;border-radius:0}
-body[data-role="OWNER"] .screen-owner{background:#fff !important;padding:0 4px 18px;min-height:100svh}
-body[data-role="OWNER"] .owner-dashboard-header{height:68px;padding:6px 4px 4px;border-bottom:1px solid #e7ece9;background:#fbfffc}
-.owner-brand-block{gap:7px}
-.owner-brand-logo{width:58px;height:58px;flex:0 0 58px}
-.owner-brand-copy{font-size:9px;line-height:1.25;color:#167252;font-weight:700}
-.owner-brand-copy strong{margin-top:3px;color:#b57a24;font-family:cursive;font-size:11px;font-style:italic}
-.owner-account{align-items:flex-start;gap:8px;padding-top:10px}
-.owner-account>b{font-size:10px}
-.owner-account button{font-size:7px;gap:1px}
-.owner-account svg{width:22px;height:22px}
-.owner-tabbar{height:70px;grid-template-columns:repeat(6,1fr);gap:0;padding:9px 0 5px;border-bottom:1px solid #e8ecea;background:#fff}
-.owner-tabbar button{padding:0 1px 7px;font-size:7px;line-height:1.15;gap:4px}
-.owner-nav-icon{width:24px;height:22px;font-size:0;color:#65766f}
-.owner-nav-icon svg,.owner-inline-icon svg,.owner-metric-icon svg,.owner-machine-icon svg,.operation-stat-icon svg,.event-card-icon svg,.active-event-icon svg,.machine-row-icon svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.55;stroke-linecap:round;stroke-linejoin:round}
-.owner-tabbar button.active .owner-nav-icon{color:#16855e}
-.owner-tabbar button.active::after{height:3px;left:12%;right:12%;bottom:0}
-.owner-view{padding:0 2px}
-.owner-page-heading{padding:15px 0 11px}
-.owner-page-heading.compact{padding:8px 0 10px}
-.owner-page-heading h1{font-size:24px;line-height:1.05;letter-spacing:-.035em}
-.owner-page-heading p{font-size:11px;color:#78827e;margin-top:4px}
-.owner-date-button{display:flex;align-items:center;gap:7px;padding:8px 9px;border:1px solid #e2e7e4;border-radius:9px;font-size:10px;box-shadow:none}
-.owner-inline-icon{display:inline-grid;place-items:center;width:16px;height:16px;vertical-align:-3px;color:#60766d}
-.owner-date-button .owner-inline-icon{width:17px;height:17px}
-.owner-chevron{font-size:17px;line-height:10px;color:#44574f;margin-left:1px}
-.owner-metric-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
-.owner-metric-card{padding:10px 5px 9px;border:1px solid #eef1ef;border-radius:8px;background:#fafcfb;box-shadow:none}
-.owner-metric-icon{width:28px;height:28px;border:0;border-radius:0;margin:0 auto 6px;color:#299b61}
-.owner-metric-icon.claimed{color:#368ee7;border:0}
-.owner-metric-icon.redeemed{color:#f1a71a;border:0}
-.owner-metric-icon svg{stroke-width:1.8}
-.owner-metric-card small{font-size:8px;color:#6d7773}
-.owner-metric-card b{font-size:21px;margin-top:4px}
-.owner-metric-card em{font-size:8px;margin-top:6px}
-.owner-metric-note{font-size:7px}
-.owner-section-block{margin-top:17px}
-.owner-section-title{margin-bottom:8px}
-.owner-section-title h2{font-size:17px}
-.owner-section-title button{font-size:10px}
-.owner-section-title button b{font-size:20px}
-.owner-machine-summary{gap:6px}
-.owner-machine-summary-card{grid-template-columns:38px 1fr;grid-template-rows:auto auto auto;column-gap:7px;padding:10px 9px;border-radius:8px;background:#fff}
-.owner-machine-icon{width:34px;height:45px;border:0;border-radius:0;color:#3d5750;grid-row:1 / span 3}
-.owner-machine-icon svg{stroke-width:1.35}
-.owner-machine-summary-card strong{font-size:10px}
-.owner-machine-summary-card>span:not(.owner-machine-icon){font-size:8px}
-.owner-machine-summary-card>span b{font-size:9px}
-.idle-dot,.busy-dot{width:8px;height:8px;margin-right:5px}
-.owner-period-tabs{gap:5px;margin-bottom:8px}
-.owner-period-tabs button{height:33px;padding:7px 2px;border-radius:7px;font-size:9px}
-.owner-operation-grid{gap:6px}
-.operation-stat{grid-template-columns:34px 1fr;gap:7px;padding:9px 8px;border-radius:8px}
-.operation-stat-icon{display:grid;place-items:center;width:31px;height:31px;border-radius:50%;color:#3c91df}
-.operation-stat-icon.dryer-clock{color:#34483f}
-.operation-stat-icon svg{stroke-width:1.45}
-.operation-stat span{font-size:7px;line-height:1.15;color:#7b8581}
-.operation-stat b{font-size:13px;margin-top:2px}
-.owner-list{gap:5px}
-.active-event{display:grid;grid-template-columns:28px 1fr 18px;gap:8px;align-items:center;padding:10px 9px;border-radius:8px}
-.active-event-icon{display:grid;place-items:center;width:26px;height:26px;color:#4b675d}
-.active-event-copy b{font-size:10px}.active-event-copy span{font-size:8px}
-.active-event .arrow{font-size:22px}
-.owner-back{padding:11px 0 6px;font-size:10px}
-.owner-back-arrow{font-size:16px;margin-right:2px}
-.owner-filter-tabs{gap:5px;margin:3px 0 10px}
-.owner-filter-tabs button{height:34px;border-radius:7px;font-size:9px}
-.owner-green-button{height:40px;padding:8px 11px;border-radius:8px;font-size:10px}
-.owner-green-button span{font-size:15px}
-.owner-machine-list{gap:0;border:1px solid #e9eeeb;border-radius:9px;background:#fff}
-.owner-machine-row{display:grid;grid-template-columns:30px 31px 1fr 73px 54px;align-items:center;gap:5px;min-height:49px;padding:7px 10px;border-bottom:1px solid #edf0ee;background:#fff}
-.owner-machine-row:last-child{border-bottom:0}
-.machine-row-icon{display:grid;place-items:center;width:27px;height:31px;color:#526860}
-.machine-row-icon svg{stroke-width:1.35}
-.machine-row-id{font-size:10px;font-weight:700;color:#273630}
-.machine-row-type{font-size:9px;color:#718078}
-.machine-row-status{justify-self:start;min-width:72px;padding:7px 8px;border-radius:5px;text-align:center;font-size:8px;font-weight:700}
-.machine-row-status.idle{background:#def5e8;color:#1b9662}
-.machine-row-status.busy{background:#fff0cc;color:#d19112}
-.machine-row-time{font-size:8px;color:#60736b;text-align:right;font-variant-numeric:tabular-nums}
-.owner-machine-row-empty{padding:20px;text-align:center;color:#8a9690;font-size:10px}
-.owner-status-legend{margin-top:10px;padding:11px 12px;border-radius:9px;background:#fbfcfc}
-.owner-status-legend h3{font-size:10px;margin-bottom:9px}
-.owner-status-legend>div{grid-template-columns:10px 42px 1fr;gap:6px;font-size:8px}
-.owner-status-legend p{display:flex;align-items:center;gap:5px;font-size:8px}
-.owner-status-legend p .owner-inline-icon{width:14px;height:14px;vertical-align:0}
-.owner-event-groups{display:grid;gap:0}
-.owner-event-group{display:grid;gap:5px}
-.owner-event-group-title{font-size:14px;line-height:1;margin:17px 0 8px;color:#171e1b}
-.owner-event-card{display:grid;grid-template-columns:30px 1fr 18px;align-items:center;gap:8px;width:100%;min-height:59px;padding:9px 10px;border:1px solid #edf0ef;border-radius:8px;background:#fff;text-align:left;color:#222b27;box-shadow:none}
-.event-card-icon{display:grid;place-items:center;width:27px;height:27px;color:#4f665d}
-.event-card-copy b{display:block;font-size:10px;font-weight:700}
-.event-card-copy small{display:block;font-size:8px;color:#8a9590;margin-top:5px}
-.event-card-arrow{font-size:22px;color:#4f625a;text-align:right}
-.owner-event-card-empty{padding:20px;text-align:center;color:#87928d;font-size:10px}
-.owner-event-tabs .active,.owner-filter-tabs button.active{background:#139d6c;border-color:#139d6c;color:#fff}
-
-@media(max-width:600px){
-  body[data-role="OWNER"] .app-shell{padding-left:8px;padding-right:8px}
-  body[data-role="OWNER"] .screen-owner{padding-left:3px;padding-right:3px}
-  .owner-brand-logo{width:58px;height:58px;flex-basis:58px}
-  .owner-brand-copy{font-size:9px}
-  .owner-tabbar button{font-size:7px}
-  .owner-page-heading h1{font-size:24px}
-}
-
-
-/* OWNER APPROVAL DETAIL REFINEMENT — exact approved mobile composition */
-body[data-role="OWNER"] .app-shell{width:min(100%,520px);padding-left:10px;padding-right:10px}
-body[data-role="OWNER"] .screen-owner{padding-left:4px;padding-right:4px}
-body[data-role="OWNER"] .owner-dashboard-header{height:68px;min-height:68px}
-.owner-brand-logo{object-fit:contain}
-.owner-brand-copy span{display:block}
-.owner-brand-copy strong{display:block;white-space:nowrap}
-.owner-tabbar{height:70px;min-height:70px}
-.owner-tabbar button{white-space:nowrap}
-.owner-page-heading{min-height:58px}
-.owner-date-button{min-height:36px}
-.owner-metric-grid{align-items:stretch}
-.owner-metric-card{min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center}
-.owner-metric-icon.user{color:#299b61}
-.owner-metric-icon.gift{color:#368ee7}
-.owner-metric-icon.percent{color:#f1a71a}
-.owner-metric-card small{white-space:nowrap}
-.owner-metric-card b{line-height:1}
-.owner-metric-card em{font-style:normal;color:#15965f;font-weight:800}
-.owner-section-block{margin-top:17px}
-.owner-machine-summary-card{min-height:84px}
-.owner-operation-grid{align-items:stretch}
-.operation-stat{min-height:60px}
-.operation-stat span{white-space:nowrap}
-.active-event{min-height:55px;border:1px solid #edf0ef;background:#fff;box-shadow:none}
-.owner-back{display:flex;align-items:center;gap:2px;color:#397a63;font-weight:600;cursor:pointer}
-.owner-back-arrow{display:inline-block}
-.owner-filter-tabs{display:grid;grid-template-columns:repeat(3,1fr)}
-.owner-filter-tabs button{min-width:0;white-space:nowrap}
-.owner-machine-list{overflow:hidden}
-.owner-machine-row{grid-template-columns:27px 29px minmax(45px,1fr) 72px 54px}
-.owner-machine-row .machine-row-type{white-space:nowrap}
-.owner-machine-row .machine-row-status{white-space:nowrap}
-.owner-status-legend{border:1px solid #e8edeb}
-.owner-event-groups{gap:0}
-.owner-event-group-title{font-weight:700}
-.owner-event-card{min-height:59px}
-.owner-event-card .event-card-copy{min-width:0}
-.owner-event-card .event-card-copy b,.owner-event-card .event-card-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.owner-green-button{white-space:nowrap}
-
-@media(max-width:600px){
-  body[data-role="OWNER"] .app-shell{padding-left:8px;padding-right:8px}
-  body[data-role="OWNER"] .screen-owner{padding-left:3px;padding-right:3px}
-  .owner-dashboard-header{height:68px;min-height:68px}
-  .owner-brand-logo{width:58px;height:58px;flex-basis:58px}
-  .owner-brand-copy{font-size:9px}
-  .owner-brand-copy strong{font-size:11px}
-  .owner-account{padding-top:10px}
-  .owner-tabbar{height:70px;min-height:70px}
-  .owner-tabbar button{font-size:7px}
-  .owner-nav-icon{width:24px;height:22px}
-  .owner-page-heading h1{font-size:24px}
-  .owner-page-heading p{font-size:11px}
-  .owner-metric-card{padding-left:4px;padding-right:4px}
-  .owner-metric-card small{font-size:8px}
-  .owner-metric-card b{font-size:21px}
-  .owner-machine-row{grid-template-columns:27px 29px minmax(43px,1fr) 70px 52px;padding-left:8px;padding-right:8px}
-  .machine-row-status{min-width:70px}
-}
-
-/* Remove legacy placeholder pseudo-icons from the locked Owner dashboard. */
-body[data-role="OWNER"] .operation-stat::before,
-body[data-role="OWNER"] .machine-full::before{
-  content:none !important;
-  display:none !important;
-}
-
-
-/* FINAL OWNER CORRECTIONS — locked Overview date-range visual */
-.owner-overview-heading{align-items:center;gap:12px}
-.owner-overview-heading>div:first-child{padding-top:0;flex:1 1 auto;min-width:0}
-.owner-date-range{display:grid;grid-template-columns:92px 17px 92px;align-items:end;gap:2px;flex:0 0 205px;width:205px;max-width:205px;min-width:205px}
-.owner-date-range label{display:block;min-width:0;margin:0;color:#63736c;font-size:6.5px;font-weight:800;line-height:1.05}
-.owner-date-input{position:relative;display:block;width:92px;height:30px;margin-top:3px;box-sizing:border-box}
-.owner-date-icon{position:absolute;left:9px;top:50%;z-index:2;width:15px;height:15px;transform:translateY(-50%);color:#63736c;pointer-events:none}
-.owner-date-icon svg{display:block;width:100%;height:100%}
-.owner-date-range input{height:30px;margin:0;border:1px solid #e2e7e4;border-radius:8px;background:#fff;color:#27322e;font-size:8px;font-weight:700;outline:none;appearance:none;-webkit-appearance:nonedisplay:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:0 8px;text-align:center;}
-.owner-date-range input:focus{border-color:#139d6c;box-shadow:0 0 0 2px rgba(19,157,108,.10)}
-.owner-date-range-arrow{padding-bottom:8px;color:#397a63;font-size:10px;font-weight:800;text-align:center}
-.owner-metric-note{font-size:7px;white-space:nowrap}
-.audit-item{min-width:0;overflow:hidden;padding:9px 10px}
-.audit-item .row{min-width:0}
-.audit-item .row>b{min-width:0;overflow-wrap:anywhere;word-break:break-word}
-.audit-item .status-pill{flex:0 0 auto;white-space:nowrap}
-.audit-item>small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.audit-item .meta{display:grid;grid-template-columns:56px minmax(0,1.25fr) minmax(0,1fr);gap:8px;margin-top:7px;min-width:0}
-.audit-item .meta>div{min-width:0;overflow:hidden;font-size:7px}
-.audit-item .meta strong{display:block;margin-top:2px;color:#2c3933;font-size:8px;line-height:1.2;overflow-wrap:anywhere;word-break:break-word;white-space:normal}
-@media(max-width:600px){
-  .owner-overview-heading{gap:8px}
-  .owner-date-range{flex:0 0 205px;min-width:205px;width:205px;max-width:205px;grid-template-columns:92px 17px 92px;gap:2px}
-  .owner-date-input{width:92px;height:29px}
-  .owner-date-range input{height:29px;font-size:7.5px;padding:5px 5px 5px 25px}
-  .owner-date-icon{left:8px;width:14px;height:14px}
-  .owner-date-range-arrow{font-size:9px;padding-bottom:8px}
-  .owner-date-range label{font-size:5.5px}
-  .audit-item .meta{grid-template-columns:50px minmax(0,1.25fr) minmax(0,1fr);gap:6px}
-  .audit-item .meta>div{font-size:6px}
-  .audit-item .meta strong{font-size:7px}
-}
-
-
-/* FINAL13: locked date-range alignment — calendar icon and date text on one line */
-.owner-date-range input{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  box-sizing:border-box;
-  padding:0 8px;
-  line-height:1;
-  text-align:center;
-  vertical-align:middle;
-}
-.owner-date-range input::-webkit-calendar-picker-indicator{
-  margin:0 6px 0 0;
-  flex:0 0 auto;
-}
-@media (max-width:600px){
-  .owner-date-range input{
-    padding:0 6px;
-    font-size:14px;
-  }
-  .owner-date-range input::-webkit-calendar-picker-indicator{
-    margin-right:5px;
-  }
-}
+    <div id="ownerViewCsvExport" class="owner-view" hidden>
+      <div class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</div>
+      <div class="owner-page-heading compact"><div><h1>CSV Export</h1><p>Export data Owner</p></div></div>
+      <div class="owner-export-card"><label>Dari<input id="exportFrom" type="date"></label><label>Sampai<input id="exportTo" type="date"></label><button id="downloadExport" class="primary-button" type="button">DOWNLOAD CSV</button><p id="csvExportMsg" class="msg status-msg"></p></div>
+    </div>
+  </section>
+  <footer class="footer-mark"><img src="/assets/branding/branding.png" alt="Teras Laundry"><span>1st Anniversary 2026 • 1–10 November</span></footer>
+</main>
+<script src="./app.js" defer></script>
+</body>
+</html>
