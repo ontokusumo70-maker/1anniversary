@@ -855,3 +855,10 @@ body[data-role="OWNER"] .owner-nav-icon{width:27px;height:25px}
   .owner-journey-item{grid-template-columns:minmax(0,1fr);gap:3px}
   .owner-journey-item time{text-align:left}
 }
+
+/* CUSTOMER JOURNEY — ACTIVE / INACTIVE STATE */
+.owner-journey-item.inactive{border-left-color:#d8dfdc}
+.owner-journey-item.inactive .owner-journey-dot{background:#b8c1bd;box-shadow:0 0 0 1px #b8c1bd}
+.owner-journey-item.inactive b{color:#8b9691}
+.owner-journey-item.inactive small{color:#a3aca8}
+.owner-journey-item.inactive time{color:#a3aca8}
