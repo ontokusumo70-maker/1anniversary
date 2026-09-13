@@ -53,7 +53,7 @@ body[data-role="OWNER_LOGIN"] .app-shell{
   width:43.75%;
   min-height:0;
   box-sizing:border-box;
-  padding:2.8% 3.0% 2.8%;
+  padding:2.0% 3.0% 2.0%;
   border:1px solid rgba(151,204,172,.48);
   border-radius:24px;
   background:rgba(255,255,255,.96);
@@ -125,9 +125,7 @@ body[data-role="OWNER_LOGIN"] .app-shell{
 }
 
 .owner-login-msg{
-  margin:8px 0 0;
-  font-size:12px;
-  text-align:center;
+  display:none !important;
 }
 
 @media(max-width:600px){
@@ -136,7 +134,7 @@ body[data-role="OWNER_LOGIN"] .app-shell{
     left:25%;
     width:43.75%;
     min-height:0;
-    padding:3.0% 3.0% 3.0%;
+    padding:2.0% 3.0% 2.0%;
     border-radius:18px;
   }
 
@@ -170,7 +168,7 @@ body[data-role="OWNER_LOGIN"] .app-shell{
   }
 
   .owner-login-msg{
-    font-size:9px;
+    display:none !important;
   }
 }
 
