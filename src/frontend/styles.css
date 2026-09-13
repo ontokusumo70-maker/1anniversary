@@ -475,11 +475,11 @@ body[data-role="OWNER"] .machine-full::before{
 
 
 /* FINAL OWNER CORRECTIONS — requested production fixes */
-.owner-overview-heading{align-items:center;gap:10px}
+.owner-overview-heading{align-items:center;gap:8px}
 .owner-overview-heading>div:first-child{padding-top:0;flex:1 1 auto;min-width:0}
-.owner-date-range{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:end;gap:4px;width:36%;max-width:300px;min-width:240px}
+.owner-date-range{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:end;gap:3px;width:210px;max-width:210px;min-width:0;flex:0 0 210px}
 .owner-date-range label{display:block;margin:0;color:#63736c;font-size:6.5px;font-weight:800;line-height:1.05}
-.owner-date-range input{display:block;width:100%;min-width:0;height:30px;margin-top:2px;padding:5px 5px;border:1px solid #e2e7e4;border-radius:8px;background:#fff;color:#27322e;font-size:8px;font-weight:700;outline:none}
+.owner-date-range input{display:block;box-sizing:border-box;width:100%;min-width:0;height:30px;margin-top:2px;padding:5px 4px;border:1px solid #e2e7e4;border-radius:8px;background:#fff;color:#27322e;font-size:8px;font-weight:700;outline:none}
 .owner-date-range input:focus{border-color:#139d6c;box-shadow:0 0 0 2px rgba(19,157,108,.10)}
 .owner-date-range-arrow{padding-bottom:8px;color:#397a63;font-size:10px;font-weight:800}
 .owner-metric-note{font-size:7px;white-space:nowrap}
@@ -493,7 +493,7 @@ body[data-role="OWNER"] .machine-full::before{
 .audit-item .meta strong{display:block;margin-top:2px;color:#2c3933;font-size:8px;line-height:1.2;overflow-wrap:anywhere;word-break:break-word;white-space:normal}
 @media(max-width:600px){
   .owner-overview-heading{gap:6px}
-  .owner-date-range{min-width:0;width:48%;max-width:240px;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:2px}
+  .owner-date-range{min-width:0;width:200px;max-width:200px;flex:0 0 200px;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:2px}
   .owner-date-range input{height:29px;font-size:7.5px;padding:5px 3px}
   .owner-date-range-arrow{font-size:9px;padding-bottom:8px}
   .owner-date-range label{font-size:5.5px}
