@@ -1242,16 +1242,20 @@ function ownerRealtimeNow() {
 function formatOwnerRealtime(value) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return "—";
-  return new Intl.DateTimeFormat("id-ID", {
+  const parts = new Intl.DateTimeFormat("id-ID", {
     weekday: "long",
     day: "2-digit",
-    month: "long",
+    month: "2-digit",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
     timeZone: "Asia/Jakarta",
-  }).format(date);
+  }).formatToParts(date);
+  const get = (type) => parts.find((part) => part.type === type)?.value || "";
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sept", "Okt", "Nov", "Des"];
+  const month = monthNames[Math.max(0, Number(get("month")) - 1)] || get("month");
+  return `${get("weekday")}, ${get("day")} ${month} ${get("year")}   ${get("hour")}.${get("minute")} WIB`;
 }
 
 function ownerIconSvg(name) {
