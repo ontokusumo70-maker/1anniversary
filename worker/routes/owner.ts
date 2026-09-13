@@ -140,11 +140,13 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
     ORDER BY CASE WHEN machine_type = 'WASHER' THEN 1 ELSE 2 END, machine_number ASC
   `);
 
-  const operations = [dayStart, weekStart, monthStart, yearStart].map((start) =>
+  const operations = ["daily", "weekly", "monthly", "yearly"].map(() =>
     env.DB.prepare(`
       SELECT machine_type, COALESCE(SUM(duration_seconds),0) AS total_seconds
-      FROM machine_operations WHERE started_at >= ? GROUP BY machine_type
-    `).bind(start.toISOString()),
+      FROM machine_operations
+      WHERE started_at >= ? AND started_at < ?
+      GROUP BY machine_type
+    `).bind(currentStartIso, currentEndIso),
   );
 
   const events = env.DB.prepare(`
@@ -256,7 +258,17 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
       monthly: mapOperations(monthly),
       yearly: mapOperations(yearly),
     },
-    activeEvents: eventOut.filter((event) => event.status === "ACTIVE"),
+    operationRanges: {
+      daily: { from: requestedFrom, to: requestedTo },
+      weekly: { from: requestedFrom, to: requestedTo },
+      monthly: { from: requestedFrom, to: requestedTo },
+      yearly: { from: requestedFrom, to: requestedTo },
+    },
+    activeEvents: eventOut.filter((event) =>
+      event.active &&
+      event.startsAt < currentEndIso &&
+      event.endsAt >= currentStartIso
+    ),
   });
 }
 
