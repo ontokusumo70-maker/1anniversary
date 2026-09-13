@@ -1492,13 +1492,16 @@ function eventThumbnailLabel(event) {
 function renderEventCard(event) {
   const category = eventCategory(event);
   const reward = `${event.rewardType || "Reward"} × ${Number(event.rewardQuantity || 0)}`;
+  const title = String(event.title || "");
+  const posterClass = title.toUpperCase().includes("DRYER") ? "dryer" : title.toUpperCase().includes("ANNIVERSARY") ? "anniversary" : "wash";
+  const posterText = posterClass === "dryer" ? "DRYER<br><b>5X</b><br><small>GRATIS 1X</small>" : posterClass === "anniversary" ? "<b>1st</b><br>ANNIVERSARY<br><small>Special Reward</small>" : "CUCI<br><b>10X</b><br><small>GRATIS 1X</small>";
   return `<button class="owner-event-card event-card-locked" type="button" data-edit-event="${escapeHtml(event.eventId)}">
-    <span class="event-card-thumbnail ${category.toLowerCase()}"><span>${eventThumbnailLabel(event)}</span></span>
+    <span class="event-card-thumbnail event-thumb-${posterClass} ${category.toLowerCase()}"><span>${posterText}</span></span>
     <span class="event-card-copy">
       <span class="event-card-title-row"><b>${escapeHtml(event.title)}</b><em class="event-status-badge ${category.toLowerCase()}">${eventStatusLabel(category)}</em></span>
-      <small class="event-meta-row">${ownerIconSvg("calendar")} ${escapeHtml(formatDateRange(event.startsAt, event.endsAt))}</small>
-      <small class="event-meta-row">${ownerIconSvg("clock")} ${escapeHtml(formatEventCountdown(event))}</small>
-      <small class="event-meta-row">${ownerIconSvg("gift")} Hadiah: ${escapeHtml(reward)}</small>
+      <small class="event-meta-row">${ownerIconSvg("calendar")} <span>${escapeHtml(formatDateRange(event.startsAt, event.endsAt))}</span></small>
+      <small class="event-meta-row">${ownerIconSvg("clock")} <span>${escapeHtml(formatEventCountdown(event))}</span></small>
+      <small class="event-meta-row">${ownerIconSvg("gift")} <span>Hadiah: ${escapeHtml(reward)}</span></small>
     </span>
     <span class="event-card-arrow">›</span>
     <span class="event-card-stats"><span><b>0</b><small>Participants</small></span><span><b>0</b><small>Play</small></span><span><b>0</b><small>Redeemed</small></span></span>
@@ -1540,11 +1543,11 @@ async function loadOwnerEvents() {
   }
 }
 
-function toDateTimeLocal(value) {
+function toDateInput(value) {
   if (!value) return "";
   const date = new Date(value);
-  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(date).reduce((acc, part) => { acc[part.type] = part.value; return acc; }, {});
-  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(date).reduce((acc, part) => { acc[part.type] = part.value; return acc; }, {});
+  return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
 function openEventForm(eventId = null) {
@@ -1555,24 +1558,25 @@ function openEventForm(eventId = null) {
   card.hidden = false;
   $("eventFormTitle").textContent = event ? "Edit Event" : "Buat Event Baru";
   $("eventTitle").value = event?.title || "";
-  $("eventStartsAt").value = toDateTimeLocal(event?.startsAt);
-  $("eventEndsAt").value = toDateTimeLocal(event?.endsAt);
+  $("eventStartsAt").value = toDateInput(event?.startsAt);
+  $("eventEndsAt").value = toDateInput(event?.endsAt);
   renderRewardOptions();
   if (event) $("eventRewardType").value = event.rewardType;
   $("eventRewardQuantity").value = event?.rewardQuantity || "";
-  $("eventActive").checked = event ? event.active : true;
   msg("eventFormMsg", "");
 }
 
 async function saveEvent() {
   try {
+    const startValue = $("eventStartsAt").value;
+    const endValue = $("eventEndsAt").value;
     const body = {
       title: $("eventTitle").value.trim(),
-      startsAt: new Date($("eventStartsAt").value).toISOString(),
-      endsAt: new Date($("eventEndsAt").value).toISOString(),
+      startsAt: startValue ? new Date(`${startValue}T00:00:00+07:00`).toISOString() : "",
+      endsAt: endValue ? new Date(`${endValue}T23:59:59+07:00`).toISOString() : "",
       rewardType: $("eventRewardType").value,
       rewardQuantity: Number($("eventRewardQuantity").value),
-      active: $("eventActive").checked,
+      active: editingEventId ? Boolean((ownerData?.events || []).find((row) => row.eventId === editingEventId)?.active) : true,
     };
     if (!body.title || !$("eventStartsAt").value || !$("eventEndsAt").value || !body.rewardType || !Number.isInteger(body.rewardQuantity) || body.rewardQuantity < 1) {
       throw new Error("Lengkapi data event.");
@@ -1685,6 +1689,9 @@ for (const button of document.querySelectorAll("#eventFilters [data-event-filter
 
 $("newEventButton")?.addEventListener("click", () => openEventForm());
 $("cancelEventButton")?.addEventListener("click", () => { $("eventFormCard").hidden = true; });
+
+$("eventDescription")?.addEventListener("input", () => { $("eventDescriptionCount").textContent = `${$("eventDescription").value.length}/200`; });
+$("eventCondition")?.addEventListener("input", () => { $("eventConditionCount").textContent = `${$("eventCondition").value.length}/200`; });
 $("cancelEventTop")?.addEventListener("click", () => { $("eventFormCard").hidden = true; });
 $("saveEventButton")?.addEventListener("click", saveEvent);
 $("newRewardButton")?.addEventListener("click", () => openRewardForm());
