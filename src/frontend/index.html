@@ -189,7 +189,7 @@
     </div>
 
     <div id="ownerViewEvents" class="owner-view" hidden>
-      <button type="button" class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke daftar event</button>
+      <button type="button" class="owner-back event-locked-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke daftar event</button>
       <div class="owner-page-heading event-page-heading">
         <div><h1>Event</h1><p>Kelola event, periode dan hadiah</p></div>
         <button id="newEventButton" class="owner-green-button event-create-button" type="button"><span>＋</span> Buat Event</button>
@@ -200,24 +200,25 @@
         <button data-event-filter="COMPLETED">Selesai (<span id="completedEventCount">0</span>)</button>
       </div>
       <div id="ownerEventsList" class="owner-event-groups"></div>
-      <div id="eventFormCard" class="owner-form-card event-form-card" hidden>
+      <div id="eventFormCard" class="owner-form-card event-form-card event-form-panel" hidden>
         <button type="button" class="event-form-back" id="cancelEventTop">← Kembali ke daftar event</button>
         <h3 id="eventFormTitle">Buat Event Baru</h3>
         <p class="event-form-subtitle">Tentukan detail event dan hadiah</p>
         <label>Judul Event<input id="eventTitle" placeholder="Contoh: Cuci 10x Gratis 1x"></label>
+        <div class="event-period-label">Periode Event</div>
         <div class="event-period-grid">
-          <label>Periode Event<span class="event-field-caption">Tanggal Mulai</span><input id="eventStartsAt" type="datetime-local"></label>
-          <label><span class="event-field-caption">Tanggal Selesai</span><input id="eventEndsAt" type="datetime-local"></label>
+          <label><span class="event-field-caption">Tanggal Mulai</span><div class="event-date-field"><span class="event-date-icon owner-inline-icon" data-owner-icon="calendar"></span><input id="eventStartsAt" type="date" aria-label="Tanggal Mulai"></div></label>
+          <label><span class="event-field-caption">Tanggal Selesai</span><div class="event-date-field"><span class="event-date-icon owner-inline-icon" data-owner-icon="calendar"></span><input id="eventEndsAt" type="date" aria-label="Tanggal Selesai"></div></label>
         </div>
         <label>Deskripsi Event<textarea id="eventDescription" maxlength="200" placeholder="Tuliskan deskripsi event (opsional)"></textarea><span class="event-counter" id="eventDescriptionCount">0/200</span></label>
-        <label>Hadiah Event<select id="eventRewardType"></select></label>
-        <div class="event-reward-row">
-          <label>Jumlah Hadiah<input id="eventRewardQuantity" type="number" min="1" placeholder="Contoh: 100"></label>
-          <button type="button" class="event-add-reward" id="eventAddReward">＋ Tambah Hadiah</button>
+        <div class="reward-heading">Hadiah Event</div>
+        <div class="event-reward-row reward-grid">
+          <label><span class="event-field-caption">Jenis Hadiah</span><select id="eventRewardType"></select></label>
+          <label><span class="event-field-caption">Jumlah Hadiah</span><input id="eventRewardQuantity" type="number" min="1" placeholder="Contoh: 100"></label>
         </div>
+        <button type="button" class="event-add-reward add-reward" id="eventAddReward">＋ Tambah Hadiah</button>
         <label>Syarat <span class="event-optional">(Opsional)</span><textarea id="eventCondition" maxlength="200" placeholder="Contoh: Berlaku untuk semua mesin washer"></textarea><span class="event-counter" id="eventConditionCount">0/200</span></label>
-        <label class="owner-check"><input id="eventActive" type="checkbox"> Aktif</label>
-        <div class="owner-form-actions"><button id="cancelEventButton" class="secondary-button" type="button">Batal</button><button id="saveEventButton" class="primary-button" type="button">Simpan Event</button></div>
+        <div class="owner-form-actions event-form-actions"><button id="cancelEventButton" class="secondary-button" type="button">Batal</button><button id="saveEventButton" class="primary-button" type="button">Simpan Event</button></div>
         <p id="eventFormMsg" class="msg status-msg"></p>
       </div>
     </div>
