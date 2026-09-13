@@ -638,62 +638,31 @@ body[data-role="OWNER"] .event-form-actions .primary-button{background:#078f61;c
   body[data-role="OWNER"] .event-form-panel{padding-left:0;padding-right:0}
 }
 
-/* OWNER REWARD POOL — production visual locked to supplied design */
-body[data-role="OWNER"] .reward-pool-heading{align-items:flex-start;min-height:72px}
-body[data-role="OWNER"] .reward-pool-heading h1{font-size:28px;line-height:1}
-body[data-role="OWNER"] .reward-pool-heading p{font-size:12px;margin-top:5px}
-body[data-role="OWNER"] .reward-add-button{min-width:142px;min-height:46px;padding:0 14px;border-radius:10px;font-size:11px}
-body[data-role="OWNER"] .reward-pool-tabs{grid-template-columns:repeat(3,1fr);gap:0;margin:0 0 10px;border-bottom:1px solid #e2e8e5}
-body[data-role="OWNER"] .reward-pool-tabs button{min-height:39px;border:0;border-bottom:3px solid transparent;border-radius:0;background:#fff;font-size:10px;font-weight:500}
-body[data-role="OWNER"] .reward-pool-tabs button.active{border-bottom-color:#07865c;background:#fff;color:#087c58;font-weight:800}
-body[data-role="OWNER"] .reward-pool-list{gap:8px}
-body[data-role="OWNER"] .reward-pool-card{width:100%;display:grid;grid-template-columns:minmax(0,1fr) 20px;gap:8px;padding:11px 12px;border:1px solid #dfe7e3;border-radius:10px;background:#fff;color:#26332d;text-align:left;box-shadow:0 1px 4px rgba(20,58,44,.035)}
-body[data-role="OWNER"] .reward-pool-card-copy{display:grid;gap:5px;min-width:0}
-body[data-role="OWNER"] .reward-pool-title-row{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
-body[data-role="OWNER"] .reward-pool-title-row b{font-size:12px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-body[data-role="OWNER"] .reward-pool-title-row .status-pill{flex:0 0 auto;padding:5px 8px;border-radius:7px;background:#dff3e7;color:#137653;font-size:8px;font-weight:800}
-body[data-role="OWNER"] .reward-pool-title-row .status-pill.off{background:#edf0f5;color:#617080}
-body[data-role="OWNER"] .reward-pool-meta{font-size:9px;line-height:1.15;color:#65736d;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-body[data-role="OWNER"] .reward-pool-arrow{align-self:center;font-size:25px;color:#4b5d55}
-body[data-role="OWNER"] .reward-empty{padding:24px;text-align:center}
-body[data-role="OWNER"] .reward-detail-back{margin-bottom:2px}
-body[data-role="OWNER"] .reward-detail-heading{align-items:center;min-height:66px}
-body[data-role="OWNER"] .reward-detail-heading h1{font-size:25px}
-body[data-role="OWNER"] .reward-detail-heading p{font-size:11px}
-body[data-role="OWNER"] .reward-outline-button{height:36px;padding:0 11px;border:1px solid #19825f;border-radius:8px;background:#fff;color:#147956;font-size:9px;font-weight:800;white-space:nowrap}
-body[data-role="OWNER"] .reward-detail-card{padding:10px;border:1px solid #dfe7e3;border-radius:10px;background:#fff}
-body[data-role="OWNER"] .reward-detail-summary{display:flex;justify-content:space-between;gap:8px;padding:3px 3px 11px;border-bottom:1px solid #e8eeeb}
-body[data-role="OWNER"] .reward-detail-summary h2{font-size:14px;margin:0}
-body[data-role="OWNER"] .reward-detail-summary p{font-size:9px;color:#68756f;margin:4px 0 0}
-body[data-role="OWNER"] .reward-detail-summary .status-pill{align-self:flex-start;flex:0 0 auto;padding:6px 8px;border-radius:7px;background:#dff3e7;color:#137653;font-size:8px;font-weight:800}
-body[data-role="OWNER"] .reward-detail-summary .status-pill.off{background:#edf0f5;color:#617080}
-body[data-role="OWNER"] .reward-detail-rows{display:grid;gap:0}
-body[data-role="OWNER"] .reward-detail-rows>div{display:grid;grid-template-columns:37% 63%;gap:6px;padding:7px 3px;border-bottom:1px solid #edf1ef}
-body[data-role="OWNER"] .reward-detail-rows>div:last-child{border-bottom:0}
-body[data-role="OWNER"] .reward-detail-rows span{font-size:8px;color:#26332d}
-body[data-role="OWNER"] .reward-detail-rows b{font-size:8px;font-weight:500;color:#637069;line-height:1.35;overflow-wrap:anywhere}
-body[data-role="OWNER"] .reward-detail-actions{margin-top:9px}
-body[data-role="OWNER"] .reward-form-card{padding:12px 0 25px;margin-top:0;border:0;background:#fff}
-body[data-role="OWNER"] .reward-form-back{margin:0 0 13px}
-body[data-role="OWNER"] .reward-form-card h3{font-size:22px}
-body[data-role="OWNER"] .reward-form-subtitle{font-size:11px;color:#65736d;margin:4px 0 15px}
-body[data-role="OWNER"] .reward-form-card label{font-size:10px;margin-bottom:12px}
-body[data-role="OWNER"] .reward-form-card input,body[data-role="OWNER"] .reward-form-card textarea{font-size:10px}
-body[data-role="OWNER"] .reward-form-card textarea{min-height:66px;resize:none}
-body[data-role="OWNER"] .reward-form-period-label{font-size:10px;font-weight:800;color:#17241e;margin:0 0 6px}
-body[data-role="OWNER"] .reward-form-period-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
-body[data-role="OWNER"] .reward-form-period-grid label{margin:0}
-body[data-role="OWNER"] .reward-form-period-grid label>span{display:block;font-size:9px;color:#65736d;font-weight:500;margin-bottom:4px}
-body[data-role="OWNER"] .reward-form-period-grid input{margin-top:0}
-body[data-role="OWNER"] .reward-form-counter{display:block;text-align:right;font-size:8px;color:#68756f;margin-top:-5px}
-@media(max-width:600px){
-  body[data-role="OWNER"] .reward-pool-heading{gap:7px}
-  body[data-role="OWNER"] .reward-pool-heading h1{font-size:25px}
-  body[data-role="OWNER"] .reward-pool-heading p{font-size:10px}
-  body[data-role="OWNER"] .reward-add-button{min-width:126px;min-height:42px;font-size:10px}
-  body[data-role="OWNER"] .reward-pool-tabs button{font-size:9px}
-  body[data-role="OWNER"] .reward-pool-card{padding:10px}
-  body[data-role="OWNER"] .reward-pool-title-row b{font-size:11px}
-  body[data-role="OWNER"] .reward-pool-meta{font-size:8px}
-  body[data-role="OWNER"] .reward-detail-rows>div{grid-template-columns:38% 62%}
+/* OWNER REWARD / EVENT FINAL APPROVAL LOCK */
+body[data-role="OWNER"] .owner-green-button,
+body[data-role="OWNER"] .owner-outline-button,
+body[data-role="OWNER"] .danger-button,
+body[data-role="OWNER"] .owner-form-actions button{
+  height:40px;min-height:40px;padding:8px 12px;border-radius:8px;font-size:10px;line-height:1;
 }
+body[data-role="OWNER"] .reward-add-button{min-width:132px}
+body[data-role="OWNER"] .owner-outline-button{background:#fff;color:#147955;border:1px solid #16845f;font-weight:800}
+body[data-role="OWNER"] .danger-button{background:#fff;color:#c63d35;border:1px solid #e28b84;font-weight:800}
+body[data-role="OWNER"] .reward-pool-card{display:grid;grid-template-columns:minmax(0,1fr) 18px;width:100%;padding:10px;border:1px solid #dfe7e3;border-radius:9px;background:#fff;text-align:left;color:#26332d}
+body[data-role="OWNER"] .reward-pool-events{display:grid;gap:3px;margin-top:2px}
+body[data-role="OWNER"] .reward-pool-events>span{font-size:8px;color:#27332d;font-weight:700}
+body[data-role="OWNER"] .reward-pool-events>div{display:grid;grid-template-columns:1fr auto;gap:5px;align-items:center;font-size:8px;color:#65736d}
+body[data-role="OWNER"] .reward-pool-events small{font-size:8px;color:#65736d}
+body[data-role="OWNER"] .event-card-no-image{grid-template-columns:28px minmax(0,1fr) 18px;grid-template-rows:auto;min-height:72px;padding:10px}
+body[data-role="OWNER"] .event-card-no-image .event-card-icon{width:26px;height:26px;color:#4b675d;display:grid;place-items:center}
+body[data-role="OWNER"] .event-card-no-image .event-card-icon svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.55}
+body[data-role="OWNER"] .event-detail-card,body[data-role="OWNER"] .reward-detail-card{padding:10px;border:1px solid #dfe7e3;border-radius:9px;background:#fff}
+body[data-role="OWNER"] .event-detail-rows,body[data-role="OWNER"] .reward-detail-rows{display:grid}
+body[data-role="OWNER"] .event-detail-rows>div,body[data-role="OWNER"] .reward-detail-rows>div{display:grid;grid-template-columns:38% 62%;gap:6px;padding:8px 3px;border-bottom:1px solid #edf1ef}
+body[data-role="OWNER"] .event-detail-rows span,body[data-role="OWNER"] .reward-detail-rows span{font-size:8px;color:#26332d}
+body[data-role="OWNER"] .event-detail-rows b,body[data-role="OWNER"] .reward-detail-rows b{font-size:8px;font-weight:500;color:#637069;line-height:1.35;overflow-wrap:anywhere}
+body[data-role="OWNER"] .reward-detail-events{grid-template-columns:38% 62%!important}
+body[data-role="OWNER"] .reward-detail-events>div{display:grid;gap:5px}
+body[data-role="OWNER"] .reward-detail-events section{display:grid;gap:2px;padding:6px;border-radius:6px;background:#f4f7f5}
+body[data-role="OWNER"] .reward-detail-events small{font-size:8px;color:#637069}
+body[data-role="OWNER"] .event-detail-actions,body[data-role="OWNER"] .reward-detail-actions{grid-template-columns:1fr}
