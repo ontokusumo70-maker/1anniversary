@@ -637,3 +637,8 @@ body[data-role="OWNER"] .event-form-actions .primary-button{background:#078f61;c
   body[data-role="OWNER"] .event-card-stats small{font-size:8px}
   body[data-role="OWNER"] .event-form-panel{padding-left:0;padding-right:0}
 }
+
+/* OWNER OVERVIEW — locked font-size alignment */
+body[data-role="OWNER"] #ownerViewOverview .owner-section-title h2{
+  font-size:17px !important;
+}
