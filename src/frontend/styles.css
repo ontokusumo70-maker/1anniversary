@@ -482,7 +482,7 @@ body[data-role="OWNER"] .machine-full::before{
 .owner-date-input{position:relative;display:block;width:92px;height:30px;margin-top:3px;box-sizing:border-box}
 .owner-date-icon{position:absolute;left:9px;top:50%;z-index:2;width:15px;height:15px;transform:translateY(-50%);color:#63736c;pointer-events:none}
 .owner-date-icon svg{display:block;width:100%;height:100%}
-.owner-date-range input{display:block;box-sizing:border-box;width:100%;height:30px;margin:0;padding:5px 6px 5px 27px;border:1px solid #e2e7e4;border-radius:8px;background:#fff;color:#27322e;font-size:8px;font-weight:700;outline:none;appearance:none;-webkit-appearance:none}
+.owner-date-range input{height:30px;margin:0;border:1px solid #e2e7e4;border-radius:8px;background:#fff;color:#27322e;font-size:8px;font-weight:700;outline:none;appearance:none;-webkit-appearance:nonedisplay:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:0 8px;text-align:center;}
 .owner-date-range input:focus{border-color:#139d6c;box-shadow:0 0 0 2px rgba(19,157,108,.10)}
 .owner-date-range-arrow{padding-bottom:8px;color:#397a63;font-size:10px;font-weight:800;text-align:center}
 .owner-metric-note{font-size:7px;white-space:nowrap}
@@ -505,4 +505,30 @@ body[data-role="OWNER"] .machine-full::before{
   .audit-item .meta{grid-template-columns:50px minmax(0,1.25fr) minmax(0,1fr);gap:6px}
   .audit-item .meta>div{font-size:6px}
   .audit-item .meta strong{font-size:7px}
+}
+
+
+/* FINAL13: locked date-range alignment — calendar icon and date text on one line */
+.owner-date-range input{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+  padding:0 8px;
+  line-height:1;
+  text-align:center;
+  vertical-align:middle;
+}
+.owner-date-range input::-webkit-calendar-picker-indicator{
+  margin:0 6px 0 0;
+  flex:0 0 auto;
+}
+@media (max-width:600px){
+  .owner-date-range input{
+    padding:0 6px;
+    font-size:14px;
+  }
+  .owner-date-range input::-webkit-calendar-picker-indicator{
+    margin-right:5px;
+  }
 }
