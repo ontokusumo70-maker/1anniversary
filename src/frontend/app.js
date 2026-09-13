@@ -1534,8 +1534,11 @@ async function deleteReward() {
   if (!window.confirm("Hapus reward ini?")) return;
   try {
     await api(`/owner/reward-pool/${encodeURIComponent(selectedRewardType)}`, { method: "DELETE" });
+    ownerData = ownerData || {};
+    ownerData.rewardPool = (ownerData.rewardPool || []).filter((item) => item.rewardType !== selectedRewardType);
+    renderOwnerRewardList(ownerData.rewardPool);
+    renderRewardOptions();
     closeRewardViews();
-    await loadOwnerData();
     setOwnerView("reward-pool");
   } catch (error) {
     msg("rewardDetailMsg", error.message);
@@ -1707,6 +1710,18 @@ async function runCustomerTrace() {
     renderCustomerTrace(await api(`/owner/customer/${encodeURIComponent(id)}`));
   } catch (error) {
     $("traceResult").textContent = error.message;
+  }
+}
+
+async function loadOwnerAudit() {
+  try {
+    const data = await api("/owner/audit?limit=100");
+    const query = ($("auditSearch")?.value || "").trim().toLowerCase();
+    const items = (data.items || []).filter((item) => !query || `${item.entity_type} ${item.entity_id} ${item.action} ${item.actor} ${item.result}`.toLowerCase().includes(query));
+    const target = $("ownerAuditList");
+    target.innerHTML = items.length ? items.map((item) => `<div class="owner-list-item audit-item"><div class="row"><b>${escapeHtml(item.action)}</b><span class="status-pill ${item.result === "SUCCESS" ? "" : "off"}">${escapeHtml(item.result)}</span></div><small>${escapeHtml(formatDateTime(item.timestamp))}</small><div class="meta"><div>Entity<strong>${escapeHtml(item.entity_type)}</strong></div><div>ID<strong>${escapeHtml(item.entity_id)}</strong></div><div>Source<strong>${escapeHtml(item.actor)}</strong></div></div></div>`).join("") : `<div class="owner-list-item"><small>Tidak ada audit.</small></div>`;
+  } catch (error) {
+    $("ownerAuditList").textContent = error.message;
   }
 }
 
