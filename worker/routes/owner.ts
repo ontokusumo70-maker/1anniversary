@@ -105,8 +105,8 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
 
   const metrics = env.DB.prepare(`
     SELECT
-      (SELECT COUNT(*) FROM customers WHERE created_at >= ? AND created_at < ?) AS participants,
-      (SELECT COUNT(*) FROM customers WHERE created_at >= ? AND created_at < ?) AS participants_previous,
+      (SELECT COUNT(*) FROM customers) AS total_customers,
+      (SELECT COUNT(*) FROM customers WHERE created_at < ?) AS total_customers_previous,
       (SELECT COUNT(*) FROM rewards WHERE claimed_at IS NOT NULL AND claimed_at >= ? AND claimed_at < ?) AS claimed_count,
       (SELECT COUNT(*) FROM rewards WHERE claimed_at IS NOT NULL AND claimed_at >= ? AND claimed_at < ?) AS claimed_previous,
       (SELECT COUNT(*) FROM rewards WHERE redeemed_at IS NOT NULL AND redeemed_at >= ? AND redeemed_at < ?) AS redeemed_count,
@@ -117,8 +117,7 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
       (SELECT COUNT(*) FROM rewards WHERE status NOT IN ('WON','CLAIMED','REDEEMED','USED')) AS unclaimed_count,
       (SELECT COUNT(*) FROM audit_log WHERE result IN ('FAILED','REJECTED')) AS error_retry_count
   `).bind(
-    currentStartIso, currentEndIso,
-    previousStartIso, previousEndIso,
+    currentStartIso,
     currentStartIso, currentEndIso,
     previousStartIso, previousEndIso,
     currentStartIso, currentEndIso,
@@ -229,9 +228,11 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
       previousTo: formatOwnerDateOnly(previousTo),
     },
     metrics: {
-      participants: Number(metric?.participants ?? 0),
-      participantsPrevious: Number(metric?.participants_previous ?? 0),
-      participantsChangePct: ownerPercentChange(Number(metric?.participants ?? 0), Number(metric?.participants_previous ?? 0)),
+      totalCustomers: Number(metric?.total_customers ?? 0),
+      totalCustomersPrevious: Number(metric?.total_customers_previous ?? 0),
+      participants: Number(metric?.total_customers ?? 0),
+      participantsPrevious: Number(metric?.total_customers_previous ?? 0),
+      participantsChangePct: ownerPercentChange(Number(metric?.total_customers ?? 0), Number(metric?.total_customers_previous ?? 0)),
       play: Number(metric?.play_count ?? 0),
       won: Number(metric?.won_count ?? statusMap.get("WON") ?? 0),
       claimed: Number(metric?.claimed_count ?? statusMap.get("CLAIMED") ?? 0),
@@ -270,6 +271,44 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
       event.endsAt >= currentStartIso
     ),
   });
+}
+
+async function handleOwnerCustomers(request: Request, env: Env): Promise<Response> {
+  const owner = await requireOwner(request, env);
+  if (!owner) return errorResponse("UNAUTHORIZED", "Owner authentication is required.", 401);
+
+  const url = new URL(request.url);
+  const search = (url.searchParams.get("search") || "").trim().slice(0, 128);
+  const pageRaw = Number(url.searchParams.get("page") || 1);
+  const pageSizeRaw = Number(url.searchParams.get("pageSize") || 10);
+  const page = Number.isInteger(pageRaw) && pageRaw > 0 ? Math.min(pageRaw, 100000) : 1;
+  const pageSize = Number.isInteger(pageSizeRaw) && pageSizeRaw > 0 ? Math.min(pageSizeRaw, 50) : 10;
+  const offset = (page - 1) * pageSize;
+  const pattern = `%${search.replace(/[\\%_]/g, "\\$&")}%`;
+  const where = search
+    ? `WHERE c.email LIKE ? ESCAPE '\\' OR c.phone_masked LIKE ? ESCAPE '\\' OR c.customer_id LIKE ? ESCAPE '\\'`
+    : "";
+  const params = search ? [pattern, pattern, pattern, pageSize, offset] : [pageSize, offset];
+
+  const result = await env.DB.prepare(`
+    SELECT c.customer_id, c.email, c.phone_masked, c.created_at,
+      (SELECT COUNT(*) FROM plays p WHERE p.customer_id = c.customer_id) AS total_play,
+      (SELECT COUNT(*) FROM rewards r WHERE r.customer_id = c.customer_id) AS total_reward,
+      (SELECT COUNT(*) FROM rewards r WHERE r.customer_id = c.customer_id AND r.redeemed_at IS NOT NULL) AS total_redeemed,
+      COUNT(*) OVER () AS total_count
+    FROM customers c ${where}
+    ORDER BY c.created_at DESC, c.customer_id ASC
+    LIMIT ? OFFSET ?
+  `).bind(...params).all();
+
+  const rows = (result.results ?? []) as Array<Record<string, unknown>>;
+  const total = Number(rows[0]?.total_count ?? 0);
+  return json({ ok: true, total, page, pageSize, items: rows.map((row) => ({
+    customerId: String(row.customer_id ?? ""), email: String(row.email ?? ""),
+    phoneMasked: String(row.phone_masked ?? ""), createdAt: String(row.created_at ?? ""),
+    totalPlay: Number(row.total_play ?? 0), totalReward: Number(row.total_reward ?? 0),
+    totalRedeemed: Number(row.total_redeemed ?? 0), status: "ACTIVE",
+  })) });
 }
 
 async function handleCustomerTrace(request: Request, env: Env, customerId: string): Promise<Response> {
@@ -447,6 +486,7 @@ async function handleEvents(request: Request, env: Env): Promise<Response> {
 export async function handleOwnerRequest(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   if (url.pathname === "/owner/overview" && request.method === "GET") return handleOwnerOverview(request, env);
+  if (url.pathname === "/owner/customers" && request.method === "GET") return handleOwnerCustomers(request, env);
   if (url.pathname === "/owner/audit" && request.method === "GET") return handleAudit(request, env);
   if (url.pathname === "/owner/reward-pool" || url.pathname.startsWith("/owner/reward-pool/")) return handleRewardPool(request, env);
   if (url.pathname === "/owner/events" || url.pathname.startsWith("/owner/events/")) return handleEvents(request, env);
