@@ -172,7 +172,7 @@
 
     <div id="ownerViewMachines" class="owner-view" hidden>
       <button type="button" class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</button>
-      <div class="owner-page-heading compact"><div><h1>Status Mesin</h1><p>Monitor real-time semua mesin</p></div></div>
+      <div class="owner-page-heading compact"><div class="owner-machine-heading"><h1>Status Mesin</h1><div class="owner-machine-heading-meta"><p>Monitor real-time semua mesin</p><span id="ownerMachineRealtime"></span></div></div></div>
       <div id="machineFilters" class="owner-filter-tabs machine-tabs">
         <button type="button" data-machine-filter="ALL" class="active">Semua (10)</button>
         <button type="button" data-machine-filter="WASHER">Washer (5)</button>
@@ -183,7 +183,7 @@
         <h3>Keterangan Status</h3>
         <div><span class="status-dot idle"></span><b>Idle</b><small>Mesin tersedia</small></div>
         <div><span class="status-dot busy"></span><b>Terpakai</b><small>Mesin sedang digunakan</small></div>
-        <p><span class="owner-inline-icon" data-owner-icon="clock"></span> Waktu menunjukkan sisa estimasi (hh:mm:ss)</p>
+        <p><span class="owner-inline-icon" data-owner-icon="clock"></span> Real time mesin beroperasi (hh:mm)</p>
       </div>
     </div>
 
