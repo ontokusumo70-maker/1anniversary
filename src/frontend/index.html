@@ -189,23 +189,30 @@
     </div>
 
     <div id="ownerViewEvents" class="owner-view" hidden>
-      <button type="button" class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</button>
-      <div class="owner-page-heading compact"><div><h1>Event</h1><p>Daftar semua event</p></div><button id="newEventButton" class="owner-green-button" type="button"><span>＋</span> Tambah Event</button></div>
-      <div id="eventFilters" class="owner-filter-tabs event-tabs">
-        <button data-event-filter="ACTIVE" class="active">Aktif (<span id="activeEventCount">3</span>)</button>
-        <button data-event-filter="INACTIVE">Nonaktif (<span id="inactiveEventCount">1</span>)</button>
-        <button data-event-filter="ALL">Semua (<span id="allEventCount">4</span>)</button>
+      <button type="button" class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke daftar event</button>
+      <div class="owner-page-heading event-page-heading">
+        <div><h1>Event</h1><p>Kelola event, periode dan hadiah</p></div>
+        <button id="newEventButton" class="owner-green-button event-create-button" type="button"><span>＋</span> Buat Event</button>
+      </div>
+      <div id="eventFilters" class="owner-filter-tabs event-tabs event-tabs-locked">
+        <button data-event-filter="ACTIVE" class="active">Aktif (<span id="activeEventCount">0</span>)</button>
+        <button data-event-filter="UPCOMING">Akan Datang (<span id="upcomingEventCount">0</span>)</button>
+        <button data-event-filter="COMPLETED">Selesai (<span id="completedEventCount">0</span>)</button>
       </div>
       <div id="ownerEventsList" class="owner-event-groups"></div>
-      <div id="eventFormCard" class="owner-form-card" hidden>
+      <div id="eventFormCard" class="owner-form-card event-form-card" hidden>
+        <button type="button" class="event-form-back" id="cancelEventTop">← Kembali ke daftar event</button>
         <h3 id="eventFormTitle">Buat Event Baru</h3>
-        <label>Nama Event<input id="eventTitle"></label>
-        <label>Mulai<input id="eventStartsAt" type="datetime-local"></label>
-        <label>Selesai<input id="eventEndsAt" type="datetime-local"></label>
-        <label>Reward<select id="eventRewardType"></select></label>
-        <label>Jumlah<input id="eventRewardQuantity" type="number" min="1"></label>
+        <p class="event-form-subtitle">Tentukan detail event dan hadiah</p>
+        <label>Judul Event<input id="eventTitle" placeholder="Contoh: Cuci 10x Gratis 1x"></label>
+        <div class="event-period-grid">
+          <label>Periode Event<span class="event-field-caption">Tanggal Mulai</span><input id="eventStartsAt" type="datetime-local"></label>
+          <label><span class="event-field-caption">Tanggal Selesai</span><input id="eventEndsAt" type="datetime-local"></label>
+        </div>
+        <label>Hadiah Event<select id="eventRewardType"></select></label>
+        <label>Jumlah Hadiah<input id="eventRewardQuantity" type="number" min="1" placeholder="Contoh: 100"></label>
         <label class="owner-check"><input id="eventActive" type="checkbox"> Aktif</label>
-        <div class="owner-form-actions"><button id="cancelEventButton" class="secondary-button" type="button">Batal</button><button id="saveEventButton" class="primary-button" type="button">Simpan</button></div>
+        <div class="owner-form-actions"><button id="cancelEventButton" class="secondary-button" type="button">Batal</button><button id="saveEventButton" class="primary-button" type="button">Simpan Event</button></div>
         <p id="eventFormMsg" class="msg status-msg"></p>
       </div>
     </div>
