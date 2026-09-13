@@ -1550,12 +1550,30 @@ function toDateInput(value) {
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
+function setEventFormMode(open) {
+  const heading = document.querySelector("#ownerViewEvents .event-page-heading");
+  const filters = $("eventFilters");
+  const list = $("ownerEventsList");
+  const form = $("eventFormCard");
+  if (!heading || !filters || !list || !form) return;
+  heading.hidden = open;
+  filters.hidden = open;
+  list.hidden = open;
+  form.hidden = !open;
+}
+
+function closeEventForm() {
+  setEventFormMode(false);
+  editingEventId = null;
+  msg("eventFormMsg", "");
+}
+
 function openEventForm(eventId = null) {
   editingEventId = eventId;
   const card = $("eventFormCard");
   if (!card) return;
   const event = (ownerData?.events || []).find((row) => row.eventId === eventId);
-  card.hidden = false;
+  setEventFormMode(true);
   $("eventFormTitle").textContent = event ? "Edit Event" : "Buat Event Baru";
   $("eventTitle").value = event?.title || "";
   $("eventStartsAt").value = toDateInput(event?.startsAt);
@@ -1583,7 +1601,7 @@ async function saveEvent() {
     }
     const path = editingEventId ? `/owner/events/${encodeURIComponent(editingEventId)}` : "/owner/events";
     await api(path, { method: editingEventId ? "PATCH" : "POST", body: JSON.stringify(body) });
-    $("eventFormCard").hidden = true;
+    closeEventForm();
     await loadOwnerData();
     setOwnerView("events");
   } catch (error) {
@@ -1688,11 +1706,11 @@ for (const button of document.querySelectorAll("#eventFilters [data-event-filter
 }
 
 $("newEventButton")?.addEventListener("click", () => openEventForm());
-$("cancelEventButton")?.addEventListener("click", () => { $("eventFormCard").hidden = true; });
+$("cancelEventButton")?.addEventListener("click", closeEventForm);
 
 $("eventDescription")?.addEventListener("input", () => { $("eventDescriptionCount").textContent = `${$("eventDescription").value.length}/200`; });
 $("eventCondition")?.addEventListener("input", () => { $("eventConditionCount").textContent = `${$("eventCondition").value.length}/200`; });
-$("cancelEventTop")?.addEventListener("click", () => { $("eventFormCard").hidden = true; });
+$("cancelEventTop")?.addEventListener("click", closeEventForm);
 $("saveEventButton")?.addEventListener("click", saveEvent);
 $("newRewardButton")?.addEventListener("click", () => openRewardForm());
 $("cancelRewardButton")?.addEventListener("click", () => { $("rewardFormCard").hidden = true; });
