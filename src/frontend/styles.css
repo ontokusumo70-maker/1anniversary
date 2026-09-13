@@ -784,3 +784,15 @@ body[data-role="OWNER"] .owner-nav-icon{width:27px;height:25px}
   body[data-role="OWNER"] .owner-tabbar button{font-size:8px;gap:5px}
   body[data-role="OWNER"] .owner-nav-icon{width:27px;height:25px}
 }
+
+
+/* OWNER MACHINE REALTIME */
+.owner-machine-heading-meta{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;}
+.owner-machine-heading-meta p{margin:3px 0 0;white-space:nowrap;}
+.owner-machine-heading-meta #ownerMachineRealtime{font-size:11px;font-weight:600;color:#159d65;white-space:nowrap;margin-top:3px;}
+.owner-machine-heading{width:100%;}
+@media(max-width:600px){
+  .owner-machine-heading-meta{gap:8px;}
+  .owner-machine-heading-meta p{font-size:10px;}
+  .owner-machine-heading-meta #ownerMachineRealtime{font-size:9px;}
+}
