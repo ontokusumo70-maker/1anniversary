@@ -182,3 +182,36 @@ body[data-role="OWNER_LOGIN"] .app-shell{
     font-size:9px;
   }
 }
+
+.owner-anniversary-mark{
+  position:absolute;
+  z-index:2;
+  top:21.8%;
+  right:10.5%;
+  color:#07583e;
+  font-family:"Brush Script MT","Segoe Script","Snell Roundhand",cursive;
+  font-size:clamp(20px,3.5vw,31px);
+  line-height:1;
+  font-weight:600;
+  transform:rotate(-4deg);
+  white-space:nowrap;
+}
+
+.owner-anniversary-mark::after{
+  content:"";
+  display:block;
+  width:78%;
+  height:3px;
+  margin:5px 0 0 12%;
+  border-radius:999px;
+  background:#07583e;
+  transform:rotate(-2deg);
+}
+
+@media(max-width:600px){
+  .owner-anniversary-mark{
+    top:21.8%;
+    right:10.5%;
+    font-size:clamp(17px,3.5vw,24px);
+  }
+}
