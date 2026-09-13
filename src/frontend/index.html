@@ -136,9 +136,13 @@
     </nav>
 
     <div id="ownerViewOverview" class="owner-view">
-      <div class="owner-page-heading">
-        <div><h1>Overview</h1><p>Ringkasan hari ini</p></div>
-        <button id="loadOwner" class="owner-date-button" type="button"><span class="owner-inline-icon" data-owner-icon="calendar"></span><span class="owner-date-label">12 Aug 2026</span><span class="owner-chevron">⌄</span></button>
+      <div class="owner-page-heading owner-overview-heading">
+        <div><h1>Overview</h1></div>
+        <div class="owner-date-range" aria-label="Rentang tanggal Overview">
+          <label for="ownerDateFrom">Dari<input id="ownerDateFrom" type="date" aria-label="Tanggal mulai"></label>
+          <span class="owner-date-range-arrow" aria-hidden="true">→</span>
+          <label for="ownerDateTo">Sampai<input id="ownerDateTo" type="date" aria-label="Tanggal selesai"></label>
+        </div>
       </div>
 
       <div id="ownerMetrics" class="owner-metric-grid"></div>
