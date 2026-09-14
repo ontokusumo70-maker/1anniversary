@@ -59,6 +59,18 @@ async function api(path, options = {}) {
   return data;
 }
 
+async function apiBlob(path) {
+  const response = await fetch(`${apiBase}${path}`, {
+    headers: state.token ? { Authorization: `Bearer ${state.token}` } : {},
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.message || data.error || `HTTP ${response.status}`);
+  }
+  return response.blob();
+}
+
 function saveSession() {
   if (!state.token || !state.role) {
     return;
@@ -166,6 +178,55 @@ async function loadConfig() {
   }
 }
 
+function revokeActiveEventImage(role) {
+  const url = activeEventObjectUrls.get(role);
+  if (url) URL.revokeObjectURL(url);
+  activeEventObjectUrls.delete(role);
+}
+
+function renderRoleActiveEvent(role, data) {
+  const prefix = role === "STAFF" ? "staff" : "customer";
+  const card = $(`${prefix}ActiveEvent`);
+  if (!card) return;
+  revokeActiveEventImage(role);
+  if (!data?.active || !data.event) {
+    card.hidden = true;
+    return;
+  }
+  const event = data.event;
+  $(`${prefix}ActiveEventTitle`).textContent = event.title || "—";
+  $(`${prefix}ActiveEventPeriod`).textContent = formatDateRange(event.startsAt, event.endsAt);
+  const description = $(`${prefix}ActiveEventDescription`);
+  if (description) {
+    description.textContent = event.description || "";
+    description.hidden = !event.description;
+  }
+  const image = $(`${prefix}ActiveEventImage`);
+  if (image) {
+    image.hidden = true;
+    image.removeAttribute("src");
+  }
+  card.hidden = false;
+  if (image && event.imageUrl) {
+    apiBlob(event.imageUrl).then((blob) => {
+      if (card.hidden) return;
+      const objectUrl = URL.createObjectURL(blob);
+      activeEventObjectUrls.set(role, objectUrl);
+      image.src = objectUrl;
+      image.hidden = false;
+    }).catch(() => {});
+  }
+}
+
+async function loadActiveEventForRole(role) {
+  try {
+    const data = await api("/event/active");
+    renderRoleActiveEvent(role, data);
+  } catch {
+    renderRoleActiveEvent(role, null);
+  }
+}
+
 function showRole() {
   document.body.dataset.role = state.role || "CUSTOMER";
   if ($("ownerAuth")) {
@@ -197,6 +258,7 @@ function showRole() {
     document.documentElement.style.setProperty("--game-bg", `url("${assetBasePath}background/game/game-bg.PNG")`);
     $("customer").hidden = false;
     refreshMachines();
+    loadActiveEventForRole("CUSTOMER");
     return;
   }
 
@@ -204,6 +266,7 @@ function showRole() {
     document.documentElement.style.setProperty("--game-bg", `url("${assetBasePath}background/staff/staff-bg.PNG")`);
     $("staff").hidden = false;
     refreshStaffMachines();
+    loadActiveEventForRole("STAFF");
     return;
   }
 
@@ -1450,21 +1513,37 @@ function renderOwnerOperations() {
   `;
 }
 
+function revokeOwnerActiveEventImages() {
+  for (const url of ownerActiveEventObjectUrls.values()) URL.revokeObjectURL(url);
+  ownerActiveEventObjectUrls.clear();
+}
+
 function renderOwnerActiveEvents() {
   const target = $("ownerActiveEvents");
   if (!target) return;
   const events = ownerData?.activeEvents || [];
+  revokeOwnerActiveEventImages();
   if (!events.length) {
     target.innerHTML = `<div class="owner-list-item"><small>Tidak ada event aktif.</small></div>`;
     return;
   }
-  target.innerHTML = events.map((event) => `
+  target.innerHTML = events.map((event, index) => `
     <button class="active-event" type="button" data-open-events="1">
       <span class="active-event-icon">${ownerIconSvg("calendar")}</span>
-      <span class="active-event-copy"><b>${escapeHtml(event.title)}</b><span>${escapeHtml(formatDateRange(event.startsAt, event.endsAt))}</span></span>
+      <span class="active-event-copy">${event.imageUrl ? `<img class="active-event-image" data-owner-event-image="${escapeHtml(event.eventId)}" alt="Image Event Aktif">` : ""}<b>${escapeHtml(event.title)}</b><span>${escapeHtml(formatDateRange(event.startsAt, event.endsAt))}</span></span>
       <span class="arrow">›</span>
     </button>
   `).join("");
+  events.forEach((event) => {
+    if (!event.imageUrl) return;
+    const image = Array.from(target.querySelectorAll("[data-owner-event-image]")).find((item) => item.dataset.ownerEventImage === event.eventId);
+    if (!image) return;
+    apiBlob(event.imageUrl).then((blob) => {
+      const objectUrl = URL.createObjectURL(blob);
+      ownerActiveEventObjectUrls.set(event.eventId, objectUrl);
+      image.src = objectUrl;
+    }).catch(() => {});
+  });
   target.querySelectorAll("[data-open-events]").forEach((button) => button.onclick = () => setOwnerView("events"));
 }
 
@@ -1754,6 +1833,110 @@ function closeEventViews() {
   editingEventId = null;
 }
 
+function revokeEventImagePreview() {
+  if (eventImageObjectUrl) {
+    URL.revokeObjectURL(eventImageObjectUrl);
+    eventImageObjectUrl = null;
+  }
+}
+
+function resetEventImageUI() {
+  revokeEventImagePreview();
+  const input = $("eventImage");
+  const preview = $("eventImagePreview");
+  const remove = $("removeEventImageButton");
+  if (input) { input.value = ""; input.disabled = false; }
+  if (preview) { preview.hidden = true; preview.removeAttribute("src"); }
+  if (remove) remove.hidden = true;
+  msg("eventImageMsg", "");
+}
+
+function setEventImagePreview(src, revokePrevious = false) {
+  const preview = $("eventImagePreview");
+  if (!preview) return;
+  if (revokePrevious) revokeEventImagePreview();
+  preview.src = src;
+  preview.hidden = false;
+  $("removeEventImageButton") && ($("removeEventImageButton").hidden = false);
+}
+
+async function loadOwnerEventImage(eventId) {
+  try {
+    const blob = await apiBlob(`/owner/events/${encodeURIComponent(eventId)}/image`);
+    revokeEventImagePreview();
+    eventImageObjectUrl = URL.createObjectURL(blob);
+    setEventImagePreview(eventImageObjectUrl);
+  } catch {
+    // No image is a valid state.
+  }
+}
+
+function eventFormImageIsActive(event = null) {
+  if (event && $("eventStatus")?.value === "INACTIVE") return false;
+  const start = $("eventStartsAt")?.value || (event ? toDateInput(event.startsAt) : "");
+  const end = $("eventEndsAt")?.value || (event ? toDateInput(event.endsAt) : "");
+  if (!start || !end) return false;
+  const now = Date.now();
+  const startMs = Date.parse(`${start}T00:00:00+07:00`);
+  const endMs = Date.parse(`${end}T23:59:59+07:00`);
+  return Number.isFinite(startMs) && Number.isFinite(endMs) && now >= startMs && now < endMs;
+}
+
+function updateEventImageAvailability(event = null) {
+  const input = $("eventImage");
+  if (!input) return;
+  input.disabled = !eventFormImageIsActive(event);
+}
+
+async function uploadEventImage(eventId) {
+  const input = $("eventImage");
+  const file = input?.files?.[0];
+  if (!file) return false;
+  const prepared = await prepareEventImage(file);
+  await fetch(`${apiBase}/owner/events/${encodeURIComponent(eventId)}/image`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${state.token}`, "Content-Type": prepared.type },
+    body: prepared.blob,
+    cache: "no-store",
+  }).then(async (response) => {
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.message || data.error || `HTTP ${response.status}`);
+    }
+  });
+  return true;
+}
+
+async function deleteEventImage(eventId) {
+  await api(`/owner/events/${encodeURIComponent(eventId)}/image`, { method: "DELETE" });
+}
+
+async function prepareEventImage(file) {
+  if (!file || !/^image\/(jpeg|webp)$/i.test(file.type)) throw new Error("Image harus JPG atau WebP.");
+  const sourceUrl = URL.createObjectURL(file);
+  try {
+    const image = new Image();
+    image.decoding = "async";
+    image.src = sourceUrl;
+    await image.decode();
+    const scale = Math.min(1, 1200 / image.naturalWidth, 1200 / image.naturalHeight);
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Image tidak dapat diproses.");
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const type = "image/webp";
+    for (const quality of [0.86, 0.78, 0.7, 0.62, 0.54, 0.46]) {
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, type, quality));
+      if (blob && blob.size <= 307200) return { blob, type };
+    }
+    throw new Error("Image tetap lebih dari 300 KB setelah kompresi.");
+  } finally {
+    URL.revokeObjectURL(sourceUrl);
+  }
+}
+
 function openEventForm(eventId = null) {
   editingEventId = eventId;
   $("eventDetailView").hidden = true;
@@ -1772,6 +1955,11 @@ function openEventForm(eventId = null) {
   $("eventDescriptionCount").textContent = `${($("eventDescription").value || "").length}/200`;
   $("eventStatusField").hidden = !event;
   if (event) $("eventStatus").value = event.active ? "ACTIVE" : "INACTIVE";
+  resetEventImageUI();
+  updateEventImageAvailability(event);
+  if (event && eventCategory(event) === "ACTIVE") {
+    loadOwnerEventImage(event.eventId);
+  }
   updateEventRewardStock();
   msg("eventFormMsg", "");
 }
@@ -1791,7 +1979,12 @@ async function saveEvent() {
     };
     if (!body.title || !start || !end || !body.rewardType || !Number.isInteger(body.rewardQuantity) || body.rewardQuantity < 1) throw new Error("Lengkapi data event.");
     const path = editingEventId ? `/owner/events/${encodeURIComponent(editingEventId)}` : "/owner/events";
-    await api(path, { method: editingEventId ? "PATCH" : "POST", body: JSON.stringify(body) });
+    const saved = await api(path, { method: editingEventId ? "PATCH" : "POST", body: JSON.stringify(body) });
+    if (body.active && editingEventId && eventFormImageIsActive(ownerData?.events?.find((row) => row.eventId === editingEventId)) && $("eventImage")?.files?.[0]) {
+      await uploadEventImage(editingEventId);
+    } else if (body.active && !editingEventId && saved.eventId && eventFormImageIsActive(null) && $("eventImage")?.files?.[0]) {
+      await uploadEventImage(saved.eventId);
+    }
     closeEventViews();
     await loadOwnerData();
     setOwnerView("events");
@@ -2047,6 +2240,39 @@ $("cancelEventButton")?.addEventListener("click", closeEventViews);
 
 $("eventDescription")?.addEventListener("input", () => { $("eventDescriptionCount").textContent = `${$("eventDescription").value.length}/200`; });
 $("eventRewardType")?.addEventListener("change", updateEventRewardStock);
+$("eventStartsAt")?.addEventListener("change", () => updateEventImageAvailability(ownerData?.events?.find((row) => row.eventId === editingEventId) || null));
+$("eventEndsAt")?.addEventListener("change", () => updateEventImageAvailability(ownerData?.events?.find((row) => row.eventId === editingEventId) || null));
+$("eventStatus")?.addEventListener("change", () => updateEventImageAvailability(ownerData?.events?.find((row) => row.eventId === editingEventId) || null));
+$("eventImage")?.addEventListener("change", () => {
+  const file = $("eventImage")?.files?.[0];
+  msg("eventImageMsg", "");
+  if (!file) return;
+  if (!eventFormImageIsActive(ownerData?.events?.find((row) => row.eventId === editingEventId) || null)) {
+    $("eventImage").value = "";
+    msg("eventImageMsg", "Image hanya dapat disimpan untuk Event Aktif.");
+    return;
+  }
+  if (!/^image\/(jpeg|webp)$/i.test(file.type)) {
+    $("eventImage").value = "";
+    msg("eventImageMsg", "Image harus JPG atau WebP.");
+    return;
+  }
+  if (file.size > 307200) {
+    msg("eventImageMsg", "File akan dikompresi maksimal 300 KB saat disimpan.");
+  }
+  const previewUrl = URL.createObjectURL(file);
+  setEventImagePreview(previewUrl, true);
+  eventImageObjectUrl = previewUrl;
+});
+$("removeEventImageButton")?.addEventListener("click", async () => {
+  try {
+    if (editingEventId) await deleteEventImage(editingEventId);
+    resetEventImageUI();
+    updateEventImageAvailability(ownerData?.events?.find((row) => row.eventId === editingEventId) || null);
+  } catch (error) {
+    msg("eventImageMsg", error.message);
+  }
+});
 $("cancelEventTop")?.addEventListener("click", closeEventViews);
 $("saveEventButton")?.addEventListener("click", saveEvent);
 $("newRewardButton")?.addEventListener("click", () => openRewardForm());
