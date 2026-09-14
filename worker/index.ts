@@ -9,6 +9,7 @@ import { handleStaffRedeemRequest } from './routes/staff-redeem';
 import { handleAuthRequest } from './routes/auth';
 import { handleOwnerRequest } from './routes/owner';
 import { handleAssetRequest } from './routes/assets';
+import { handleActiveEventRequest } from './routes/event-active';
 
 export interface Env {
   DB: D1Database;
@@ -196,6 +197,22 @@ async function handleRequest(
           'production',
       },
       200,
+      origin,
+    );
+  }
+
+  const activeEventResponse =
+    await handleActiveEventRequest(
+      request,
+      env,
+    );
+
+  if (
+    activeEventResponse.status !==
+    404
+  ) {
+    return withCors(
+      activeEventResponse,
       origin,
     );
   }
