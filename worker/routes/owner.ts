@@ -633,8 +633,146 @@ async function handleEvents(request: Request, env: Env): Promise<Response> {
   return json({ ok: true, eventId });
 }
 
+
+function csvEscapeOwner(value: unknown): string {
+  const text = value === null || value === undefined ? "" : String(value);
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function csvRowOwner(values: unknown[]): string {
+  return values.map(csvEscapeOwner).join(",");
+}
+
+async function handleOwnerExport(request: Request, env: Env): Promise<Response> {
+  const owner = await requireOwner(request, env);
+  if (!owner) return errorResponse("UNAUTHORIZED", "Owner authentication is required.", 401);
+
+  const url = new URL(request.url);
+  const allowedDatasets = new Set(["customer", "reward-pool", "event", "machine-operation"]);
+  const datasets = [...new Set(
+    (url.searchParams.get("datasets") || "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean),
+  )];
+  if (!datasets.length || datasets.some((dataset) => !allowedDatasets.has(dataset))) {
+    return errorResponse("INVALID_DATASET", "Dataset CSV hanya Customer, Reward Pool, Event, dan Machine Operation.", 400);
+  }
+
+  const today = formatOwnerDateOnly(new Date());
+  const requestedFrom = url.searchParams.get("from") || today;
+  const requestedTo = url.searchParams.get("to") || requestedFrom;
+  const rangeFrom = parseOwnerDateOnly(requestedFrom);
+  const rangeTo = parseOwnerDateOnly(requestedTo);
+  if (!rangeFrom || !rangeTo || rangeFrom.getTime() > rangeTo.getTime()) {
+    return errorResponse("INVALID_DATE_RANGE", "Rentang tanggal CSV tidak valid.", 400);
+  }
+
+  const startIso = rangeFrom.toISOString();
+  const endIso = addOwnerDays(rangeTo, 1).toISOString();
+  const sections: string[] = [];
+
+  if (datasets.includes("customer")) {
+    const result = await env.DB.prepare(`
+      SELECT c.customer_id, c.name, c.phone_masked, c.email, c.created_at,
+        (SELECT COUNT(*) FROM plays p WHERE p.customer_id = c.customer_id) AS total_play,
+        (SELECT COUNT(*) FROM rewards r WHERE r.customer_id = c.customer_id) AS total_reward,
+        (SELECT COUNT(*) FROM rewards r WHERE r.customer_id = c.customer_id AND r.redeemed_at IS NOT NULL) AS total_redeemed
+      FROM customers c
+      WHERE c.created_at >= ? AND c.created_at < ?
+      ORDER BY c.created_at DESC, c.customer_id ASC
+    `).bind(startIso, endIso).all();
+
+    sections.push([
+      csvRowOwner(["DATASET", "Customer"]),
+      csvRowOwner(["Customer ID", "Name", "Phone", "Email", "Created At", "Total Play", "Total Reward", "Total Redeemed"]),
+      ...((result.results ?? []) as Array<Record<string, unknown>>).map((row) => csvRowOwner([
+        row.customer_id, row.name, row.phone_masked, row.email, row.created_at,
+        row.total_play, row.total_reward, row.total_redeemed,
+      ])),
+    ].join("\r\n"));
+  }
+
+  if (datasets.includes("reward-pool")) {
+    const result = await env.DB.prepare(`
+      SELECT rp.reward_type, rp.description, rp.quota_total, rp.quota_used, rp.budget_total, rp.terms, rp.active,
+        (SELECT COUNT(*) FROM rewards r
+         WHERE r.type = rp.reward_type AND r.claimed_at IS NOT NULL
+           AND r.claimed_at >= ? AND r.claimed_at < ?) AS reward_claimed
+      FROM reward_pool rp ORDER BY rp.reward_type ASC
+    `).bind(startIso, endIso).all();
+
+    sections.push([
+      csvRowOwner(["DATASET", "Reward Pool"]),
+      csvRowOwner(["Reward Type", "Description", "Quota Total", "Quota Used", "Remaining", "Budget Total", "Reward Claimed", "Terms", "Active"]),
+      ...((result.results ?? []) as Array<Record<string, unknown>>).map((row) => csvRowOwner([
+        row.reward_type, row.description, row.quota_total, Math.max(0, Number(row.quota_used ?? 0)),
+        Math.max(0, Number(row.quota_total ?? 0) - Number(row.quota_used ?? 0)),
+        row.budget_total, row.reward_claimed, row.terms, Number(row.active) === 1 ? "ACTIVE" : "INACTIVE",
+      ])),
+    ].join("\r\n"));
+  }
+
+  if (datasets.includes("event")) {
+    const result = await env.DB.prepare(`
+      SELECT e.event_id, e.title, e.starts_at, e.ends_at, e.reward_type, e.reward_quantity,
+             e.description, e.active, e.created_at, e.updated_at,
+             CASE WHEN i.event_id IS NULL THEN 0 ELSE 1 END AS has_image
+      FROM events e
+      LEFT JOIN event_images i ON i.event_id = e.event_id
+      WHERE e.starts_at < ? AND e.ends_at > ?
+      ORDER BY e.starts_at DESC, e.event_id DESC
+    `).bind(endIso, startIso).all();
+
+    sections.push([
+      csvRowOwner(["DATASET", "Event"]),
+      csvRowOwner(["Event ID", "Title", "Starts At", "Ends At", "Reward Type", "Reward Quantity", "Description", "Active", "Has Image", "Status", "Created At", "Updated At"]),
+      ...((result.results ?? []) as Array<Record<string, unknown>>).map((row) => {
+        const startsAt = String(row.starts_at ?? "");
+        const endsAt = String(row.ends_at ?? "");
+        const active = Number(row.active ?? 0);
+        return csvRowOwner([
+          row.event_id, row.title, startsAt, endsAt, row.reward_type, row.reward_quantity,
+          row.description, active === 1 ? "ACTIVE" : "INACTIVE", Number(row.has_image) === 1 ? "YES" : "NO",
+          eventStatus(startsAt, endsAt, active), row.created_at, row.updated_at,
+        ]);
+      }),
+    ].join("\r\n"));
+  }
+
+  if (datasets.includes("machine-operation")) {
+    const result = await env.DB.prepare(`
+      SELECT machine_type, COALESCE(SUM(duration_seconds), 0) AS total_seconds
+      FROM machine_operations
+      WHERE started_at >= ? AND started_at < ?
+      GROUP BY machine_type
+      ORDER BY machine_type ASC
+    `).bind(startIso, endIso).all();
+
+    sections.push([
+      csvRowOwner(["DATASET", "Machine Operation"]),
+      csvRowOwner(["Machine Type", "Total Seconds", "Total Minutes"]),
+      ...((result.results ?? []) as Array<Record<string, unknown>>).map((row) => {
+        const seconds = Number(row.total_seconds ?? 0);
+        return csvRowOwner([row.machine_type, seconds, Math.round(seconds / 60)]);
+      }),
+    ].join("\r\n"));
+  }
+
+  const csv = `\uFEFF${sections.join("\r\n\r\n")}\r\n`;
+  return new Response(csv, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": 'attachment; filename="teras-laundry-owner-report.csv"',
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
 export async function handleOwnerRequest(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
+  if (url.pathname === "/owner/export" && request.method === "GET") return handleOwnerExport(request, env);
   if (url.pathname === "/owner/overview" && request.method === "GET") return handleOwnerOverview(request, env);
   if (url.pathname === "/owner/customers" && request.method === "GET") return handleOwnerCustomers(request, env);
   if (url.pathname === "/owner/audit" && request.method === "GET") return handleAudit(request, env);
