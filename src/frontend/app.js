@@ -1497,7 +1497,9 @@ function renderOwnerMetrics() {
       ? (numericPercentage > 0 ? "↑" : numericPercentage < 0 ? "↓" : "→")
       : "";
     const percentageText = vsPrevious
-      ? `${arrow} ${Math.abs(numericPercentage)}%`
+      ? (label === "Total Customer"
+        ? `${Math.abs(numericPercentage)}%`
+        : `${arrow} ${Math.abs(numericPercentage)}%`)
       : `${Math.abs(numericPercentage)}%`;
     const note = (vsPrevious || label === "Reward Claimed" || label === "Reward Redeemed") ? `<span class="owner-metric-note">vs sebelumnya</span>` : "";
     const action = actionName ? ` data-owner-metric-action="${actionName}" role="button" tabindex="0"` : "";
