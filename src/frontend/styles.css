@@ -1163,7 +1163,7 @@ body[data-role="OWNER"] #eventImageMsg{margin:0;min-height:0}
 
 /* STAFF DASHBOARD — APPROVED REFERENCE VISUAL */
 .screen-staff{
-  background:url('/assets/background/staff/staff-bg.PNG') top center/cover no-repeat;
+  background:#eefaf2;
   min-height:100svh;
 }
 
@@ -1172,7 +1172,7 @@ body[data-role="OWNER"] #eventImageMsg{margin:0;min-height:0}
   padding:16px 10px 24px;
   position:relative;
   overflow:hidden;
-  background:transparent;
+  background:#eefaf2 url('/assets/background/staff/staff-dashboard-bg.PNG') center bottom/100% auto no-repeat;
 }
 
 .staff-dashboard-header{
@@ -1311,8 +1311,7 @@ body[data-role="OWNER"] #eventImageMsg{margin:0;min-height:0}
 
 @media(max-width:600px){
   .screen-staff{
-    background-position:center top;
-    background-size:cover;
+    background:#eefaf2;
   }
 
   .staff-dashboard{
@@ -1379,7 +1378,7 @@ body[data-role="OWNER"] #eventImageMsg{margin:0;min-height:0}
 @media (orientation:landscape) and (min-width:601px){
   .screen-staff{
     min-height:100svh;
-    background:url('/assets/background/staff/staff-bg.PNG') center top/cover no-repeat;
+    background:#eefaf2;
   }
 
   .screen-staff .staff-dashboard{
@@ -1388,6 +1387,7 @@ body[data-role="OWNER"] #eventImageMsg{margin:0;min-height:0}
     min-height:100svh;
     margin:0 auto;
     padding:18px 28px 26px;
+    background:#eefaf2 url('/assets/background/staff/staff-dashboard-bg.PNG') center bottom/auto 58svh no-repeat;
   }
 
   .screen-staff .staff-dashboard-header{
@@ -1443,3 +1443,11 @@ body[data-role="OWNER"] #eventImageMsg{margin:0;min-height:0}
   }
 }
 
+
+/* STAFF DASHBOARD — REMOVE HAMBURGER ONLY */
+body[data-role="STAFF"] .staff-dashboard-menu,
+body[data-role="STAFF"] .staff-menu-button,
+body[data-role="STAFF"] .staff-hamburger,
+body:has(#staff:not([hidden])) .staff-dashboard-menu,
+body:has(#staff:not([hidden])) .staff-menu-button,
+body:has(#staff:not([hidden])) .staff-hamburger{display:none !important;}
