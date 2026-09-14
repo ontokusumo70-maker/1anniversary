@@ -1323,6 +1323,7 @@ let ownerCurrentView = "overview";
 let ownerOperationPeriod = "daily";
 let ownerCustomerPage = 1;
 let ownerCustomerSearch = "";
+let ownerCustomerScope = "all";
 let ownerCustomerData = { total: 0, page: 1, pageSize: 10, items: [] };
 let ownerSelectedCustomerId = null;
 
@@ -1481,12 +1482,12 @@ function renderOwnerMetrics() {
     : 0;
 
   const items = [
-    ["Total Customer", data.participants, "user", data.participantsChangePct, true, false],
-    ["Reward Claimed", claimed, "gift", claimedPercentage, false, true],
-    ["Reward Redeemed", redeemed, "percent", redeemedPercentage, false, false],
+    ["Total Customer", data.participants, "user", data.participantsChangePct, true, "active-event-customer"],
+    ["Reward Claimed", claimed, "gift", claimedPercentage, false, "active-event-reward"],
+    ["Reward Redeemed", redeemed, "percent", redeemedPercentage, false, ""],
   ];
 
-  target.innerHTML = items.map(([label, value, icon, percentage, vsPrevious, clickable]) => {
+  target.innerHTML = items.map(([label, value, icon, percentage, vsPrevious, actionName]) => {
     const numericPercentage = Number(percentage || 0);
     const arrow = vsPrevious
       ? (numericPercentage > 0 ? "↑" : numericPercentage < 0 ? "↓" : "→")
@@ -1495,9 +1496,25 @@ function renderOwnerMetrics() {
       ? `${arrow} ${Math.abs(numericPercentage)}%`
       : `${Math.abs(numericPercentage)}%`;
     const note = vsPrevious ? `<span class="owner-metric-note">vs sebelumnya</span>` : "";
-    const action = clickable ? ` data-owner-metric-action="active-event-reward" role="button" tabindex="0" aria-label="Lihat detail reward event aktif" style="cursor:pointer"` : "";
-    return `<div class="owner-metric-card"${action}><span class="owner-metric-icon ${icon}">${ownerIconSvg(icon)}</span><small>${label}</small><b>${Number(value || 0).toLocaleString("id-ID")}</b><em>${percentageText}</em>${note}</div>`;
+    const action = actionName ? ` data-owner-metric-action="${actionName}" role="button" tabindex="0"` : "";
+    const aria = actionName === "active-event-customer"
+      ? ` aria-label="Lihat customer aktif event"`
+      : actionName === "active-event-reward"
+        ? ` aria-label="Lihat detail reward event aktif"`
+        : "";
+    return `<div class="owner-metric-card${actionName ? " clickable" : ""}"${action}${aria}><span class="owner-metric-icon ${icon}">${ownerIconSvg(icon)}</span><small>${label}</small><b>${Number(value || 0).toLocaleString("id-ID")}</b><em>${percentageText}</em>${note}</div>`;
   }).join("");
+
+  const activeCustomerCard = target.querySelector('[data-owner-metric-action="active-event-customer"]');
+  if (activeCustomerCard) {
+    activeCustomerCard.onclick = () => openOwnerActiveEventCustomerList();
+    activeCustomerCard.onkeydown = (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openOwnerActiveEventCustomerList();
+      }
+    };
+  }
 
   const claimedCard = target.querySelector('[data-owner-metric-action="active-event-reward"]');
   if (claimedCard) {
@@ -1509,6 +1526,15 @@ function renderOwnerMetrics() {
       }
     };
   }
+}
+
+async function openOwnerActiveEventCustomerList() {
+  ownerCustomerScope = "active-event";
+  ownerCustomerPage = 1;
+  ownerCustomerSearch = "";
+  const search = $("ownerCustomerSearch");
+  if (search) search.value = "";
+  setOwnerView("customer-trace");
 }
 
 async function openOwnerActiveEventRewardDetail() {
@@ -2116,6 +2142,8 @@ function renderCustomerTraceList(data) {
   const from = total ? ((page - 1) * pageSize) + 1 : 0;
   const to = Math.min(page * pageSize, total);
   $("ownerCustomerTotal") && ($("ownerCustomerTotal").textContent = `${total.toLocaleString("id-ID")} Customers`);
+  const heading = $("ownerCustomerHeading");
+  if (heading) heading.textContent = ownerCustomerScope === "active-event" ? "Customer Aktif" : "Customer Trace";
   target.innerHTML = items.length ? `<div class="owner-customer-table-wrap"><table class="owner-customer-table"><thead><tr><th>#</th><th>Email ID</th><th>No. HP</th><th>Play</th><th>Reward</th><th>Status</th><th></th></tr></thead><tbody>${items.map((item, index) => `<tr data-customer-id="${escapeHtml(item.customerId)}"><td>${from + index}</td><td>${escapeHtml(item.email || "—")}</td><td>${escapeHtml(item.phoneMasked || "—")}</td><td>${Number(item.totalPlay || 0)}</td><td>${Number(item.totalReward || 0)}</td><td><span class="owner-customer-status">Active</span></td><td><button type="button" class="owner-customer-open" aria-label="Buka detail customer">›</button></td></tr>`).join("")}</tbody></table></div>` : `<div class="owner-customer-empty">Belum ada customer terdaftar.</div>`;
   target.querySelectorAll("[data-customer-id]").forEach((row) => row.addEventListener("click", () => openCustomerDetail(row.dataset.customerId)));
   renderCustomerPagination(total, page, pageSize);
@@ -2148,6 +2176,7 @@ function renderCustomerPagination(total, page, pageSize) {
 async function loadOwnerCustomers() {
   try {
     const params = new URLSearchParams({ page: String(ownerCustomerPage), pageSize: "10" });
+    if (ownerCustomerScope === "active-event") params.set("scope", "active-event");
     if (ownerCustomerSearch) params.set("search", ownerCustomerSearch);
     renderCustomerTraceList(await api(`/owner/customers?${params.toString()}`));
   } catch (error) {
@@ -2279,7 +2308,14 @@ function escapeHtml(value) {
 }
 
 for (const button of document.querySelectorAll("[data-owner-view]")) {
-  button.addEventListener("click", () => setOwnerView(button.dataset.ownerView));
+  button.addEventListener("click", () => {
+    if (button.dataset.ownerView === "customer-trace") {
+      ownerCustomerScope = "all";
+      ownerCustomerPage = 1;
+      ownerCustomerSearch = "";
+    }
+    setOwnerView(button.dataset.ownerView);
+  });
 }
 
 ensureOwnerDateRange();
