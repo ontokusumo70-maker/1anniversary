@@ -171,6 +171,12 @@ function showRole() {
   if ($("ownerAuth")) {
     $("ownerAuth").hidden = true;
   }
+  if ($("staffAuth")) {
+    $("staffAuth").hidden = true;
+  }
+  if ($("staffAuth")) {
+    $("staffAuth").hidden = true;
+  }
   if ($("auth")) {
     $("auth").hidden = true;
   }
@@ -265,7 +271,73 @@ async function loginOwner() {
   }
 }
 
+function showStaffLogin(clearMessage = true) {
+  if ($("ownerAuth")) {
+    $("ownerAuth").hidden = true;
+  }
+  if ($("staffAuth")) {
+    $("staffAuth").hidden = false;
+  }
+  if ($("auth")) {
+    $("auth").hidden = true;
+  }
+  if ($("customer")) {
+    $("customer").hidden = true;
+  }
+  if ($("staff")) {
+    $("staff").hidden = true;
+  }
+  if ($("owner")) {
+    $("owner").hidden = true;
+  }
+  document.body.dataset.role = "STAFF_LOGIN";
+  document.documentElement.style.setProperty(
+    "--staff-bg",
+    `url("${assetBasePath}background/staff/staff-bg.PNG")`,
+  );
+  if (clearMessage) {
+    msg("staffAuthMsg", "");
+  }
+}
+
+async function loginStaffStandalone() {
+  try {
+    const phone = $("staffPhone")?.value.trim() || "";
+
+    if (!phone) {
+      msg("staffAuthMsg", "Nomor Staff wajib diisi.");
+      return;
+    }
+
+    const data = await api("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ phone }),
+    });
+
+    if (data.role !== "STAFF") {
+      throw new Error("Akses Staff tidak valid.");
+    }
+
+    state.token = data.token;
+    state.role = data.role;
+    state.userId = data.userId;
+    state.expiresAt = data.expiresAt || null;
+
+    saveSession();
+    msg("staffAuthMsg", "");
+    showRole();
+  } catch (error) {
+    msg("staffAuthMsg", error.message);
+  }
+}
+
 function showCustomerAuth(clearMessage = true) {
+  if ($("ownerAuth")) {
+    $("ownerAuth").hidden = true;
+  }
+  if ($("staffAuth")) {
+    $("staffAuth").hidden = true;
+  }
   state.authMode = "CUSTOMER";
 
   if ($("emailLabel")) {
@@ -526,6 +598,18 @@ if ($("ownerPhone")) {
   $("ownerPhone").addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       loginOwner();
+    }
+  });
+}
+
+if ($("staffLoginStandalone")) {
+  $("staffLoginStandalone").onclick = loginStaffStandalone;
+}
+
+if ($("staffPhone")) {
+  $("staffPhone").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      loginStaffStandalone();
     }
   });
 }
@@ -2002,7 +2086,7 @@ $("downloadExport")?.addEventListener("click", async () => {
 
 $("ownerLogout")?.addEventListener("click", () => {
   clearSession();
-  window.location.href = "?role=owner";
+  window.location.href = "/";
 });
 
 
@@ -2407,19 +2491,15 @@ async function initialize() {
     return;
   }
 
-  const params = new URLSearchParams(window.location.search);
-  const queryRole = params.get("role")?.toLowerCase() || "";
-  const hashRole = window.location.hash.replace(/^#/, "").toLowerCase();
-  const requestedRole = queryRole || hashRole;
+  const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
 
-  if (requestedRole === "customer") {
+  if (pathname === "/customer") {
     showCustomerAuth();
     return;
   }
 
-  if (requestedRole === "staff") {
-    showCustomerAuth();
-    showStaffOwnerAuth();
+  if (pathname === "/staff") {
+    showStaffLogin();
     return;
   }
 
