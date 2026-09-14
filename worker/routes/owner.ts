@@ -60,6 +60,92 @@ function ownerPercentChange(current: number, previous: number): number {
   return Math.round(((current - previous) / previous) * 100);
 }
 
+async function cleanupInactiveEventImages(env: Env, nowIso: string) {
+  await env.DB.prepare(`
+    DELETE FROM event_images
+    WHERE event_id IN (
+      SELECT event_id
+      FROM events
+      WHERE active != 1 OR ends_at <= ?
+    )
+  `).bind(nowIso).run();
+}
+
+async function handleEventImage(request: Request, env: Env, eventId: string): Promise<Response> {
+  const owner = await requireOwner(request, env);
+  if (!owner) return errorResponse("UNAUTHORIZED", "Owner authentication is required.", 401);
+  if (!eventId || eventId.length > 128) return errorResponse("INVALID_REQUEST", "Event ID is required.", 400);
+
+  const event = await env.DB.prepare(`
+    SELECT event_id, starts_at, ends_at, active
+    FROM events WHERE event_id = ? LIMIT 1
+  `).bind(eventId).first<{ event_id: string; starts_at: string; ends_at: string; active: number }>();
+  if (!event) return errorResponse("EVENT_NOT_FOUND", "Event tidak ditemukan.", 404);
+
+  if (request.method === "GET") {
+    const now = Date.now();
+    const startMs = Date.parse(event.starts_at);
+    const endMs = Date.parse(event.ends_at);
+    if (Number(event.active) !== 1 || !Number.isFinite(startMs) || !Number.isFinite(endMs) || now < startMs || now >= endMs) {
+      return new Response("", { status: 404 });
+    }
+    const image = await env.DB.prepare(`SELECT mime_type, image_blob FROM event_images WHERE event_id = ? LIMIT 1`).bind(eventId).first<{ mime_type: string; image_blob: ArrayBuffer }>();
+    if (!image?.image_blob) return new Response("", { status: 404 });
+    return new Response(image.image_blob, {
+      status: 200,
+      headers: { "Content-Type": image.mime_type, "Cache-Control": "no-store" },
+    });
+  }
+
+  if (request.method === "DELETE") {
+    await env.DB.prepare(`DELETE FROM event_images WHERE event_id = ?`).bind(eventId).run();
+    await writeAuditSafe(env, { entityType: "EVENT_IMAGE", entityId: eventId, action: "DELETE", actor: owner.userId, result: "SUCCESS" });
+    return json({ ok: true });
+  }
+
+  if (request.method !== "PUT") return errorResponse("NOT_FOUND", "Event image endpoint not found.", 404);
+
+  const now = Date.now();
+  const startMs = Date.parse(event.starts_at);
+  const endMs = Date.parse(event.ends_at);
+  if (Number(event.active) !== 1 || !Number.isFinite(startMs) || !Number.isFinite(endMs) || now < startMs || now >= endMs) {
+    return errorResponse("EVENT_NOT_ACTIVE", "Image hanya dapat disimpan untuk Event Aktif.", 409);
+  }
+
+  const mimeType = (request.headers.get("Content-Type") || "").split(";")[0].trim().toLowerCase();
+  if (mimeType !== "image/jpeg" && mimeType !== "image/webp") {
+    return errorResponse("INVALID_IMAGE_TYPE", "Image harus JPG atau WebP.", 400);
+  }
+
+  const image = await request.arrayBuffer();
+  if (image.byteLength < 1 || image.byteLength > 307200) {
+    return errorResponse("IMAGE_TOO_LARGE", "Ukuran image maksimal 300 KB.", 413);
+  }
+
+  const bytes = new Uint8Array(image);
+  const isJpeg = bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  const isWebp = bytes.length >= 12 &&
+    bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+    bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50;
+  if ((mimeType === "image/jpeg" && !isJpeg) || (mimeType === "image/webp" && !isWebp)) {
+    return errorResponse("INVALID_IMAGE", "Isi file image tidak valid.", 400);
+  }
+
+  const nowIso = new Date().toISOString();
+  await env.DB.prepare(`
+    INSERT INTO event_images (event_id, mime_type, image_blob, byte_size, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(event_id) DO UPDATE SET
+      mime_type = excluded.mime_type,
+      image_blob = excluded.image_blob,
+      byte_size = excluded.byte_size,
+      updated_at = excluded.updated_at
+  `).bind(eventId, mimeType, image, image.byteLength, nowIso, nowIso).run();
+
+  await writeAuditSafe(env, { entityType: "EVENT_IMAGE", entityId: eventId, action: "UPLOAD", actor: owner.userId, result: "SUCCESS" });
+  return json({ ok: true, eventId, byteSize: image.byteLength, mimeType });
+}
+
 async function handleOwnerOverview(request: Request, env: Env): Promise<Response> {
   const owner = await requireOwner(request, env);
   if (!owner) return errorResponse("UNAUTHORIZED", "Owner authentication is required.", 401);
@@ -96,6 +182,8 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
   const weekStart = new Date(dayStart.getTime() - daysFromMonday * 86400000);
   const monthStart = new Date(Date.UTC(year, month, 1) - wibOffset);
   const yearStart = new Date(Date.UTC(year, 0, 1) - wibOffset);
+
+  await cleanupInactiveEventImages(env, nowIso);
 
   const releaseExpired = env.DB.prepare(`
     UPDATE machines
@@ -183,7 +271,7 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
     statusMap.set(row.status, Number(row.count));
   }
 
-  const mapOperations = (result: D1Result<Record<string, unknown>>) => {
+  const mapOperations = (result: { results?: Array<Record<string, unknown>> }) => {
     let washer = 0;
     let dryer = 0;
     for (const row of result.results ?? []) {
@@ -215,7 +303,7 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
 
   const eventRows = (eventResult.results ?? []) as Array<{
     event_id: string; title: string; starts_at: string; ends_at: string;
-    reward_type: string; reward_quantity: number; active: number;
+    reward_type: string; reward_quantity: number; description: string; active: number; has_image: number;
   }>;
 
   const eventOut = eventRows.map((event) => ({
@@ -225,7 +313,9 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
     endsAt: event.ends_at,
     rewardType: event.reward_type,
     rewardQuantity: Number(event.reward_quantity),
+    description: String(event.description ?? ""),
     active: Number(event.active) === 1,
+    imageUrl: Number(event.has_image) === 1 && eventStatus(event.starts_at, event.ends_at, Number(event.active), now.getTime()) === "ACTIVE" ? "/event/active/image" : null,
     status: eventStatus(event.starts_at, event.ends_at, Number(event.active), now.getTime()),
   }));
 
@@ -282,71 +372,6 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
   });
 }
 
-async function handleCustomerList(request: Request, env: Env): Promise<Response> {
-  const owner = await requireOwner(request, env);
-  if (!owner) return errorResponse("UNAUTHORIZED", "Owner authentication is required.", 401);
-
-  const url = new URL(request.url);
-  const pageRaw = Number(url.searchParams.get("page") ?? 1);
-  const pageSizeRaw = Number(url.searchParams.get("pageSize") ?? 10);
-  const pageSize = Math.min(Math.max(Number.isFinite(pageSizeRaw) ? Math.floor(pageSizeRaw) : 10, 1), 50);
-  const page = Math.max(Number.isFinite(pageRaw) ? Math.floor(pageRaw) : 1, 1);
-  const search = (url.searchParams.get("search") ?? "").trim();
-
-  const where = search
-    ? `WHERE customer_id LIKE ? OR email LIKE ? OR phone_masked LIKE ?`
-    : "";
-  const searchValue = `%${search}%`;
-
-  const totalQuery = env.DB.prepare(`
-    SELECT COUNT(*) AS total
-    FROM customers
-    ${where}
-  `);
-  const listQuery = env.DB.prepare(`
-    SELECT
-      c.customer_id,
-      c.email,
-      c.phone_masked,
-      c.created_at,
-      (SELECT COUNT(*) FROM plays p WHERE p.customer_id = c.customer_id) AS total_play,
-      (SELECT COUNT(*) FROM rewards r WHERE r.customer_id = c.customer_id) AS total_reward
-    FROM customers c
-    ${where}
-    ORDER BY c.created_at DESC, c.customer_id DESC
-    LIMIT ? OFFSET ?
-  `);
-
-  const offset = (page - 1) * pageSize;
-  const [totalResult, listResult] = search
-    ? await env.DB.batch([
-        totalQuery.bind(searchValue, searchValue, searchValue),
-        listQuery.bind(searchValue, searchValue, searchValue, pageSize, offset),
-      ])
-    : await env.DB.batch([
-        totalQuery,
-        listQuery.bind(pageSize, offset),
-      ]);
-
-  const total = Number((totalResult.results?.[0] as { total?: number } | undefined)?.total ?? 0);
-  const items = (listResult.results ?? []).map((row) => ({
-    customerId: String(row.customer_id),
-    email: String(row.email ?? ""),
-    phoneMasked: String(row.phone_masked ?? ""),
-    createdAt: String(row.created_at ?? ""),
-    totalPlay: Number(row.total_play ?? 0),
-    totalReward: Number(row.total_reward ?? 0),
-  }));
-
-  return json({
-    ok: true,
-    total,
-    page,
-    pageSize,
-    items,
-  });
-}
-
 async function handleCustomerTrace(request: Request, env: Env, customerId: string): Promise<Response> {
   const owner = await requireOwner(request, env);
   if (!owner) return errorResponse("UNAUTHORIZED", "Owner authentication is required.", 401);
@@ -359,38 +384,14 @@ async function handleCustomerTrace(request: Request, env: Env, customerId: strin
   `).bind(id).first<{ customer_id: string; name: string; phone_masked: string; email: string; created_at: string }>();
   if (!customer) return errorResponse("CUSTOMER_NOT_FOUND", "Customer was not found.", 404);
 
-  const [transactions, plays, rewards, eventParticipation] = await env.DB.batch([
+  const [transactions, plays, rewards] = await env.DB.batch([
     env.DB.prepare(`SELECT transaction_id, service_type, amount, created_at FROM transactions WHERE customer_id = ? ORDER BY created_at DESC`).bind(id),
     env.DB.prepare(`SELECT play_id, transaction_id, session_id, status, created_at, finished_at FROM plays WHERE customer_id = ? ORDER BY created_at DESC`).bind(id),
     env.DB.prepare(`SELECT reward_id, play_id, type, status, created_at, claimed_at, redeemed_at, used_at FROM rewards WHERE customer_id = ? ORDER BY created_at DESC`).bind(id),
-    env.DB.prepare(`
-      SELECT e.event_id, e.title AS event_title, e.starts_at AS event_starts_at, e.ends_at AS event_ends_at
-      FROM plays p
-      INNER JOIN events e
-        ON p.created_at >= e.starts_at
-       AND p.created_at < e.ends_at
-      WHERE p.customer_id = ?
-      ORDER BY p.created_at DESC, e.starts_at DESC, e.event_id DESC
-      LIMIT 1
-    `).bind(id),
   ]);
 
-  const event = (eventParticipation.results?.[0] as {
-    event_id?: string;
-    event_title?: string;
-    event_starts_at?: string;
-    event_ends_at?: string;
-  } | undefined) ?? null;
-
   await writeAuditSafe(env, { entityType: "CUSTOMER", entityId: id, action: "TRACE", actor: owner.userId, result: "SUCCESS" });
-  return json({
-    ok: true,
-    customer,
-    event,
-    transactions: transactions.results ?? [],
-    plays: plays.results ?? [],
-    rewards: rewards.results ?? [],
-  });
+  return json({ ok: true, customer, transactions: transactions.results ?? [], plays: plays.results ?? [], rewards: rewards.results ?? [] });
 }
 
 async function handleAudit(request: Request, env: Env): Promise<Response> {
@@ -414,123 +415,136 @@ async function handleAudit(request: Request, env: Env): Promise<Response> {
 async function handleRewardPool(request: Request, env: Env): Promise<Response> {
   const owner = await requireOwner(request, env);
   if (!owner) return errorResponse("UNAUTHORIZED", "Owner authentication is required.", 401);
-
   const url = new URL(request.url);
   const match = url.pathname.match(/^\/owner\/reward-pool\/([^/]+)$/);
 
   if (request.method === "GET") {
-    const result = await env.DB.prepare(`
-      SELECT reward_type, quota_total, quota_used, active FROM reward_pool ORDER BY reward_type ASC
-    `).all();
-    return json({ ok: true, items: (result.results ?? []).map((row) => ({
-      rewardType: row.reward_type,
-      quotaTotal: Number(row.quota_total),
-      quotaUsed: Number(row.quota_used),
-      remaining: Math.max(0, Number(row.quota_total) - Number(row.quota_used)),
-      active: Number(row.active) === 1,
-    })) });
+    const [result, eventResult] = await Promise.all([
+      env.DB.prepare(`SELECT reward_type, description, quota_total, quota_used, terms, active FROM reward_pool ORDER BY reward_type ASC`).all(),
+      env.DB.prepare(`SELECT event_id, title, starts_at, ends_at, reward_type, reward_quantity, active FROM events ORDER BY starts_at DESC, event_id DESC LIMIT 100`).all(),
+    ]);
+    const eventsByReward = new Map<string, Array<Record<string, unknown>>>();
+    for (const row of (eventResult.results ?? []) as Array<Record<string, unknown>>) {
+      const rewardType = String(row.reward_type);
+      const list = eventsByReward.get(rewardType) ?? [];
+      list.push(row);
+      eventsByReward.set(rewardType, list);
+    }
+    const items = (result.results ?? []).map((row) => {
+      const record = row as Record<string, unknown>;
+      const rewardType = String(record.reward_type);
+      return {
+        rewardType,
+        description: String(record.description ?? ""),
+        quotaTotal: Number(record.quota_total),
+        quotaUsed: Number(record.quota_used),
+        remaining: Math.max(0, Number(record.quota_total) - Number(record.quota_used)),
+        terms: String(record.terms ?? ""),
+        active: Number(record.active) === 1,
+        events: (eventsByReward.get(rewardType) ?? []).map((event) => ({
+          eventId: String(event.event_id), title: String(event.title), startsAt: String(event.starts_at), endsAt: String(event.ends_at),
+          rewardQuantity: Number(event.reward_quantity), active: Number(event.active) === 1,
+        })),
+      };
+    });
+    return json({ ok: true, items });
   }
 
-  if (request.method !== "POST" && request.method !== "PATCH") {
-    return errorResponse("NOT_FOUND", "Reward Pool endpoint not found.", 404);
+  if (request.method === "DELETE") {
+    if (!match) return errorResponse("INVALID_REQUEST", "Reward type is required.", 400);
+    const rewardType = decodeURIComponent(match[1]);
+    const linked = await env.DB.prepare(`SELECT COUNT(*) AS count FROM events WHERE reward_type = ?`).bind(rewardType).first<{ count: number }>();
+    if (Number(linked?.count ?? 0) > 0) return errorResponse("REWARD_IN_USE", "Reward masih digunakan oleh event dan tidak dapat dihapus.", 409);
+    const result = await env.DB.prepare(`DELETE FROM reward_pool WHERE reward_type = ?`).bind(rewardType).run();
+    if (result.meta.changes !== 1) return errorResponse("REWARD_NOT_FOUND", "Reward tidak ditemukan.", 404);
+    await writeAuditSafe(env, { entityType: "REWARD", entityId: rewardType, action: "DELETE", actor: owner.userId, result: "SUCCESS" });
+    return json({ ok: true });
   }
 
-  let body: { rewardType?: unknown; quotaTotal?: unknown; active?: unknown };
+  if (request.method !== "POST" && request.method !== "PATCH") return errorResponse("NOT_FOUND", "Reward Pool endpoint not found.", 404);
+  let body: { rewardType?: unknown; description?: unknown; quotaTotal?: unknown; terms?: unknown; active?: unknown };
   try { body = await request.json() as typeof body; } catch { return errorResponse("INVALID_REQUEST", "Invalid JSON request body.", 400); }
-
   const rewardType = isNonEmptyString(body.rewardType, 120) ? body.rewardType.trim() : match ? decodeURIComponent(match[1]).trim() : "";
+  const description = body.description === undefined ? "" : (isNonEmptyString(body.description, 200) ? body.description.trim() : "");
+  const terms = body.terms === undefined ? "" : (isNonEmptyString(body.terms, 200) ? body.terms.trim() : "");
   const quotaTotal = parsePositiveInteger(body.quotaTotal);
   const active = body.active === undefined ? 1 : body.active ? 1 : 0;
-  if (!rewardType || rewardType.length > 120 || quotaTotal === null) {
-    return errorResponse("INVALID_REQUEST", "Reward type and quota total are required.", 400);
-  }
+  if (!rewardType || quotaTotal === null) return errorResponse("INVALID_REQUEST", "Nama reward dan total stok wajib diisi.", 400);
+  const nowIso = new Date().toISOString();
 
   if (request.method === "POST") {
     try {
-      await env.DB.prepare(`INSERT INTO reward_pool (reward_type, quota_total, quota_used, active) VALUES (?, ?, 0, ?)`).bind(rewardType, quotaTotal, active).run();
-    } catch {
-      return errorResponse("REWARD_EXISTS", "Reward type already exists.", 409);
-    }
+      await env.DB.prepare(`INSERT INTO reward_pool (reward_type, description, quota_total, quota_used, terms, active, created_by, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?)`)
+        .bind(rewardType, description, quotaTotal, terms, active, owner.userId, nowIso, nowIso).run();
+    } catch { return errorResponse("REWARD_EXISTS", "Reward sudah ada.", 409); }
     await writeAuditSafe(env, { entityType: "REWARD", entityId: rewardType, action: "CREATE", actor: owner.userId, result: "SUCCESS" });
   } else {
+    if (!match) return errorResponse("INVALID_REQUEST", "Reward type is required.", 400);
     const current = await env.DB.prepare(`SELECT quota_used FROM reward_pool WHERE reward_type = ? LIMIT 1`).bind(rewardType).first<{ quota_used: number }>();
-    if (!current) return errorResponse("REWARD_NOT_FOUND", "Reward type was not found.", 404);
-    if (quotaTotal < Number(current.quota_used)) return errorResponse("INVALID_QUOTA", "Quota total cannot be lower than quota used.", 400);
-    const result = await env.DB.prepare(`UPDATE reward_pool SET quota_total = ?, active = ? WHERE reward_type = ?`).bind(quotaTotal, active, rewardType).run();
-    if (result.meta.changes !== 1) return errorResponse("REWARD_NOT_FOUND", "Reward type was not found.", 404);
+    if (!current) return errorResponse("REWARD_NOT_FOUND", "Reward tidak ditemukan.", 404);
+    if (quotaTotal < Number(current.quota_used)) return errorResponse("INVALID_QUOTA", "Total stok tidak boleh lebih kecil dari yang sudah digunakan.", 400);
+    const result = await env.DB.prepare(`UPDATE reward_pool SET description = ?, quota_total = ?, terms = ?, active = ?, updated_at = ? WHERE reward_type = ?`).bind(description, quotaTotal, terms, active, nowIso, rewardType).run();
+    if (result.meta.changes !== 1) return errorResponse("REWARD_NOT_FOUND", "Reward tidak ditemukan.", 404);
     await writeAuditSafe(env, { entityType: "REWARD", entityId: rewardType, action: "UPDATE", actor: owner.userId, result: "SUCCESS" });
   }
-
-  return json({ ok: true });
+  return json({ ok: true, rewardType });
 }
 
 async function handleEvents(request: Request, env: Env): Promise<Response> {
   const owner = await requireOwner(request, env);
   if (!owner) return errorResponse("UNAUTHORIZED", "Owner authentication is required.", 401);
-
   const url = new URL(request.url);
   const match = url.pathname.match(/^\/owner\/events\/([^/]+)$/);
 
   if (request.method === "GET") {
-    const rows = await env.DB.prepare(`
-      SELECT event_id, title, starts_at, ends_at, reward_type, reward_quantity, active, created_at, updated_at
-      FROM events ORDER BY starts_at DESC, event_id DESC LIMIT 100
-    `).all();
+    await cleanupInactiveEventImages(env, new Date().toISOString());
+    const rows = await env.DB.prepare(`SELECT e.event_id, e.title, e.starts_at, e.ends_at, e.reward_type, e.reward_quantity, e.description, e.active, e.created_at, e.updated_at, CASE WHEN i.event_id IS NULL THEN 0 ELSE 1 END AS has_image FROM events e LEFT JOIN event_images i ON i.event_id = e.event_id ORDER BY e.starts_at DESC, e.event_id DESC LIMIT 100`).all();
     const now = Date.now();
     return json({ ok: true, items: (rows.results ?? []).map((row) => ({
-      eventId: row.event_id,
-      title: row.title,
-      startsAt: row.starts_at,
-      endsAt: row.ends_at,
-      rewardType: row.reward_type,
-      rewardQuantity: Number(row.reward_quantity),
-      active: Number(row.active) === 1,
-      status: eventStatus(String(row.starts_at), String(row.ends_at), Number(row.active), now),
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
+      eventId: String((row as any).event_id), title: String((row as any).title), startsAt: String((row as any).starts_at), endsAt: String((row as any).ends_at), rewardType: String((row as any).reward_type), rewardQuantity: Number((row as any).reward_quantity), description: String((row as any).description ?? ""), active: Number((row as any).active) === 1, hasImage: Number((row as any).has_image) === 1, imageUrl: Number((row as any).has_image) === 1 && eventStatus(String((row as any).starts_at), String((row as any).ends_at), Number((row as any).active), now) === "ACTIVE" ? `/owner/events/${encodeURIComponent(String((row as any).event_id))}/image` : null, status: eventStatus(String((row as any).starts_at), String((row as any).ends_at), Number((row as any).active), now), createdAt: String((row as any).created_at), updatedAt: String((row as any).updated_at),
     })) });
   }
 
+  if (request.method === "DELETE") {
+    if (!match) return errorResponse("INVALID_REQUEST", "Event ID is required.", 400);
+    const eventId = decodeURIComponent(match[1]);
+    await env.DB.prepare(`DELETE FROM event_images WHERE event_id = ?`).bind(eventId).run();
+    const result = await env.DB.prepare(`DELETE FROM events WHERE event_id = ?`).bind(eventId).run();
+    if (result.meta.changes !== 1) return errorResponse("EVENT_NOT_FOUND", "Event tidak ditemukan.", 404);
+    await writeAuditSafe(env, { entityType: "EVENT", entityId: eventId, action: "DELETE", actor: owner.userId, result: "SUCCESS" });
+    return json({ ok: true });
+  }
+
   if (request.method !== "POST" && request.method !== "PATCH") return errorResponse("NOT_FOUND", "Event endpoint not found.", 404);
-
-  let body: { title?: unknown; startsAt?: unknown; endsAt?: unknown; rewardType?: unknown; rewardQuantity?: unknown; active?: unknown };
+  let body: { title?: unknown; startsAt?: unknown; endsAt?: unknown; rewardType?: unknown; rewardQuantity?: unknown; description?: unknown; active?: unknown };
   try { body = await request.json() as typeof body; } catch { return errorResponse("INVALID_REQUEST", "Invalid JSON request body.", 400); }
-
   const title = isNonEmptyString(body.title, 160) ? body.title.trim() : "";
   const startsAt = isNonEmptyString(body.startsAt, 64) ? body.startsAt.trim() : "";
   const endsAt = isNonEmptyString(body.endsAt, 64) ? body.endsAt.trim() : "";
   const rewardType = isNonEmptyString(body.rewardType, 120) ? body.rewardType.trim() : "";
   const rewardQuantity = parsePositiveInteger(body.rewardQuantity);
+  const description = body.description === undefined ? "" : (isNonEmptyString(body.description, 200) ? body.description.trim() : "");
   const active = body.active === undefined ? 1 : body.active ? 1 : 0;
-  const startMs = Date.parse(startsAt);
-  const endMs = Date.parse(endsAt);
-
-  if (!title || !startsAt || !endsAt || !rewardType || rewardQuantity === null || !Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) {
-    return errorResponse("INVALID_REQUEST", "Event title, period, reward and quantity are required.", 400);
-  }
-
-  const pool = await env.DB.prepare(`SELECT reward_type FROM reward_pool WHERE reward_type = ? LIMIT 1`).bind(rewardType).first<{ reward_type: string }>();
-  if (!pool) return errorResponse("REWARD_NOT_FOUND", "Reward type was not found in Reward Pool.", 400);
-
+  const startMs = Date.parse(startsAt), endMs = Date.parse(endsAt);
+  if (!title || !startsAt || !endsAt || !rewardType || rewardQuantity === null || !Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) return errorResponse("INVALID_REQUEST", "Event title, period, reward and quantity are required.", 400);
+  const pool = await env.DB.prepare(`SELECT reward_type, active FROM reward_pool WHERE reward_type = ? LIMIT 1`).bind(rewardType).first<{ reward_type: string; active: number }>();
+  if (!pool) return errorResponse("REWARD_NOT_FOUND", "Reward tidak tersedia di Reward Pool.", 400);
+  if (Number(pool.active) !== 1) return errorResponse("REWARD_INACTIVE", "Reward tidak aktif.", 400);
   const nowIso = new Date().toISOString();
 
   if (request.method === "POST") {
     const eventId = `event_${crypto.randomUUID()}`;
-    await env.DB.prepare(`
-      INSERT INTO events (event_id, title, starts_at, ends_at, reward_type, reward_quantity, active, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(eventId, title, startsAt, endsAt, rewardType, rewardQuantity, active, nowIso, nowIso).run();
+    await env.DB.prepare(`INSERT INTO events (event_id, title, starts_at, ends_at, reward_type, reward_quantity, description, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(eventId, title, startsAt, endsAt, rewardType, rewardQuantity, description, active, nowIso, nowIso).run();
     await writeAuditSafe(env, { entityType: "EVENT", entityId: eventId, action: "CREATE", actor: owner.userId, result: "SUCCESS" });
     return json({ ok: true, eventId }, 201);
   }
-
   if (!match) return errorResponse("INVALID_REQUEST", "Event ID is required.", 400);
   const eventId = decodeURIComponent(match[1]);
-  const result = await env.DB.prepare(`
-    UPDATE events SET title = ?, starts_at = ?, ends_at = ?, reward_type = ?, reward_quantity = ?, active = ?, updated_at = ?
-    WHERE event_id = ?
-  `).bind(title, startsAt, endsAt, rewardType, rewardQuantity, active, nowIso, eventId).run();
-  if (result.meta.changes !== 1) return errorResponse("EVENT_NOT_FOUND", "Event was not found.", 404);
+  const result = await env.DB.prepare(`UPDATE events SET title = ?, starts_at = ?, ends_at = ?, reward_type = ?, reward_quantity = ?, description = ?, active = ?, updated_at = ? WHERE event_id = ?`).bind(title, startsAt, endsAt, rewardType, rewardQuantity, description, active, nowIso, eventId).run();
+  if (result.meta.changes !== 1) return errorResponse("EVENT_NOT_FOUND", "Event tidak ditemukan.", 404);
+  if (active !== 1 || endMs <= Date.now()) {
+    await env.DB.prepare(`DELETE FROM event_images WHERE event_id = ?`).bind(eventId).run();
+  }
   await writeAuditSafe(env, { entityType: "EVENT", entityId: eventId, action: "UPDATE", actor: owner.userId, result: "SUCCESS" });
   return json({ ok: true, eventId });
 }
@@ -539,8 +553,9 @@ export async function handleOwnerRequest(request: Request, env: Env): Promise<Re
   const url = new URL(request.url);
   if (url.pathname === "/owner/overview" && request.method === "GET") return handleOwnerOverview(request, env);
   if (url.pathname === "/owner/audit" && request.method === "GET") return handleAudit(request, env);
-  if (url.pathname === "/owner/customers" && request.method === "GET") return handleCustomerList(request, env);
   if (url.pathname === "/owner/reward-pool" || url.pathname.startsWith("/owner/reward-pool/")) return handleRewardPool(request, env);
+  const eventImageMatch = url.pathname.match(/^\/owner\/events\/([^/]+)\/image$/);
+  if (eventImageMatch) return handleEventImage(request, env, decodeURIComponent(eventImageMatch[1]));
   if (url.pathname === "/owner/events" || url.pathname.startsWith("/owner/events/")) return handleEvents(request, env);
   if (request.method === "GET") {
     const match = url.pathname.match(/^\/owner\/customer\/([^/]+)$/);
