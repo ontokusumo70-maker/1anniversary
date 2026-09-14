@@ -234,6 +234,8 @@ body[data-role="OWNER"] .app-shell{width:min(100%,520px);max-width:520px;min-hei
 .owner-date-button{white-space:nowrap;padding:9px 10px;border:1px solid #e4e9e6;border-radius:9px;background:#fff;color:#27322e;font-size:10px;font-weight:700;box-shadow:0 2px 7px rgba(19,65,43,.04)}
 .owner-metric-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
 .owner-metric-card{min-width:0;padding:10px 7px 9px;border:1px solid #edf0ef;border-radius:9px;background:#f9fbfa;text-align:center;box-shadow:0 2px 7px rgba(25,72,51,.04)}
+.owner-metric-card.clickable{cursor:pointer}
+.owner-metric-card.clickable:focus-visible{outline:2px solid #08795d;outline-offset:2px}
 .owner-metric-icon{display:block;width:23px;height:23px;margin:0 auto 5px;border:2px solid #2e9d67;border-radius:50%;position:relative}
 .owner-metric-icon.claimed{border-color:#338de8;border-radius:5px}
 .owner-metric-icon.redeemed{border-color:#f2a81b;border-radius:5px}
@@ -1120,9 +1122,8 @@ body[data-role="STAFF_LOGIN"] .app-shell{
 .active-event-info-image{display:block;width:100%;max-height:260px;object-fit:cover;border-radius:15px;margin-top:12px;border:1px solid #c8dfd0;background:#f4faf5}
 .active-event-info-description{font-size:11px;line-height:1.5;color:#567064;margin:10px 0 0}
 .active-event-image{display:block;width:100%;height:86px;object-fit:cover;border-radius:8px;margin-bottom:7px;border:1px solid #d7e5dc;background:#f4faf5}
-.locked-image-field{margin:0 0 10px}
+.locked-image-field{margin:0 0 15px}
 .locked-image-field .locked-field-title{font-size:9px;font-weight:800;color:#1c2822;margin:0 0 6px}
-body[data-role="OWNER"] #eventImageMsg{margin:0;min-height:0}
 .locked-required{color:#c64a43}
 .locked-image-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:stretch;width:100%}
 .locked-image-upload-card{min-width:0;min-height:145px;border:1px dashed #c4cfcc;border-radius:10px;background:#f8fcfa;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;padding:10px;box-sizing:border-box}
