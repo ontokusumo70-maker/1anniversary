@@ -127,17 +127,17 @@
           <h1>Dashboard Staff</h1>
           <p>Teras Laundry 1st Anniversary</p>
         </div>
-        <span class="staff-dashboard-bell" aria-hidden="true">●</span>
+        <span class="staff-dashboard-bell" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/><path d="M10 21h4"/></svg></span>
       </header>
 
       <div class="staff-dashboard-date" aria-label="Tanggal hari ini">
-        <strong id="staffDayName">—</strong>
-        <span id="staffDateFull">—</span>
+        <div class="staff-dashboard-date-copy"><strong id="staffDayName">—</strong><span id="staffDateFull">—</span></div>
+        <span class="staff-date-calendar" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 9h16M8 13h3M13 13h3M8 16h3M13 16h3"/></svg></span>
       </div>
 
       <div class="staff-dashboard-grid">
         <div class="staff-dashboard-card">
-          <span class="staff-card-icon" aria-hidden="true">▦</span>
+          <span class="staff-card-icon staff-card-icon-calendar" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="8" y="10" width="32" height="30" rx="6"/><path d="M15 7v8M33 7v8M8 19h32M16 25h5v5h-5zM24 25h5v5h-5zM32 25h5v5h-5zM16 33h5v4h-5zM24 33h5v4h-5z"/></svg></span>
           <span class="staff-card-title">Event Aktif</span>
           <span id="staffDashboardEventTitle" class="staff-card-value">Memuat event...</span>
           <span id="staffDashboardEventPeriod" class="staff-card-note">—</span>
@@ -145,7 +145,7 @@
         </div>
 
         <div class="staff-dashboard-card">
-          <span class="staff-card-icon" aria-hidden="true">◉</span>
+          <span class="staff-card-icon staff-card-icon-machine" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="9" y="6" width="30" height="36" rx="6"/><path d="M15 12h8M26 12h7"/><circle cx="24" cy="28" r="8"/><path d="M18 28c2 3 5 4 8 3 3-1 5-3 6-6"/></svg></span>
           <span class="staff-card-title">Status Mesin</span>
           <span id="staffDashboardMachineSummary" class="staff-card-value">5 Washer · 5 Dryer</span>
           <span class="staff-card-note">Lihat status dan aktivasi mesin</span>
