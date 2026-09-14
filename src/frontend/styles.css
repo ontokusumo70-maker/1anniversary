@@ -50,7 +50,8 @@ body[data-role="OWNER_LOGIN"] .app-shell{
   z-index:2;
   top:26.17%;
   left:25%;
-  width:43.75%;
+  width:min(48%, 360px);
+  min-width:205px;
   min-height:0;
   box-sizing:border-box;
   padding:2.0% 3.0% 2.0%;
@@ -132,7 +133,8 @@ body[data-role="OWNER_LOGIN"] .app-shell{
   .owner-login-card{
     top:26.17%;
     left:25%;
-    width:43.75%;
+    width:min(48%, 360px);
+    min-width:205px;
     min-height:0;
     padding:2.0% 3.0% 2.0%;
     border-radius:18px;
@@ -140,8 +142,8 @@ body[data-role="OWNER_LOGIN"] .app-shell{
 
   .owner-phone-wrap,
   .owner-login-button{
-    height:42px;
-    border-radius:12px;
+    height:48px;
+    border-radius:13px;
   }
 
   .owner-whatsapp-icon{
@@ -152,9 +154,10 @@ body[data-role="OWNER_LOGIN"] .app-shell{
   }
 
   .owner-login-input{
-    padding-left:7px;
-    padding-right:8px;
-    font-size:12px;
+    padding-left:8px;
+    padding-right:10px;
+    font-size:15px;
+    letter-spacing:.01em;
   }
 
   .owner-login-label{
