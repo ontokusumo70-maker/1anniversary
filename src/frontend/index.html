@@ -341,7 +341,21 @@
     <div id="ownerViewCsvExport" class="owner-view" hidden>
       <div class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</div>
       <div class="owner-page-heading compact"><div><h1>CSV Export</h1><p>Export data Owner</p></div></div>
-      <div class="owner-export-card"><label>Dari<input id="exportFrom" type="date"></label><label>Sampai<input id="exportTo" type="date"></label><button id="downloadExport" class="primary-button" type="button">DOWNLOAD CSV</button><p id="csvExportMsg" class="msg status-msg"></p></div>
+      <div class="owner-export-card">
+        <div class="owner-export-datasets">
+          <h3>Pilih Data</h3>
+          <label class="owner-check"><input type="checkbox" name="exportDataset" value="customer" checked> Customer</label>
+          <label class="owner-check"><input type="checkbox" name="exportDataset" value="reward-pool" checked> Reward Pool</label>
+          <label class="owner-check"><input type="checkbox" name="exportDataset" value="event" checked> Event</label>
+          <label class="owner-check"><input type="checkbox" name="exportDataset" value="machine-operation" checked> Machine Operation</label>
+        </div>
+        <div class="owner-export-dates">
+          <label>Dari<input id="exportFrom" type="date"></label>
+          <label>Sampai<input id="exportTo" type="date"></label>
+        </div>
+        <button id="downloadExport" class="primary-button" type="button">DOWNLOAD CSV</button>
+        <p id="csvExportMsg" class="msg status-msg"></p>
+      </div>
     </div>
   </section>
   <footer class="footer-mark"><img src="/assets/branding/branding.png" alt="Teras Laundry"><span>1st Anniversary 2026 • 1–10 November</span></footer>
