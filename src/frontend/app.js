@@ -2243,7 +2243,7 @@ function renderCustomerTrace(data) {
   const hasReward = rewards.length > 0;
   const hasQr = rewards.some((row) => row.token_ref);
   const hasRedeem = rewards.some((row) => row.redeemed_at);
-  const hasUsed = rewards.some((row) => row.used_at);
+  const hasClaimed = rewards.some((row) => row.claimed_at);
 
   const journey = [
     {
@@ -2277,10 +2277,10 @@ function renderCustomerTrace(data) {
       at: hasRedeem ? (rewards.find((row) => row.redeemed_at)?.redeemed_at || null) : null,
     },
     {
-      title: "Used",
-      active: hasUsed,
-      text: hasUsed ? "Reward used" : "Belum ada aktivitas",
-      at: hasUsed ? (rewards.find((row) => row.used_at)?.used_at || null) : null,
+      title: "Claimed",
+      active: hasClaimed,
+      text: hasClaimed ? "" : "Belum ada aktivitas",
+      at: hasClaimed ? (rewards.find((row) => row.claimed_at)?.claimed_at || null) : null,
     },
   ];
 
