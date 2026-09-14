@@ -376,9 +376,7 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
       yearly: { from: requestedFrom, to: requestedTo },
     },
     activeEvents: eventOut.filter((event) =>
-      event.active &&
-      event.startsAt < currentEndIso &&
-      event.endsAt >= currentStartIso
+      event.status === "ACTIVE"
     ),
   });
 }
