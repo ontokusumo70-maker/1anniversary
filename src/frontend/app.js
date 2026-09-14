@@ -22,6 +22,8 @@ let apiBase =
 
 let assetBasePath = "/assets/";
 
+const ownerActiveEventObjectUrls = new Map();
+
 async function api(path, options = {}) {
   const headers = {
     "Content-Type": "application/json",
@@ -57,6 +59,18 @@ async function api(path, options = {}) {
   }
 
   return data;
+}
+
+async function apiBlob(path) {
+  const response = await fetch(`${apiBase}${path}`, {
+    headers: state.token ? { Authorization: `Bearer ${state.token}` } : {},
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.message || data.error || `HTTP ${response.status}`);
+  }
+  return response.blob();
 }
 
 function saveSession() {
@@ -166,10 +180,65 @@ async function loadConfig() {
   }
 }
 
+function revokeActiveEventImage(role) {
+  const url = activeEventObjectUrls.get(role);
+  if (url) URL.revokeObjectURL(url);
+  activeEventObjectUrls.delete(role);
+}
+
+function renderRoleActiveEvent(role, data) {
+  const prefix = role === "STAFF" ? "staff" : "customer";
+  const card = $(`${prefix}ActiveEvent`);
+  if (!card) return;
+  revokeActiveEventImage(role);
+  if (!data?.active || !data.event) {
+    card.hidden = true;
+    return;
+  }
+  const event = data.event;
+  $(`${prefix}ActiveEventTitle`).textContent = event.title || "—";
+  $(`${prefix}ActiveEventPeriod`).textContent = formatDateRange(event.startsAt, event.endsAt);
+  const description = $(`${prefix}ActiveEventDescription`);
+  if (description) {
+    description.textContent = event.description || "";
+    description.hidden = !event.description;
+  }
+  const image = $(`${prefix}ActiveEventImage`);
+  if (image) {
+    image.hidden = true;
+    image.removeAttribute("src");
+  }
+  card.hidden = false;
+  if (image && event.imageUrl) {
+    apiBlob(event.imageUrl).then((blob) => {
+      if (card.hidden) return;
+      const objectUrl = URL.createObjectURL(blob);
+      activeEventObjectUrls.set(role, objectUrl);
+      image.src = objectUrl;
+      image.hidden = false;
+    }).catch(() => {});
+  }
+}
+
+async function loadActiveEventForRole(role) {
+  try {
+    const data = await api("/event/active");
+    renderRoleActiveEvent(role, data);
+  } catch {
+    renderRoleActiveEvent(role, null);
+  }
+}
+
 function showRole() {
   document.body.dataset.role = state.role || "CUSTOMER";
   if ($("ownerAuth")) {
     $("ownerAuth").hidden = true;
+  }
+  if ($("staffAuth")) {
+    $("staffAuth").hidden = true;
+  }
+  if ($("staffAuth")) {
+    $("staffAuth").hidden = true;
   }
   if ($("auth")) {
     $("auth").hidden = true;
@@ -191,6 +260,7 @@ function showRole() {
     document.documentElement.style.setProperty("--game-bg", `url("${assetBasePath}background/game/game-bg.PNG")`);
     $("customer").hidden = false;
     refreshMachines();
+    loadActiveEventForRole("CUSTOMER");
     return;
   }
 
@@ -198,6 +268,7 @@ function showRole() {
     document.documentElement.style.setProperty("--game-bg", `url("${assetBasePath}background/staff/staff-bg.PNG")`);
     $("staff").hidden = false;
     refreshStaffMachines();
+    loadActiveEventForRole("STAFF");
     return;
   }
 
@@ -265,7 +336,73 @@ async function loginOwner() {
   }
 }
 
+function showStaffLogin(clearMessage = true) {
+  if ($("ownerAuth")) {
+    $("ownerAuth").hidden = true;
+  }
+  if ($("staffAuth")) {
+    $("staffAuth").hidden = false;
+  }
+  if ($("auth")) {
+    $("auth").hidden = true;
+  }
+  if ($("customer")) {
+    $("customer").hidden = true;
+  }
+  if ($("staff")) {
+    $("staff").hidden = true;
+  }
+  if ($("owner")) {
+    $("owner").hidden = true;
+  }
+  document.body.dataset.role = "STAFF_LOGIN";
+  document.documentElement.style.setProperty(
+    "--staff-bg",
+    `url("${assetBasePath}background/staff/staff-bg.PNG")`,
+  );
+  if (clearMessage) {
+    msg("staffAuthMsg", "");
+  }
+}
+
+async function loginStaffStandalone() {
+  try {
+    const phone = $("staffPhone")?.value.trim() || "";
+
+    if (!phone) {
+      msg("staffAuthMsg", "Nomor Staff wajib diisi.");
+      return;
+    }
+
+    const data = await api("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ phone }),
+    });
+
+    if (data.role !== "STAFF") {
+      throw new Error("Akses Staff tidak valid.");
+    }
+
+    state.token = data.token;
+    state.role = data.role;
+    state.userId = data.userId;
+    state.expiresAt = data.expiresAt || null;
+
+    saveSession();
+    msg("staffAuthMsg", "");
+    showRole();
+  } catch (error) {
+    msg("staffAuthMsg", error.message);
+  }
+}
+
 function showCustomerAuth(clearMessage = true) {
+  if ($("ownerAuth")) {
+    $("ownerAuth").hidden = true;
+  }
+  if ($("staffAuth")) {
+    $("staffAuth").hidden = true;
+  }
   state.authMode = "CUSTOMER";
 
   if ($("emailLabel")) {
@@ -526,6 +663,18 @@ if ($("ownerPhone")) {
   $("ownerPhone").addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       loginOwner();
+    }
+  });
+}
+
+if ($("staffLoginStandalone")) {
+  $("staffLoginStandalone").onclick = loginStaffStandalone;
+}
+
+if ($("staffPhone")) {
+  $("staffPhone").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      loginStaffStandalone();
     }
   });
 }
@@ -1168,8 +1317,14 @@ if ($("scanCamera")) {
 }
 
 let ownerData = null;
+let ownerServerTimeReceivedAt = 0;
+let ownerRealtimeTimer = null;
 let ownerCurrentView = "overview";
 let ownerOperationPeriod = "daily";
+let ownerCustomerPage = 1;
+let ownerCustomerSearch = "";
+let ownerCustomerData = { total: 0, page: 1, pageSize: 10, items: [] };
+let ownerSelectedCustomerId = null;
 
 function getWibDateInputValue(offsetDays = 0) {
   const now = new Date(Date.now() + (7 * 60 * 60 * 1000));
@@ -1220,10 +1375,36 @@ function formatDateRange(start, end) {
 }
 
 function formatDuration(seconds) {
-  const total = Math.max(0, Number(seconds || 0));
-  const hours = Math.floor(total / 3600);
-  const minutes = Math.floor((total % 3600) / 60);
-  return hours ? `${hours} jam ${minutes} mnt` : `${minutes} mnt`;
+  const total = Math.max(0, Math.floor(Number(seconds || 0)));
+  const hours = String(Math.floor(total / 3600)).padStart(2, "0");
+  const minutes = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
+  return `${hours}:${minutes} mnt`;
+}
+
+function ownerRealtimeNow() {
+  const serverTime = Date.parse(ownerData?.serverTime || "");
+  if (!Number.isFinite(serverTime)) return Date.now();
+  const receivedAt = Number(ownerServerTimeReceivedAt || Date.now());
+  return serverTime + Math.max(0, Date.now() - receivedAt);
+}
+
+function formatOwnerRealtime(value) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "—";
+  const parts = new Intl.DateTimeFormat("id-ID", {
+    weekday: "long",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Jakarta",
+  }).formatToParts(date);
+  const get = (type) => parts.find((part) => part.type === type)?.value || "";
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sept", "Okt", "Nov", "Des"];
+  const month = monthNames[Math.max(0, Number(get("month")) - 1)] || get("month");
+  return `${get("weekday")}, ${get("day")} ${month} ${get("year")}   ${get("hour")}.${get("minute")} WIB`;
 }
 
 function ownerIconSvg(name) {
@@ -1281,6 +1462,7 @@ function setOwnerView(view) {
   if (view === "machines") renderOwnerMachines();
   if (view === "events") loadOwnerEvents();
   if (view === "reward-pool") loadOwnerRewardPool();
+  if (view === "customer-trace") loadOwnerCustomers();
 }
 
 function renderOwnerMetrics() {
@@ -1360,6 +1542,7 @@ async function openOwnerActiveEventRewardDetail() {
   }
 }
 
+
 function renderOwnerMachineSummary() {
   const target = $("ownerMachineSummary");
   if (!target) return;
@@ -1387,28 +1570,44 @@ function renderOwnerOperations() {
   const target = $("ownerOperationStats");
   if (!target || !ownerData?.operatingTime) return;
   document.querySelectorAll("#operationPeriods button").forEach((button) => button.classList.toggle("active", button.dataset.period === ownerOperationPeriod));
-  const data = ownerData.operatingTime[ownerOperationPeriod] || { washer: {}, dryer: {} };
+  const data = ownerData.operatingTime[ownerOperationPeriod] || { washer: 0, dryer: 0 };
   target.innerHTML = `
-    <div class="operation-stat"><span class="operation-stat-icon washer-clock">${ownerIconSvg("clock")}</span><div><span>Total Waktu Operasi<br>Washer</span><b>${formatDuration(Number(data.washer?.seconds || 0))}</b></div></div>
-    <div class="operation-stat"><span class="operation-stat-icon dryer-clock">${ownerIconSvg("clock")}</span><div><span>Total Waktu Operasi<br>Dryer</span><b>${formatDuration(Number(data.dryer?.seconds || 0))}</b></div></div>
+    <div class="operation-stat"><span class="operation-stat-icon washer-clock">${ownerIconSvg("clock")}</span><div><span>Total Waktu Operasi<br>Washer</span><b>${formatDuration(Number(data.washer || 0))}</b></div></div>
+    <div class="operation-stat"><span class="operation-stat-icon dryer-clock">${ownerIconSvg("clock")}</span><div><span>Total Waktu Operasi<br>Dryer</span><b>${formatDuration(Number(data.dryer || 0))}</b></div></div>
   `;
+}
+
+function revokeOwnerActiveEventImages() {
+  for (const url of ownerActiveEventObjectUrls.values()) URL.revokeObjectURL(url);
+  ownerActiveEventObjectUrls.clear();
 }
 
 function renderOwnerActiveEvents() {
   const target = $("ownerActiveEvents");
   if (!target) return;
   const events = ownerData?.activeEvents || [];
+  revokeOwnerActiveEventImages();
   if (!events.length) {
     target.innerHTML = `<div class="owner-list-item"><small>Tidak ada event aktif.</small></div>`;
     return;
   }
-  target.innerHTML = events.map((event) => `
+  target.innerHTML = events.map((event, index) => `
     <button class="active-event" type="button" data-open-events="1">
       <span class="active-event-icon">${ownerIconSvg("calendar")}</span>
-      <span class="active-event-copy"><b>${escapeHtml(event.title)}</b><span>${escapeHtml(formatDateRange(event.startsAt, event.endsAt))}</span></span>
+      <span class="active-event-copy">${event.imageUrl ? `<img class="active-event-image" data-owner-event-image="${escapeHtml(event.eventId)}" alt="Image Event Aktif">` : ""}<b>${escapeHtml(event.title)}</b><span>${escapeHtml(formatDateRange(event.startsAt, event.endsAt))}</span></span>
       <span class="arrow">›</span>
     </button>
   `).join("");
+  events.forEach((event) => {
+    if (!event.imageUrl) return;
+    const image = Array.from(target.querySelectorAll("[data-owner-event-image]")).find((item) => item.dataset.ownerEventImage === event.eventId);
+    if (!image) return;
+    apiBlob(event.imageUrl).then((blob) => {
+      const objectUrl = URL.createObjectURL(blob);
+      ownerActiveEventObjectUrls.set(event.eventId, objectUrl);
+      image.src = objectUrl;
+    }).catch(() => {});
+  });
   target.querySelectorAll("[data-open-events]").forEach((button) => button.onclick = () => setOwnerView("events"));
 }
 
@@ -1431,6 +1630,8 @@ function formatRemaining(seconds) {
 function renderOwnerMachines() {
   const target = $("ownerAllMachines");
   if (!target) return;
+  const clock = $("ownerMachineRealtime");
+  if (clock) clock.textContent = formatOwnerRealtime(ownerRealtimeNow());
   const machines = ownerData?.machines || [];
   const washerCount = machines.filter((m) => m.type === "WASHER").length || 5;
   const dryerCount = machines.filter((m) => m.type === "DRYER").length || 5;
@@ -1447,7 +1648,10 @@ function renderOwnerMachines() {
     const inUse = machine.status === "IN_USE";
     const type = machine.type === "WASHER" ? "Washer" : "Dryer";
     const icon = machine.type === "WASHER" ? "washer" : "dryer";
-    const time = inUse ? formatRemaining(remaining) : "-";
+    const elapsedSeconds = inUse && machine.startedAt
+      ? Math.max(0, Math.floor((ownerRealtimeNow() - Date.parse(machine.startedAt)) / 1000))
+      : 0;
+    const time = formatDuration(elapsedSeconds);
     return `<div class="owner-machine-row"><span class="machine-row-icon">${ownerIconSvg(icon)}</span><span class="machine-row-id">${type === "Washer" ? "W" : "D"}${escapeHtml(machine.machineNumber)}</span><span class="machine-row-type">${type}</span><span class="machine-row-status ${inUse ? "busy" : "idle"}">${inUse ? "Terpakai" : "Idle"}</span><span class="machine-row-time">${time}</span></div>`;
   }).join("") || `<div class="owner-machine-row-empty">Tidak ada mesin.</div>`;
   mountOwnerIcons();
@@ -1565,9 +1769,8 @@ function openRewardDetail(rewardType, eventId = null) {
   $("rewardPoolListView").hidden = true;
   $("rewardFormCard").hidden = true;
   $("rewardDetailView").hidden = false;
-  const events = eventId
-    ? (item.events || []).filter((event) => event.eventId === eventId)
-    : (item.events || []);
+  const allEvents = item.events || [];
+  const events = eventId ? allEvents.filter((event) => event.eventId === eventId) : allEvents;
   $("rewardDetailCard").innerHTML = `
     <div class="locked-detail-rows">
       <div><span>Nama Reward</span><b>${escapeHtml(item.rewardType)}</b></div>
@@ -1582,6 +1785,7 @@ function openRewardDetail(rewardType, eventId = null) {
     </div>`;
   msg("rewardDetailMsg", "");
 }
+
 
 function closeRewardViews() {
   $("rewardFormCard").hidden = true;
@@ -1714,6 +1918,110 @@ function closeEventViews() {
   editingEventId = null;
 }
 
+function revokeEventImagePreview() {
+  if (eventImageObjectUrl) {
+    URL.revokeObjectURL(eventImageObjectUrl);
+    eventImageObjectUrl = null;
+  }
+}
+
+function resetEventImageUI() {
+  revokeEventImagePreview();
+  const input = $("eventImage");
+  const preview = $("eventImagePreview");
+  const remove = $("removeEventImageButton");
+  if (input) { input.value = ""; input.disabled = false; }
+  if (preview) { preview.hidden = true; preview.removeAttribute("src"); }
+  if (remove) remove.hidden = true;
+  msg("eventImageMsg", "");
+}
+
+function setEventImagePreview(src, revokePrevious = false) {
+  const preview = $("eventImagePreview");
+  if (!preview) return;
+  if (revokePrevious) revokeEventImagePreview();
+  preview.src = src;
+  preview.hidden = false;
+  $("removeEventImageButton") && ($("removeEventImageButton").hidden = false);
+}
+
+async function loadOwnerEventImage(eventId) {
+  try {
+    const blob = await apiBlob(`/owner/events/${encodeURIComponent(eventId)}/image`);
+    revokeEventImagePreview();
+    eventImageObjectUrl = URL.createObjectURL(blob);
+    setEventImagePreview(eventImageObjectUrl);
+  } catch {
+    // No image is a valid state.
+  }
+}
+
+function eventFormImageIsActive(event = null) {
+  if (event && $("eventStatus")?.value === "INACTIVE") return false;
+  const start = $("eventStartsAt")?.value || (event ? toDateInput(event.startsAt) : "");
+  const end = $("eventEndsAt")?.value || (event ? toDateInput(event.endsAt) : "");
+  if (!start || !end) return false;
+  const now = Date.now();
+  const startMs = Date.parse(`${start}T00:00:00+07:00`);
+  const endMs = Date.parse(`${end}T23:59:59+07:00`);
+  return Number.isFinite(startMs) && Number.isFinite(endMs) && now >= startMs && now < endMs;
+}
+
+function updateEventImageAvailability(event = null) {
+  const input = $("eventImage");
+  if (!input) return;
+  input.disabled = !eventFormImageIsActive(event);
+}
+
+async function uploadEventImage(eventId) {
+  const input = $("eventImage");
+  const file = input?.files?.[0];
+  if (!file) return false;
+  const prepared = await prepareEventImage(file);
+  await fetch(`${apiBase}/owner/events/${encodeURIComponent(eventId)}/image`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${state.token}`, "Content-Type": prepared.type },
+    body: prepared.blob,
+    cache: "no-store",
+  }).then(async (response) => {
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.message || data.error || `HTTP ${response.status}`);
+    }
+  });
+  return true;
+}
+
+async function deleteEventImage(eventId) {
+  await api(`/owner/events/${encodeURIComponent(eventId)}/image`, { method: "DELETE" });
+}
+
+async function prepareEventImage(file) {
+  if (!file || !/^image\/(jpeg|webp)$/i.test(file.type)) throw new Error("Image harus JPG atau WebP.");
+  const sourceUrl = URL.createObjectURL(file);
+  try {
+    const image = new Image();
+    image.decoding = "async";
+    image.src = sourceUrl;
+    await image.decode();
+    const scale = Math.min(1, 1200 / image.naturalWidth, 1200 / image.naturalHeight);
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Image tidak dapat diproses.");
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const type = "image/webp";
+    for (const quality of [0.86, 0.78, 0.7, 0.62, 0.54, 0.46]) {
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, type, quality));
+      if (blob && blob.size <= 307200) return { blob, type };
+    }
+    throw new Error("Image tetap lebih dari 300 KB setelah kompresi.");
+  } finally {
+    URL.revokeObjectURL(sourceUrl);
+  }
+}
+
 function openEventForm(eventId = null) {
   editingEventId = eventId;
   $("eventDetailView").hidden = true;
@@ -1732,6 +2040,11 @@ function openEventForm(eventId = null) {
   $("eventDescriptionCount").textContent = `${($("eventDescription").value || "").length}/200`;
   $("eventStatusField").hidden = !event;
   if (event) $("eventStatus").value = event.active ? "ACTIVE" : "INACTIVE";
+  resetEventImageUI();
+  updateEventImageAvailability(event);
+  if (event && eventCategory(event) === "ACTIVE") {
+    loadOwnerEventImage(event.eventId);
+  }
   updateEventRewardStock();
   msg("eventFormMsg", "");
 }
@@ -1751,7 +2064,12 @@ async function saveEvent() {
     };
     if (!body.title || !start || !end || !body.rewardType || !Number.isInteger(body.rewardQuantity) || body.rewardQuantity < 1) throw new Error("Lengkapi data event.");
     const path = editingEventId ? `/owner/events/${encodeURIComponent(editingEventId)}` : "/owner/events";
-    await api(path, { method: editingEventId ? "PATCH" : "POST", body: JSON.stringify(body) });
+    const saved = await api(path, { method: editingEventId ? "PATCH" : "POST", body: JSON.stringify(body) });
+    if (body.active && editingEventId && eventFormImageIsActive(ownerData?.events?.find((row) => row.eventId === editingEventId)) && $("eventImage")?.files?.[0]) {
+      await uploadEventImage(editingEventId);
+    } else if (body.active && !editingEventId && saved.eventId && eventFormImageIsActive(null) && $("eventImage")?.files?.[0]) {
+      await uploadEventImage(saved.eventId);
+    }
     closeEventViews();
     await loadOwnerData();
     setOwnerView("events");
@@ -1773,26 +2091,154 @@ async function deleteEvent() {
   }
 }
 
-function renderCustomerTrace(data) {
-  const target = $("traceResult");
-  if (!target) return;
-  const customer = data.customer;
-  const timeline = [
-    ...(data.transactions || []).map((row) => ({ title: "Transaction", text: `${row.transaction_id} · ${row.service_type}` })),
-    ...(data.plays || []).map((row) => ({ title: "Play", text: `${row.play_id} · ${row.status}` })),
-    ...(data.rewards || []).map((row) => ({ title: "Reward", text: `${row.reward_id} · ${row.type} · ${row.status}` })),
-  ];
-  target.innerHTML = `<div class="trace-customer-card"><h2>${escapeHtml(customer.name || "Nama belum tersedia")}</h2><p>${escapeHtml(customer.customer_id)}</p><p>${escapeHtml(customer.phone_masked || "—")} · ${escapeHtml(customer.email || "—")}</p><p>Registrasi: ${escapeHtml(formatDateTime(customer.created_at))}</p><div class="trace-timeline">${timeline.length ? timeline.map((item) => `<div class="trace-step"><b>${escapeHtml(item.title)}</b><span>${escapeHtml(item.text)}</span></div>`).join("") : `<div class="trace-step"><span>Belum ada aktivitas.</span></div>`}</div></div>`;
+function formatCustomerDate(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Jakarta" }).format(date);
 }
 
-async function runCustomerTrace() {
-  try {
-    const id = $("traceCustomerId").value.trim();
-    if (!id) throw new Error("Customer ID wajib diisi.");
-    renderCustomerTrace(await api(`/owner/customer/${encodeURIComponent(id)}`));
-  } catch (error) {
-    $("traceResult").textContent = error.message;
+function formatCustomerTime(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jakarta" }).format(date).replace(",", "");
+}
+
+function renderCustomerTraceList(data) {
+  const target = $("ownerCustomerList");
+  if (!target) return;
+  ownerCustomerData = data || { total: 0, page: 1, pageSize: 10, items: [] };
+  const items = ownerCustomerData.items || [];
+  const total = Number(ownerCustomerData.total || 0);
+  const page = Number(ownerCustomerData.page || 1);
+  const pageSize = Number(ownerCustomerData.pageSize || 10);
+  const from = total ? ((page - 1) * pageSize) + 1 : 0;
+  const to = Math.min(page * pageSize, total);
+  $("ownerCustomerTotal") && ($("ownerCustomerTotal").textContent = `${total.toLocaleString("id-ID")} Customers`);
+  target.innerHTML = items.length ? `<div class="owner-customer-table-wrap"><table class="owner-customer-table"><thead><tr><th>#</th><th>Email ID</th><th>No. HP</th><th>Play</th><th>Reward</th><th>Status</th><th></th></tr></thead><tbody>${items.map((item, index) => `<tr data-customer-id="${escapeHtml(item.customerId)}"><td>${from + index}</td><td>${escapeHtml(item.email || "—")}</td><td>${escapeHtml(item.phoneMasked || "—")}</td><td>${Number(item.totalPlay || 0)}</td><td>${Number(item.totalReward || 0)}</td><td><span class="owner-customer-status">Active</span></td><td><button type="button" class="owner-customer-open" aria-label="Buka detail customer">›</button></td></tr>`).join("")}</tbody></table></div>` : `<div class="owner-customer-empty">Belum ada customer terdaftar.</div>`;
+  target.querySelectorAll("[data-customer-id]").forEach((row) => row.addEventListener("click", () => openCustomerDetail(row.dataset.customerId)));
+  renderCustomerPagination(total, page, pageSize);
+}
+
+function renderCustomerPagination(total, page, pageSize) {
+  const target = $("ownerCustomerPagination");
+  const summary = $("ownerCustomerPaginationSummary");
+  if (!target) return;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  if (summary) summary.textContent = total ? `${((page - 1) * pageSize) + 1} – ${Math.min(page * pageSize, total)} dari ${total}` : "0 dari 0";
+  if (totalPages <= 1) { target.innerHTML = ""; return; }
+  const buttons = [];
+  buttons.push(`<button type="button" data-customer-page="${Math.max(1, page - 1)}" ${page === 1 ? "disabled" : ""}>‹</button>`);
+  const pages = [];
+  if (totalPages <= 7) for (let i = 1; i <= totalPages; i++) pages.push(i);
+  else {
+    pages.push(1);
+    if (page > 4) pages.push("…");
+    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) pages.push(i);
+    if (page < totalPages - 3) pages.push("…");
+    pages.push(totalPages);
   }
+  pages.forEach((item) => buttons.push(item === "…" ? `<span class="owner-customer-page-gap">…</span>` : `<button type="button" data-customer-page="${item}" class="${item === page ? "active" : ""}">${item}</button>`));
+  buttons.push(`<button type="button" data-customer-page="${Math.min(totalPages, page + 1)}" ${page === totalPages ? "disabled" : ""}>›</button>`);
+  target.innerHTML = buttons.join("");
+  target.querySelectorAll("[data-customer-page]").forEach((button) => button.addEventListener("click", () => { ownerCustomerPage = Number(button.dataset.customerPage); loadOwnerCustomers(); }));
+}
+
+async function loadOwnerCustomers() {
+  try {
+    const params = new URLSearchParams({ page: String(ownerCustomerPage), pageSize: "10" });
+    if (ownerCustomerSearch) params.set("search", ownerCustomerSearch);
+    renderCustomerTraceList(await api(`/owner/customers?${params.toString()}`));
+  } catch (error) {
+    const target = $("ownerCustomerList");
+    if (target) target.innerHTML = `<div class="owner-customer-empty">${escapeHtml(error.message)}</div>`;
+  }
+}
+
+async function openCustomerDetail(customerId) {
+  ownerSelectedCustomerId = customerId;
+  const listView = $("ownerCustomerListView");
+  const detailView = $("ownerCustomerDetailView");
+  if (listView) listView.hidden = true;
+  if (detailView) detailView.hidden = false;
+  const target = $("ownerCustomerDetail");
+  if (target) target.innerHTML = `<div class="owner-customer-loading">Memuat customer...</div>`;
+  try {
+    renderCustomerTrace(await api(`/owner/customer/${encodeURIComponent(customerId)}`));
+  } catch (error) {
+    if (target) target.innerHTML = `<div class="owner-customer-empty">${escapeHtml(error.message)}</div>`;
+  }
+}
+
+function renderCustomerTrace(data) {
+  const target = $("ownerCustomerDetail");
+  if (!target) return;
+  const customer = data.customer || {};
+  const event = data.event || null;
+  const transactions = data.transactions || [];
+  const plays = data.plays || [];
+  const rewards = data.rewards || [];
+
+  const latestTransaction = transactions[0] || null;
+  const latestPlay = plays[0] || null;
+  const latestReward = rewards[0] || null;
+  const hasTransaction = transactions.length > 0;
+  const hasPlay = plays.length > 0;
+  const hasReward = rewards.length > 0;
+  const hasQr = rewards.some((row) => row.token_ref);
+  const hasRedeem = rewards.some((row) => row.redeemed_at);
+  const hasUsed = rewards.some((row) => row.used_at);
+
+  const journey = [
+    {
+      title: "Transaction",
+      active: hasTransaction,
+      text: hasTransaction ? `${latestTransaction.transaction_id || "—"} · ${latestTransaction.service_type || "Transaction"}` : "Belum ada aktivitas",
+      at: hasTransaction ? latestTransaction.created_at : null,
+    },
+    {
+      title: "Play",
+      active: hasPlay,
+      text: hasPlay ? `${latestPlay.session_id || latestPlay.play_id || "—"}${latestPlay.status ? ` · ${latestPlay.status}` : ""}` : "Belum ada aktivitas",
+      at: hasPlay ? latestPlay.created_at : null,
+    },
+    {
+      title: "Reward",
+      active: hasReward,
+      text: hasReward ? `${latestReward.reward_id || "—"}${latestReward.type ? ` (${latestReward.type})` : ""}` : "Belum ada aktivitas",
+      at: hasReward ? latestReward.created_at : null,
+    },
+    {
+      title: "QR Reference",
+      active: hasQr,
+      text: hasQr ? String(rewards.find((row) => row.token_ref)?.token_ref || "—") : "Belum ada aktivitas",
+      at: hasQr ? (rewards.find((row) => row.token_ref)?.created_at || null) : null,
+    },
+    {
+      title: "Redeem",
+      active: hasRedeem,
+      text: hasRedeem ? "Reward redeemed" : "Belum ada aktivitas",
+      at: hasRedeem ? (rewards.find((row) => row.redeemed_at)?.redeemed_at || null) : null,
+    },
+    {
+      title: "Used",
+      active: hasUsed,
+      text: hasUsed ? "Reward used" : "Belum ada aktivitas",
+      at: hasUsed ? (rewards.find((row) => row.used_at)?.used_at || null) : null,
+    },
+  ];
+
+  const totalPlay = plays.length;
+  const totalReward = rewards.length;
+  const totalRedeemed = rewards.filter((row) => row.redeemed_at).length;
+  const eventName = event?.event_title || "—";
+  const eventPeriod = event ? `${formatCustomerDate(event.event_starts_at)} – ${formatCustomerDate(event.event_ends_at)}` : "—";
+
+  target.innerHTML = `<div class="owner-customer-detail-heading"><h1>Customer Detail</h1><p>${escapeHtml(customer.customer_id || "—")}</p></div>
+    <div class="owner-customer-info-card"><div><span>Alamat Email</span><b>${escapeHtml(customer.email || "—")}</b></div><div><span>No. HP</span><b>${escapeHtml(customer.phone_masked || "—")}</b></div><div><span>Registrasi</span><b>${escapeHtml(formatCustomerDate(customer.created_at))}</b></div><div><span>Event</span><b>${escapeHtml(eventName)}</b></div><div><span>Periode Event</span><b>${escapeHtml(eventPeriod)}</b></div><div><span>Total Play</span><b>${totalPlay}</b></div><div><span>Total Reward</span><b>${totalReward}</b></div><div><span>Total Redeemed</span><b>${totalRedeemed}</b></div><div><span>Status</span><b><em class="owner-customer-status">Active</em></b></div></div>
+    <h2 class="owner-customer-journey-title">Customer Journey</h2>
+    <div class="owner-customer-journey">${journey.map((item, index) => `<div class="owner-journey-item${item.active ? "" : " inactive"}"><span class="owner-journey-dot"></span><div><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.text)}</small></div><time>${escapeHtml(item.at ? formatCustomerTime(item.at) : "—")}</time></div>`).join("")}</div>`;
 }
 
 async function loadOwnerAudit() {
@@ -1816,6 +2262,7 @@ async function loadOwnerData(range = null) {
     const query = new URLSearchParams({ from: selected.from, to: selected.to });
     const data = await api(`/owner/overview?${query.toString()}`);
     ownerData = data;
+    ownerServerTimeReceivedAt = Date.now();
     ensureOwnerDateRange();
     renderOwnerOverview();
     renderOwnerEvents(data.activeEvents || []);
@@ -1878,6 +2325,39 @@ $("cancelEventButton")?.addEventListener("click", closeEventViews);
 
 $("eventDescription")?.addEventListener("input", () => { $("eventDescriptionCount").textContent = `${$("eventDescription").value.length}/200`; });
 $("eventRewardType")?.addEventListener("change", updateEventRewardStock);
+$("eventStartsAt")?.addEventListener("change", () => updateEventImageAvailability(ownerData?.events?.find((row) => row.eventId === editingEventId) || null));
+$("eventEndsAt")?.addEventListener("change", () => updateEventImageAvailability(ownerData?.events?.find((row) => row.eventId === editingEventId) || null));
+$("eventStatus")?.addEventListener("change", () => updateEventImageAvailability(ownerData?.events?.find((row) => row.eventId === editingEventId) || null));
+$("eventImage")?.addEventListener("change", () => {
+  const file = $("eventImage")?.files?.[0];
+  msg("eventImageMsg", "");
+  if (!file) return;
+  if (!eventFormImageIsActive(ownerData?.events?.find((row) => row.eventId === editingEventId) || null)) {
+    $("eventImage").value = "";
+    msg("eventImageMsg", "Image hanya dapat disimpan untuk Event Aktif.");
+    return;
+  }
+  if (!/^image\/(jpeg|webp)$/i.test(file.type)) {
+    $("eventImage").value = "";
+    msg("eventImageMsg", "Image harus JPG atau WebP.");
+    return;
+  }
+  if (file.size > 307200) {
+    msg("eventImageMsg", "File akan dikompresi maksimal 300 KB saat disimpan.");
+  }
+  const previewUrl = URL.createObjectURL(file);
+  setEventImagePreview(previewUrl, true);
+  eventImageObjectUrl = previewUrl;
+});
+$("removeEventImageButton")?.addEventListener("click", async () => {
+  try {
+    if (editingEventId) await deleteEventImage(editingEventId);
+    resetEventImageUI();
+    updateEventImageAvailability(ownerData?.events?.find((row) => row.eventId === editingEventId) || null);
+  } catch (error) {
+    msg("eventImageMsg", error.message);
+  }
+});
 $("cancelEventTop")?.addEventListener("click", closeEventViews);
 $("saveEventButton")?.addEventListener("click", saveEvent);
 $("newRewardButton")?.addEventListener("click", () => openRewardForm());
@@ -1891,7 +2371,9 @@ $("eventDetailBack")?.addEventListener("click", () => { closeEventViews(); setOw
 $("editEventButton")?.addEventListener("click", () => { if (selectedEventId) openEventForm(selectedEventId); });
 $("deleteEventButton")?.addEventListener("click", deleteEvent);
 $("loadOwner")?.addEventListener("click", loadOwnerData);
-$("traceCustomer")?.addEventListener("click", runCustomerTrace);
+$("ownerCustomerSearchButton")?.addEventListener("click", () => { ownerCustomerSearch = ($("ownerCustomerSearch")?.value || "").trim(); ownerCustomerPage = 1; loadOwnerCustomers(); });
+$("ownerCustomerSearch")?.addEventListener("keydown", (event) => { if (event.key === "Enter") { ownerCustomerSearch = event.currentTarget.value.trim(); ownerCustomerPage = 1; loadOwnerCustomers(); } });
+$("ownerCustomerDetailBack")?.addEventListener("click", () => { const list = $("ownerCustomerListView"); const detail = $("ownerCustomerDetailView"); if (list) list.hidden = false; if (detail) detail.hidden = true; ownerSelectedCustomerId = null; });
 
 $("downloadExport")?.addEventListener("click", async () => {
   try {
@@ -1915,7 +2397,7 @@ $("downloadExport")?.addEventListener("click", async () => {
 
 $("ownerLogout")?.addEventListener("click", () => {
   clearSession();
-  window.location.href = "?role=owner";
+  window.location.href = "/";
 });
 
 
@@ -1939,6 +2421,15 @@ async function loadOwner() {
   ownerCurrentView = "overview";
   setOwnerView("overview");
   await loadOwnerData();
+  if (!ownerRealtimeTimer) {
+    ownerRealtimeTimer = window.setInterval(() => {
+      if (ownerCurrentView === "machines") {
+        const clock = $("ownerMachineRealtime");
+        if (clock) clock.textContent = formatOwnerRealtime(ownerRealtimeNow());
+        renderOwnerMachines();
+      }
+    }, 30000);
+  }
 }
 
 function makeQrSvg(text) {
@@ -2311,19 +2802,15 @@ async function initialize() {
     return;
   }
 
-  const params = new URLSearchParams(window.location.search);
-  const queryRole = params.get("role")?.toLowerCase() || "";
-  const hashRole = window.location.hash.replace(/^#/, "").toLowerCase();
-  const requestedRole = queryRole || hashRole;
+  const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
 
-  if (requestedRole === "customer") {
+  if (pathname === "/customer") {
     showCustomerAuth();
     return;
   }
 
-  if (requestedRole === "staff") {
-    showCustomerAuth();
-    showStaffOwnerAuth();
+  if (pathname === "/staff") {
+    showStaffLogin();
     return;
   }
 
