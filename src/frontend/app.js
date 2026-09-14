@@ -1499,7 +1499,7 @@ function renderOwnerMetrics() {
     const percentageText = vsPrevious
       ? `${arrow} ${Math.abs(numericPercentage)}%`
       : `${Math.abs(numericPercentage)}%`;
-    const note = vsPrevious ? `<span class="owner-metric-note">vs sebelumnya</span>` : "";
+    const note = (vsPrevious || label === "Reward Claimed" || label === "Reward Redeemed") ? `<span class="owner-metric-note">vs sebelumnya</span>` : "";
     const action = actionName ? ` data-owner-metric-action="${actionName}" role="button" tabindex="0"` : "";
     const aria = actionName === "active-event-customer"
       ? ` aria-label="Lihat customer aktif event"`
@@ -1542,14 +1542,33 @@ async function openOwnerActiveEventCustomerList() {
 }
 
 async function openOwnerActiveEventRewardDetail() {
-  const activeEvents = (ownerData?.activeEvents || []).filter((event) => eventCategory(event) === "ACTIVE");
-  const activeEvent = activeEvents[0] || null;
-  if (!activeEvent) {
-    msg("ownerResult", "Tidak ada event aktif.");
-    return;
-  }
-
   try {
+    msg("ownerResult", "");
+
+    // Resolve the ACTIVE event from the authoritative Owner Events endpoint.
+    // Do not rely on a stale overview snapshot for navigation.
+    const eventData = await api("/owner/events");
+    const events = Array.isArray(eventData?.items) ? eventData.items : [];
+    const activeEvents = events
+      .filter((event) => eventCategory(event) === "ACTIVE")
+      .sort((a, b) => {
+        const startDiff = Date.parse(b.startsAt) - Date.parse(a.startsAt);
+        return Number.isFinite(startDiff) && startDiff !== 0
+          ? startDiff
+          : String(b.eventId || "").localeCompare(String(a.eventId || ""));
+      });
+    const activeEvent = activeEvents[0] || null;
+
+    if (!activeEvent) {
+      msg("ownerResult", "Tidak ada event aktif saat ini.");
+      return;
+    }
+
+    ownerData = ownerData || {};
+    ownerData.events = events;
+    ownerData.activeEvents = activeEvents;
+
+    // Load the Reward Pool once and wait for it before resolving the detail.
     await setOwnerView("reward-pool");
 
     const rewardPool = ownerData?.rewardPool || [];
@@ -1569,7 +1588,7 @@ async function openOwnerActiveEventRewardDetail() {
 
     openRewardDetail(item.rewardType, activeEvent.eventId);
   } catch (error) {
-    msg("rewardDetailMsg", error.message);
+    msg("ownerResult", error.message);
   }
 }
 
