@@ -1287,15 +1287,33 @@ function renderOwnerMetrics() {
   const data = ownerData?.metrics;
   const target = $("ownerMetrics");
   if (!target || !data) return;
+
+  const totalRewardSupplied = Number(data.totalRewardSupplied || 0);
+  const claimed = Number(data.claimed || 0);
+  const redeemed = Number(data.redeemed || 0);
+  const claimedPercentage = totalRewardSupplied > 0
+    ? Math.round((claimed / totalRewardSupplied) * 100)
+    : 0;
+  const redeemedPercentage = totalRewardSupplied > 0
+    ? Math.round((redeemed / totalRewardSupplied) * 100)
+    : 0;
+
   const items = [
-    ["Total Customer", data.participants, "user", data.participantsChangePct],
-    ["Reward Claimed", data.claimed, "gift", data.claimedChangePct],
-    ["Reward Redeemed", data.redeemed, "percent", data.redeemedChangePct],
+    ["Total Customer", data.participants, "user", data.participantsChangePct, true],
+    ["Reward Claimed", claimed, "gift", claimedPercentage, false],
+    ["Reward Redeemed", redeemed, "percent", redeemedPercentage, false],
   ];
-  target.innerHTML = items.map(([label, value, icon, change]) => {
-    const percentage = Number(change || 0);
-    const arrow = percentage > 0 ? "↑" : percentage < 0 ? "↓" : "→";
-    return `<div class="owner-metric-card"><span class="owner-metric-icon ${icon}">${ownerIconSvg(icon)}</span><small>${label}</small><b>${Number(value || 0).toLocaleString("id-ID")}</b><em>${arrow} ${Math.abs(percentage)}%</em><span class="owner-metric-note">vs sebelumnya</span></div>`;
+
+  target.innerHTML = items.map(([label, value, icon, percentage, vsPrevious]) => {
+    const numericPercentage = Number(percentage || 0);
+    const arrow = vsPrevious
+      ? (numericPercentage > 0 ? "↑" : numericPercentage < 0 ? "↓" : "→")
+      : "";
+    const percentageText = vsPrevious
+      ? `${arrow} ${Math.abs(numericPercentage)}%`
+      : `${Math.abs(numericPercentage)}%`;
+    const note = vsPrevious ? `<span class="owner-metric-note">vs sebelumnya</span>` : "";
+    return `<div class="owner-metric-card"><span class="owner-metric-icon ${icon}">${ownerIconSvg(icon)}</span><small>${label}</small><b>${Number(value || 0).toLocaleString("id-ID")}</b><em>${percentageText}</em>${note}</div>`;
   }).join("");
 }
 
