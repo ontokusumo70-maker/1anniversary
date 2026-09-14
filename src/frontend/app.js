@@ -1497,9 +1497,7 @@ function renderOwnerMetrics() {
       ? (numericPercentage > 0 ? "↑" : numericPercentage < 0 ? "↓" : "→")
       : "";
     const percentageText = vsPrevious
-      ? (label === "Total Customer"
-        ? `${Math.abs(numericPercentage)}%`
-        : `${arrow} ${Math.abs(numericPercentage)}%`)
+      ? `${arrow} ${Math.abs(numericPercentage)}%`
       : `${Math.abs(numericPercentage)}%`;
     const note = (vsPrevious || label === "Reward Claimed" || label === "Reward Redeemed") ? `<span class="owner-metric-note">vs sebelumnya</span>` : "";
     const action = actionName ? ` data-owner-metric-action="${actionName}" role="button" tabindex="0"` : "";
@@ -1562,7 +1560,7 @@ async function openOwnerActiveEventRewardDetail() {
     const activeEvent = activeEvents[0] || null;
 
     if (!activeEvent) {
-      msg("ownerResult", "Copyright 2026 - Teras Laundry Koin Ciwaruga");
+      msg("ownerResult", "Tidak ada event aktif saat ini.");
       return;
     }
 
@@ -2439,7 +2437,12 @@ $("ownerCustomerDetailBack")?.addEventListener("click", () => { const list = $("
 
 $("downloadExport")?.addEventListener("click", async () => {
   try {
+    const selectedDatasets = [...document.querySelectorAll('input[name="exportDataset"]:checked')]
+      .map((input) => input.value);
+    if (!selectedDatasets.length) throw new Error("Pilih minimal satu data untuk di-download.");
+
     const params = new URLSearchParams();
+    params.set("datasets", selectedDatasets.join(","));
     if ($("exportFrom").value) params.set("from", `${$("exportFrom").value}T00:00:00+07:00`);
     if ($("exportTo").value) params.set("to", `${$("exportTo").value}T23:59:59+07:00`);
     const response = await fetch(`${apiBase}/owner/export?${params}`, { headers: { Authorization: `Bearer ${state.token}` }, cache: "no-store" });
