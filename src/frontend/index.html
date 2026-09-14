@@ -120,28 +120,64 @@
   </section>
 
   <section id="staff" class="screen screen-staff" hidden>
-    <div class="role-hero">
-      <div><span class="eyebrow">CASHIER / STAFF</span><h1>Staff Validation</h1><p>Scan QR. Validasi member. Redeem otomatis pada scan pertama yang valid.</p></div>
-      <img src="/assets/mascot/mascot_point.png" alt="Staff mascot">
-    </div>
-    <section id="staffActiveEvent" class="card active-event-info-card" hidden>
-      <div class="active-event-info-heading"><div><span class="eyebrow">EVENT AKTIF</span><h2 id="staffActiveEventTitle"></h2><p id="staffActiveEventPeriod"></p></div></div>
-      <img id="staffActiveEventImage" class="active-event-info-image" alt="Image Event Aktif" hidden>
-      <p id="staffActiveEventDescription" class="active-event-info-description" hidden></p>
+    <section id="staffDashboard" class="staff-dashboard">
+      <header class="staff-dashboard-header">
+        <div>
+          <span class="eyebrow">STAFF</span>
+          <h1>Dashboard Staff</h1>
+          <p>Teras Laundry 1st Anniversary</p>
+        </div>
+        <span class="staff-dashboard-bell" aria-hidden="true">●</span>
+      </header>
+
+      <div class="staff-dashboard-date" aria-label="Tanggal hari ini">
+        <strong id="staffDayName">—</strong>
+        <span id="staffDateFull">—</span>
+      </div>
+
+      <div class="staff-dashboard-grid">
+        <div class="staff-dashboard-card">
+          <span class="staff-card-icon" aria-hidden="true">▦</span>
+          <span class="staff-card-title">Event Aktif</span>
+          <span id="staffDashboardEventTitle" class="staff-card-value">Memuat event...</span>
+          <span id="staffDashboardEventPeriod" class="staff-card-note">—</span>
+          <span class="staff-card-arrow" aria-hidden="true">→</span>
+        </div>
+
+        <div class="staff-dashboard-card">
+          <span class="staff-card-icon" aria-hidden="true">◉</span>
+          <span class="staff-card-title">Status Mesin</span>
+          <span id="staffDashboardMachineSummary" class="staff-card-value">5 Washer · 5 Dryer</span>
+          <span class="staff-card-note">Lihat status dan aktivasi mesin</span>
+          <span class="staff-card-arrow" aria-hidden="true">→</span>
+        </div>
+      </div>
+
+      <div class="staff-dashboard-mascot">
+        <p>Terima kasih telah memberikan pelayanan terbaik!</p>
+        <img src="/assets/mascot/mascot_happy.png" alt="Staff mascot">
+      </div>
     </section>
-    <div class="card scanner-card">
-      <div class="step-chip"><span>1</span> Scan QR Reward</div>
-      <p id="scannerSupport" class="section-note">Scan QR reward menggunakan kamera tablet Android.</p>
-      <button id="scanCamera" class="primary-button">SCAN QR DENGAN KAMERA</button>
-      <button id="uploadQr" class="secondary-button" type="button">UPLOAD QR DARI GALERI</button>
-      <input id="qrUploadInput" type="file" accept="image/*" hidden>
-      <video id="camera" playsinline autoplay hidden></video>
-      <pre id="staffResult"></pre>
-    </div>
-    <div class="card machine-card">
-      <div class="card-title-row"><div><span class="eyebrow">OPERASIONAL</span><h2>Aktivasi Mesin</h2></div></div>
-      <div id="staffMachines" class="machineGrid"></div>
-    </div>
+
+    <section id="staffTools" class="staff-tools" hidden>
+      <button id="staffToolsBack" class="staff-tools-back" type="button">← Kembali ke Dashboard</button>
+      <section id="staffActiveEvent" class="card active-event-info-card" hidden>
+        <div class="active-event-info-heading"><div><span class="eyebrow">EVENT AKTIF</span><h2 id="staffActiveEventTitle"></h2><p id="staffActiveEventPeriod"></p></div></div>
+        <img id="staffActiveEventImage" class="active-event-info-image" alt="Image Event Aktif" hidden>
+        <p id="staffActiveEventDescription" class="active-event-info-description" hidden></p>
+      </section>
+      <div id="staffScannerTool" class="card scanner-card" hidden>
+        <div class="step-chip"><span>1</span> Scan QR Reward</div>
+        <p id="scannerSupport" class="section-note">Scan QR reward menggunakan kamera.</p>
+        <button id="scanCamera" class="primary-button">SCAN QR DENGAN KAMERA</button>
+        <video id="camera" playsinline autoplay hidden></video>
+        <pre id="staffResult"></pre>
+      </div>
+      <div id="staffMachineTool" class="card machine-card" hidden>
+        <div class="card-title-row"><div><span class="eyebrow">OPERASIONAL</span><h2>Aktivasi Mesin</h2></div></div>
+        <div id="staffMachines" class="machineGrid"></div>
+      </div>
+    </section>
   </section>
 
   <section id="owner" class="screen screen-owner" hidden>
