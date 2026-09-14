@@ -455,7 +455,7 @@ async function handleCustomerTrace(request: Request, env: Env, customerId: strin
   const [transactions, plays, rewards] = await env.DB.batch([
     env.DB.prepare(`SELECT transaction_id, service_type, amount, created_at FROM transactions WHERE customer_id = ? ORDER BY created_at DESC`).bind(id),
     env.DB.prepare(`SELECT play_id, transaction_id, session_id, status, created_at, finished_at FROM plays WHERE customer_id = ? ORDER BY created_at DESC`).bind(id),
-    env.DB.prepare(`SELECT reward_id, play_id, type, status, created_at, claimed_at, redeemed_at, used_at FROM rewards WHERE customer_id = ? ORDER BY created_at DESC`).bind(id),
+    env.DB.prepare(`SELECT reward_id, play_id, type, status, token_ref, created_at, claimed_at, redeemed_at, used_at FROM rewards WHERE customer_id = ? ORDER BY created_at DESC`).bind(id),
   ]);
 
   await writeAuditSafe(env, { entityType: "CUSTOMER", entityId: id, action: "TRACE", actor: owner.userId, result: "SUCCESS" });
