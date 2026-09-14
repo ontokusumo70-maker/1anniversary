@@ -1112,3 +1112,24 @@ body[data-role="STAFF_LOGIN"] .app-shell{
     font-size:22px;
   }
 }
+
+/* Event Active + D1 image */
+.active-event-info-card{overflow:hidden}
+.active-event-info-heading h2{font-size:19px;margin:4px 0 3px;color:#14583f}
+.active-event-info-heading p{font-size:11px;color:#6a7e74;margin:0}
+.active-event-info-image{display:block;width:100%;max-height:260px;object-fit:cover;border-radius:15px;margin-top:12px;border:1px solid #c8dfd0;background:#f4faf5}
+.active-event-info-description{font-size:11px;line-height:1.5;color:#567064;margin:10px 0 0}
+.active-event-image{display:block;width:100%;height:86px;object-fit:cover;border-radius:8px;margin-bottom:7px;border:1px solid #d7e5dc;background:#f4faf5}
+.locked-image-field{margin:10px 0}
+.locked-image-field .locked-field-title{font-size:12px;font-weight:850;color:#315846;margin-bottom:6px}
+.locked-image-field input[type="file"]{padding:9px 10px;background:#fbfffc}
+.locked-image-field input[type="file"]:disabled{background:#f1f4f2}
+.locked-field-note{display:block;font-size:10px;color:#73857d;margin-top:5px}
+.locked-image-preview{display:block;width:100%;max-height:240px;object-fit:cover;border-radius:14px;border:1px solid #c7ded0;margin-top:9px;background:#f5faf6}
+.locked-image-remove{margin-top:8px}
+@media (orientation:landscape) and (min-width:601px){
+  .active-event-info-card{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,42%);gap:12px;align-items:center}
+  .active-event-info-heading{grid-column:1}
+  .active-event-info-image{grid-column:2;grid-row:1 / span 2;max-height:170px;margin-top:0}
+  .active-event-info-description{grid-column:1;margin-top:0}
+}
