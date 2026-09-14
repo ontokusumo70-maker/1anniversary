@@ -209,6 +209,9 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
       (SELECT COUNT(*) FROM rewards WHERE claimed_at IS NOT NULL AND claimed_at >= ? AND claimed_at < ?) AS claimed_previous,
       (SELECT COUNT(*) FROM rewards WHERE redeemed_at IS NOT NULL AND redeemed_at >= ? AND redeemed_at < ?) AS redeemed_count,
       (SELECT COUNT(*) FROM rewards WHERE redeemed_at IS NOT NULL AND redeemed_at >= ? AND redeemed_at < ?) AS redeemed_previous,
+      (SELECT COALESCE(SUM(e.reward_quantity), 0)
+       FROM events e
+       WHERE e.starts_at < ? AND e.ends_at > ?) AS total_reward_supplied,
       (SELECT COUNT(*) FROM plays) AS play_count,
       (SELECT COUNT(*) FROM rewards WHERE status = 'WON') AS won_count,
       (SELECT COUNT(*) FROM rewards WHERE status = 'USED') AS used_count,
@@ -221,6 +224,7 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
     previousStartIso, previousEndIso,
     currentStartIso, currentEndIso,
     previousStartIso, previousEndIso,
+    currentEndIso, currentStartIso,
   );
 
   const rewardStatus = env.DB.prepare(`
@@ -340,6 +344,7 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
       redeemed: Number(metric?.redeemed_count ?? statusMap.get("REDEEMED") ?? 0),
       redeemedPrevious: Number(metric?.redeemed_previous ?? 0),
       redeemedChangePct: ownerPercentChange(Number(metric?.redeemed_count ?? 0), Number(metric?.redeemed_previous ?? 0)),
+      totalRewardSupplied: Number(metric?.total_reward_supplied ?? 0),
       used: Number(metric?.used_count ?? statusMap.get("USED") ?? 0),
       unclaimed: Number(metric?.unclaimed_count ?? 0),
       errorRetry: Number(metric?.error_retry_count ?? 0),
