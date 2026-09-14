@@ -35,6 +35,20 @@
     </div>
   </section>
 
+  <section id="staffAuth" class="screen staff-login-screen" hidden>
+    <div class="staff-login-card">
+      <div class="staff-phone-wrap">
+        <svg class="staff-whatsapp-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="9.25" fill="none" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M8.4 7.8c.3-.35.7-.35 1-.08l1.2 1.15c.28.27.3.68.08 1l-.55.8c.75 1.35 1.8 2.4 3.15 3.15l.8-.55c.32-.22.73-.2 1 .08l1.15 1.2c.27.3.27.7-.08 1-.48.48-1.1.72-1.76.62-1.7-.26-3.42-1.18-4.85-2.62-1.44-1.43-2.36-3.15-2.62-4.85-.1-.66.14-1.28.62-1.76Z" fill="currentColor"/>
+        </svg>
+        <input id="staffPhone" class="staff-login-input" inputmode="tel" autocomplete="tel" maxlength="32" placeholder="08xxxxxxxxx" aria-label="Nomor telepon Staff">
+      </div>
+      <button id="staffLoginStandalone" class="primary-button staff-login-button" type="button">Login<span class="staff-login-arrow" aria-hidden="true">→</span></button>
+      <p id="staffAuthMsg" class="msg status-msg staff-login-msg"></p>
+    </div>
+  </section>
+
   <section id="auth" class="screen screen-customer auth-screen">
     <div class="poster-panel">
       <div class="poster-copy">
