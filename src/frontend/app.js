@@ -224,9 +224,55 @@ async function loadActiveEventForRole(role) {
   try {
     const data = await api("/event/active");
     renderRoleActiveEvent(role, data);
+    if (role === "STAFF") {
+      renderStaffDashboardEvent(data);
+    }
   } catch {
     renderRoleActiveEvent(role, null);
+    if (role === "STAFF") {
+      renderStaffDashboardEvent(null);
+    }
   }
+}
+
+function renderStaffDashboardDate() {
+  const now = new Date();
+  const locale = "id-ID";
+  const dayName = now.toLocaleDateString(locale, { weekday: "long" });
+  const dateFull = now.toLocaleDateString(locale, {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  if ($("staffDayName")) {
+    $("staffDayName").textContent = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+  }
+  if ($("staffDateFull")) {
+    $("staffDateFull").textContent = dateFull;
+  }
+}
+
+function showStaffDashboard() {
+  if ($("staffDashboard")) {
+    $("staffDashboard").hidden = false;
+  }
+  if ($("staffTools")) {
+    $("staffTools").hidden = true;
+  }
+  renderStaffDashboardDate();
+}
+
+function renderStaffDashboardEvent(data) {
+  const title = $("staffDashboardEventTitle");
+  const period = $("staffDashboardEventPeriod");
+  if (!title || !period) return;
+  if (!data?.active || !data.event) {
+    title.textContent = "Tidak ada event aktif";
+    period.textContent = "—";
+    return;
+  }
+  title.textContent = data.event.title || "Event Aktif";
+  period.textContent = formatDateRange(data.event.startsAt, data.event.endsAt);
 }
 
 function showRole() {
@@ -265,8 +311,9 @@ function showRole() {
   }
 
   if (state.role === "STAFF") {
-    document.documentElement.style.setProperty("--game-bg", `url("${assetBasePath}background/staff/staff-bg.PNG")`);
+    document.documentElement.style.setProperty("--game-bg", `url("${assetBasePath}background/game/game-bg.PNG")`);
     $("staff").hidden = false;
+    showStaffDashboard();
     refreshStaffMachines();
     loadActiveEventForRole("STAFF");
     return;
@@ -1179,135 +1226,141 @@ async function activateMachine(
 }
 
 let cameraStream = null;
-let scannerBusy = false;
-let scannerFrame = 0;
-
-function stopStaffCamera() {
-  if (scannerFrame) {
-    cancelAnimationFrame(scannerFrame);
-    scannerFrame = 0;
-  }
-  if (cameraStream) {
-    cameraStream.getTracks().forEach((track) => track.stop());
-    cameraStream = null;
-  }
-  const video = $("camera");
-  if (video) {
-    video.pause();
-    video.srcObject = null;
-    video.hidden = true;
-  }
-}
-
-function getQrDetector() {
-  if (!window.BarcodeDetector) {
-    throw new Error("Pemindai QR tidak tersedia di browser tablet ini.");
-  }
-  return new BarcodeDetector({ formats: ["qr_code"] });
-}
-
-async function processStaffQrToken(rawValue) {
-  const token = String(rawValue || "").trim();
-  if (!token || scannerBusy) return;
-  scannerBusy = true;
-  stopStaffCamera();
-  msg("scannerSupport", "QR terbaca. Memverifikasi reward...");
-  try {
-    const data = await api(`/staff/scan/${encodeURIComponent(token)}`);
-    $("staffResult").textContent = JSON.stringify(data, null, 2);
-
-    if (!data.redeemable) {
-      msg("scannerSupport", `QR tidak dapat digunakan: ${data.status || "status tidak valid"}.`);
-      return;
-    }
-
-    msg("scannerSupport", "QR valid. Redeem otomatis diproses...");
-    const redeem = await api("/staff/redeem", {
-      method: "POST",
-      body: JSON.stringify({ rewardId: data.rewardId }),
-    });
-    $("staffResult").textContent = JSON.stringify({ ...data, redeem }, null, 2);
-    msg("scannerSupport", "Redeem berhasil. QR ini tidak dapat digunakan kembali.");
-  } catch (error) {
-    $("staffResult").textContent = error.message;
-    msg("scannerSupport", "QR gagal diverifikasi. Silakan scan ulang atau upload QR.");
-  } finally {
-    scannerBusy = false;
-  }
-}
-
-async function scanStaffImage(file) {
-  if (!file) return;
-  try {
-    const detector = getQrDetector();
-    msg("scannerSupport", "Membaca QR dari gambar...");
-    const bitmap = await createImageBitmap(file);
-    try {
-      const codes = await detector.detect(bitmap);
-      const rawValue = codes.find((code) => code?.rawValue)?.rawValue || "";
-      if (!rawValue) throw new Error("QR tidak ditemukan pada gambar.");
-      await processStaffQrToken(rawValue);
-    } finally {
-      bitmap.close();
-    }
-  } catch (error) {
-    msg("scannerSupport", "QR pada gambar tidak terbaca. Pilih foto QR yang lebih jelas atau gunakan kamera.");
-    $("staffResult").textContent = error.message;
-  }
-}
 
 if ($("scanCamera")) {
-  $("scanCamera").onclick = async () => {
-    if (scannerBusy) return;
-    try {
-      const detector = getQrDetector();
-      const video = $("camera");
-      if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error("Kamera tidak tersedia. Gunakan Upload QR.");
+  $("scanCamera").onclick =
+    async () => {
+      if (
+        !window.BarcodeDetector
+      ) {
+        msg(
+          "scannerSupport",
+          "Browser ini tidak menyediakan pemindai QR native.",
+        );
+        return;
       }
-      stopStaffCamera();
-      msg("scannerSupport", "Membuka kamera tablet...");
-      cameraStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" } },
-        audio: false,
-      });
-      video.srcObject = cameraStream;
-      video.hidden = false;
-      await video.play();
-      msg("scannerSupport", "Arahkan kamera ke QR Customer.");
 
-      const loop = async () => {
-        if (!cameraStream || video.hidden || scannerBusy) return;
-        try {
-          const codes = await detector.detect(video);
-          const rawValue = codes.find((code) => code?.rawValue)?.rawValue || "";
-          if (rawValue) {
-            await processStaffQrToken(rawValue);
-            return;
-          }
-        } catch (error) {
-          $("staffResult").textContent = error.message;
-        }
-        scannerFrame = requestAnimationFrame(loop);
-      };
-      scannerFrame = requestAnimationFrame(loop);
-    } catch (error) {
-      stopStaffCamera();
-      msg("scannerSupport", "Kamera gagal dibuka. Gunakan Upload QR dari galeri.");
-      $("staffResult").textContent = error.message;
-    }
-  };
-}
+      try {
+        const detector =
+          new BarcodeDetector({
+            formats: [
+              "qr_code",
+            ],
+          });
 
-if ($("uploadQr") && $("qrUploadInput")) {
-  $("uploadQr").onclick = () => {
-    if (!scannerBusy) $("qrUploadInput").click();
-  };
-  $("qrUploadInput").onchange = async (event) => {
-    const file = event.target.files?.[0] || null;
-    event.target.value = "";
-    await scanStaffImage(file);
-  };
+        const video =
+          $("camera");
+
+        cameraStream =
+          await navigator
+            .mediaDevices
+            .getUserMedia({
+              video: {
+                facingMode:
+                  "environment",
+              },
+              audio: false,
+            });
+
+        video.srcObject =
+          cameraStream;
+
+        video.hidden =
+          false;
+
+        const loop =
+          async () => {
+            if (
+              video.hidden
+            ) {
+              return;
+            }
+
+            try {
+              const codes =
+                await detector.detect(
+                  video,
+                );
+
+              if (
+                codes[0]
+                  ?.rawValue
+              ) {
+                video.hidden =
+                  true;
+
+                cameraStream
+                  .getTracks()
+                  .forEach(
+                    (track) =>
+                      track.stop(),
+                  );
+
+                cameraStream =
+                  null;
+
+                const data =
+                  await api(
+                    `/staff/scan/${encodeURIComponent(
+                      codes[0].rawValue,
+                    )}`,
+                  );
+
+                $("staffResult").textContent =
+                  JSON.stringify(
+                    data,
+                    null,
+                    2,
+                  );
+
+                if (
+                  data.redeemable
+                ) {
+                  const redeem =
+                    await api(
+                      "/staff/redeem",
+                      {
+                        method:
+                          "POST",
+                        body:
+                          JSON.stringify({
+                            rewardId:
+                              data.rewardId,
+                          }),
+                      },
+                    );
+
+                  $("staffResult").textContent =
+                    JSON.stringify(
+                      {
+                        ...data,
+                        redeem,
+                      },
+                      null,
+                      2,
+                    );
+                }
+
+                return;
+              }
+            } catch (error) {
+              $("staffResult").textContent =
+                error.message;
+            }
+
+            requestAnimationFrame(
+              loop,
+            );
+          };
+
+        loop();
+      } catch (error) {
+        msg(
+          "scannerSupport",
+          error.message,
+        );
+      }
+    };
 }
 
 let ownerData = null;
@@ -2494,188 +2547,366 @@ async function loadOwner() {
 }
 
 function makeQrSvg(text) {
-  const size = 29;
-  const data = Array.from(new TextEncoder().encode(String(text)));
-  if (data.length > 53) throw new Error("QR text too long");
+  const n = 37;
 
-  const modules = Array.from({ length: size }, () => Array(size).fill(false));
-  const isFunction = Array.from({ length: size }, () => Array(size).fill(false));
+  const matrix =
+    Array.from(
+      {
+        length: n,
+      },
+      () =>
+        Array(n).fill(
+          null,
+        ),
+    );
 
-  const setFunction = (x, y, dark) => {
-    if (x >= 0 && y >= 0 && x < size && y < size) {
-      modules[y][x] = !!dark;
-      isFunction[y][x] = true;
-    }
-  };
+  const set =
+    (x, y, value) => {
+      if (
+        x >= 0 &&
+        y >= 0 &&
+        x < n &&
+        y < n
+      ) {
+        matrix[y][x] =
+          value;
+      }
+    };
 
-  const drawFinder = (cx, cy) => {
-    for (let dy = -1; dy <= 7; dy++) {
-      for (let dx = -1; dx <= 7; dx++) {
-        const xx = cx + dx, yy = cy + dy;
-        if (xx < 0 || yy < 0 || xx >= size || yy >= size) continue;
-        setFunction(xx, yy, dx >= 0 && dx <= 6 && dy >= 0 && dy <= 6 &&
-          (dx === 0 || dx === 6 || dy === 0 || dy === 6 ||
-           (dx >= 2 && dx <= 4 && dy >= 2 && dy <= 4)));
+  function finder(cx, cy) {
+    for (
+      let y = -1;
+      y <= 7;
+      y++
+    ) {
+      for (
+        let x = -1;
+        x <= 7;
+        x++
+      ) {
+        const on =
+          x >= 0 &&
+          x <= 6 &&
+          y >= 0 &&
+          y <= 6 &&
+          (
+            x === 0 ||
+            x === 6 ||
+            y === 0 ||
+            y === 6 ||
+            (
+              x >= 2 &&
+              x <= 4 &&
+              y >= 2 &&
+              y <= 4
+            )
+          );
+
+        set(
+          cx + x,
+          cy + y,
+          on,
+        );
       }
     }
-  };
-
-  drawFinder(0, 0); drawFinder(size - 7, 0); drawFinder(0, size - 7);
-
-  for (let i = 8; i < size - 8; i++) {
-    if (!isFunction[6][i]) setFunction(i, 6, i % 2 === 0);
-    if (!isFunction[i][6]) setFunction(6, i, i % 2 === 0);
   }
 
-  const alignment = 22;
-  for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
-    const dist = Math.max(Math.abs(dx), Math.abs(dy));
-    setFunction(alignment + dx, alignment + dy, dist !== 1);
+  finder(0, 0);
+  finder(n - 7, 0);
+  finder(0, n - 7);
+
+  for (
+    let i = 8;
+    i < n - 8;
+    i++
+  ) {
+    set(
+      i,
+      6,
+      i % 2 === 0,
+    );
+
+    set(
+      6,
+      i,
+      i % 2 === 0,
+    );
   }
 
-  setFunction(8, size - 8, true);
-
-  const formatCoords = [];
-  for (let i = 0; i <= 5; i++) formatCoords.push([8, i]);
-  formatCoords.push([8, 7], [8, 8], [7, 8]);
-  for (let i = 9; i < 15; i++) formatCoords.push([14 - i, 8]);
-  for (let i = 0; i < 8; i++) formatCoords.push([size - 1 - i, 8]);
-  for (let i = 8; i < 15; i++) formatCoords.push([8, size - 15 + i]);
-  for (const [x, y] of formatCoords) setFunction(x, y, false);
-
-  const gfMul = (x, y) => {
-    let z = 0;
-    while (y) {
-      if (y & 1) z ^= x;
-      y >>>= 1;
-      x <<= 1;
-      if (x & 0x100) x ^= 0x11d;
+  for (
+    const [cx, cy]
+    of [
+      [6, 30],
+      [30, 6],
+      [30, 30],
+    ]
+  ) {
+    if (
+      matrix[cy]?.[cx] !==
+      null
+    ) {
+      continue;
     }
-    return z;
-  };
 
-  const rsGenerator = (degree) => {
-    const gen = [1];
-    for (let i = 0; i < degree; i++) {
-      const next = Array(gen.length + 1).fill(0);
-      const root = (() => { let v = 1; for (let j = 0; j < i; j++) v = gfMul(v, 2); return v; })();
-      for (let j = 0; j < gen.length; j++) {
-        next[j] ^= gen[j];
-        next[j + 1] ^= gfMul(gen[j], root);
+    for (
+      let y = -2;
+      y <= 2;
+      y++
+    ) {
+      for (
+        let x = -2;
+        x <= 2;
+        x++
+      ) {
+        set(
+          cx + x,
+          cy + y,
+          Math.max(
+            Math.abs(x),
+            Math.abs(y),
+          ) === 2 ||
+            Math.max(
+              Math.abs(x),
+              Math.abs(y),
+            ) === 0,
+        );
       }
-      gen.splice(0, gen.length, ...next);
     }
-    return gen;
-  };
+  }
+
+  set(
+    8,
+    n - 8,
+    true,
+  );
+
+  for (
+    let i = 0;
+    i < 9;
+    i++
+  ) {
+    if (
+      matrix[i][8] ===
+      null
+    ) {
+      matrix[i][8] =
+        false;
+    }
+
+    if (
+      matrix[8][i] ===
+      null
+    ) {
+      matrix[8][i] =
+        false;
+    }
+  }
+
+  for (
+    let i = 0;
+    i < 8;
+    i++
+  ) {
+    if (
+      matrix[n - 1 - i][8] ===
+      null
+    ) {
+      matrix[n - 1 - i][8] =
+        false;
+    }
+
+    if (
+      matrix[8][n - 1 - i] ===
+      null
+    ) {
+      matrix[8][n - 1 - i] =
+        false;
+    }
+  }
+
+  const bytes =
+    Array.from(
+      new TextEncoder().encode(
+        text,
+      ),
+    );
+
+  if (bytes.length > 106) {
+    throw new Error(
+      "QR text too long",
+    );
+  }
+
+  const dataBits = [
+    0,
+    1,
+    0,
+    0,
+  ];
+
+  for (
+    let i = 7;
+    i >= 0;
+    i--
+  ) {
+    dataBits.push(
+      (bytes.length >> i) &
+        1,
+    );
+  }
+
+  for (const byte of bytes) {
+    for (
+      let i = 7;
+      i >= 0;
+      i--
+    ) {
+      dataBits.push(
+        (byte >> i) & 1,
+      );
+    }
+  }
+
+  while (
+    dataBits.length <
+    108 * 8
+  ) {
+    dataBits.push(0);
+  }
+
+  while (
+    dataBits.length %
+      8
+  ) {
+    dataBits.push(0);
+  }
+
+  const data = [];
+
+  for (
+    let i = 0;
+    i <
+    dataBits.length;
+    i += 8
+  ) {
+    let value = 0;
+
+    for (
+      let j = 0;
+      j < 8;
+      j++
+    ) {
+      value =
+        (value << 1) |
+        dataBits[i + j];
+    }
+
+    data.push(value);
+  }
 
   const bits = [];
-  const pushBits = (value, count) => { for (let i = count - 1; i >= 0; i--) bits.push((value >>> i) & 1); };
-  pushBits(0x4, 4);
-  pushBits(data.length, 8);
-  for (const b of data) pushBits(b, 8);
-  const capacityBits = 55 * 8;
-  for (let i = 0; i < Math.min(4, capacityBits - bits.length); i++) bits.push(0);
-  while (bits.length % 8) bits.push(0);
-  const codewords = [];
-  for (let i = 0; i < bits.length; i += 8) {
-    let v = 0; for (let j = 0; j < 8; j++) v = (v << 1) | bits[i + j];
-    codewords.push(v);
-  }
-  let pad = true;
-  while (codewords.length < 55) { codewords.push(pad ? 0xec : 0x11); pad = !pad; }
 
-  const gen = rsGenerator(15);
-  const ecc = Array(15).fill(0);
-  for (const b of codewords) {
-    const factor = b ^ ecc[0];
-    for (let i = 0; i < 14; i++) ecc[i] = ecc[i + 1] ^ gfMul(gen[i + 1], factor);
-    ecc[14] = gfMul(gen[15], factor);
+  for (
+    const byte of data
+  ) {
+    for (
+      let i = 7;
+      i >= 0;
+      i--
+    ) {
+      bits.push(
+        (byte >> i) & 1,
+      );
+    }
   }
-  const allCodewords = codewords.concat(ecc);
 
-  const drawData = (mask) => {
-    const m = Array.from({ length: size }, () => Array(size).fill(false));
-    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) m[y][x] = modules[y][x];
-    let bitIndex = 0, upward = true;
-    for (let right = size - 1; right >= 1; right -= 2) {
-      if (right === 6) right--;
-      for (let i = 0; i < size; i++) {
-        const y = upward ? size - 1 - i : i;
-        for (let dx = 0; dx < 2; dx++) {
-          const x = right - dx;
-          if (isFunction[y][x]) continue;
-          let dark = false;
-          if (bitIndex < allCodewords.length * 8) dark = ((allCodewords[bitIndex >>> 3] >>> (7 - (bitIndex & 7))) & 1) !== 0;
-          bitIndex++;
-          const invert = [
-            (x + y) % 2 === 0,
-            y % 2 === 0,
-            x % 3 === 0,
-            (x + y) % 3 === 0,
-            (Math.floor(y / 2) + Math.floor(x / 3)) % 2 === 0,
-            ((x * y) % 2) + ((x * y) % 3) === 0,
-            (((x * y) % 2) + ((x * y) % 3)) % 2 === 0,
-            (((x + y) % 2) + ((x * y) % 3)) % 2 === 0,
-          ][mask];
-          m[y][x] = dark !== invert;
+  let bitIndex = 0;
+  let upward = true;
+
+  for (
+    let x = n - 1;
+    x > 0;
+    x -= 2
+  ) {
+    if (x === 6) {
+      x--;
+    }
+
+    for (
+      let yy = 0;
+      yy < n;
+      yy++
+    ) {
+      const y = upward
+        ? n - 1 - yy
+        : yy;
+
+      for (
+        let xx = 0;
+        xx < 2;
+        xx++
+      ) {
+        const column =
+          x - xx;
+
+        if (
+          matrix[y][column] !==
+          null
+        ) {
+          continue;
         }
+
+        let value =
+          bits[bitIndex++] ||
+          0;
+
+        value ^=
+          (y + column) %
+            2 ===
+          0
+            ? 1
+            : 0;
+
+        matrix[y][column] =
+          Boolean(value);
       }
-      upward = !upward;
     }
-    return m;
-  };
 
-  const bchRemainder = (value, poly) => {
-    let v = value;
-    const polyBits = Math.floor(Math.log2(poly));
-    while (Math.floor(Math.log2(v)) >= polyBits) v ^= poly << (Math.floor(Math.log2(v)) - polyBits);
-    return v;
-  };
-  const formatBits = (mask) => {
-    const data5 = (1 << 3) | mask;
-    const value = (data5 << 10) | bchRemainder(data5 << 10, 0x537);
-    return value ^ 0x5412;
-  };
-  const addFormat = (m, mask) => {
-    const f = formatBits(mask);
-    for (let i = 0; i < 15; i++) {
-      const bit = ((f >>> i) & 1) !== 0;
-      const [x1, y1] = formatCoords[i];
-      m[y1][x1] = bit;
-      const [x2, y2] = i < 8 ? [size - 1 - i, 8] : [8, size - 15 + i];
-      m[y2][x2] = bit;
-    }
-  };
-
-  const penalty = (m) => {
-    let score = 0;
-    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
-      if (x + 1 < size && y + 1 < size && m[y][x] === m[y][x + 1] && m[y][x] === m[y + 1][x] && m[y][x] !== m[y + 1][x + 1]) score += 3;
-      let same = 0;
-      for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) if (dx || dy) if (m[y + dy]?.[x + dx] === m[y][x]) same++;
-      if (same > 5) score += same - 5;
-    }
-    for (let y = 0; y < size; y++) for (let x = 0; x < size - 6; x++) if (m[y].slice(x, x + 7).join('') === '1011101') score += 40;
-    for (let x = 0; x < size; x++) for (let y = 0; y < size - 6; y++) { let s=''; for(let i=0;i<7;i++) s += m[y+i][x]?'1':'0'; if(s==='1011101') score += 40; }
-    let dark = 0; for (const row of m) for (const v of row) if (v) dark++;
-    score += Math.floor(Math.abs(dark * 100 / (size * size) - 50) / 5) * 10;
-    return score;
-  };
-
-  let best = null, bestScore = Infinity;
-  for (let mask = 0; mask < 8; mask++) {
-    const m = drawData(mask); addFormat(m, mask);
-    const score = penalty(m);
-    if (score < bestScore) { bestScore = score; best = m; }
+    upward = !upward;
   }
 
-  const quiet = 4;
-  const total = size + quiet * 2;
-  let rects = '';
-  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (best[y][x]) rects += `<rect x="${x + quiet}" y="${y + quiet}" width="1" height="1"/>`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${total} ${total}" shape-rendering="crispEdges" role="img" aria-label="QR reward"><rect width="100%" height="100%" fill="#fff"/>${rects}</svg>`;
-}
+  const size = n + 12;
 
+  let svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges">`;
+
+  svg +=
+    `<rect width="100%" height="100%" fill="white"/>`;
+
+  for (
+    let y = 0;
+    y < n;
+    y++
+  ) {
+    for (
+      let x = 0;
+      x < n;
+      x++
+    ) {
+      if (
+        matrix[y][x]
+      ) {
+        svg +=
+          `<rect x="${x + 6}" y="${y + 6}" width="1" height="1"/>`;
+      }
+    }
+  }
+
+  svg +=
+    "</svg>";
+
+  return svg;
+}
 
 async function initialize() {
   await loadConfig();
