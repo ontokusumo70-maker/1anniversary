@@ -1462,7 +1462,7 @@ function setOwnerView(view) {
 
   if (view === "machines") renderOwnerMachines();
   if (view === "events") loadOwnerEvents();
-  if (view === "reward-pool") loadOwnerRewardPool();
+  if (view === "reward-pool") return loadOwnerRewardPool();
   if (view === "customer-trace") loadOwnerCustomers();
 }
 
@@ -1545,16 +1545,9 @@ async function openOwnerActiveEventRewardDetail() {
   }
 
   try {
-    setOwnerView("reward-pool");
-    const { from, to } = ownerDateRangeParams();
-    const params = new URLSearchParams({ from, to });
-    const data = await api(`/owner/reward-pool?${params.toString()}`);
-    ownerData = ownerData || {};
-    ownerData.rewardPool = data.items || [];
-    renderOwnerRewardList();
-    renderRewardOptions();
+    await setOwnerView("reward-pool");
 
-    const item = ownerData.rewardPool.find((row) =>
+    const item = (ownerData?.rewardPool || []).find((row) =>
       (row.events || []).some((event) => event.eventId === activeEvent.eventId && event.active)
     );
     if (!item) {
