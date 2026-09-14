@@ -419,10 +419,24 @@ async function handleRewardPool(request: Request, env: Env): Promise<Response> {
   const match = url.pathname.match(/^\/owner\/reward-pool\/([^/]+)$/);
 
   if (request.method === "GET") {
-    const [result, eventResult] = await Promise.all([
-      env.DB.prepare(`SELECT reward_type, description, quota_total, quota_used, terms, active FROM reward_pool ORDER BY reward_type ASC`).all(),
+    const [result, eventResult, claimedResult] = await Promise.all([
+      env.DB.prepare(`SELECT reward_type, description, quota_total, quota_used, budget_total, terms, active FROM reward_pool ORDER BY reward_type ASC`).all(),
       env.DB.prepare(`SELECT event_id, title, starts_at, ends_at, reward_type, reward_quantity, active FROM events ORDER BY starts_at DESC, event_id DESC LIMIT 100`).all(),
+      env.DB.prepare(`SELECT type AS reward_type, COUNT(*) AS claimed_count FROM rewards WHERE claimed_at IS NOT NULL AND claimed_at >= ? AND claimed_at < ? GROUP BY type`).bind(
+        (() => {
+          const from = url.searchParams.get("from");
+          return from ? new Date(`${from}T00:00:00+07:00`).toISOString() : new Date(0).toISOString();
+        })(),
+        (() => {
+          const to = url.searchParams.get("to");
+          return to ? new Date(`${to}T23:59:59.999+07:00`).toISOString() : new Date().toISOString();
+        })(),
+      ),
     ]);
+    const claimedByReward = new Map<string, number>();
+    for (const row of (claimedResult.results ?? []) as Array<Record<string, unknown>>) {
+      claimedByReward.set(String(row.reward_type), Number(row.claimed_count ?? 0));
+    }
     const eventsByReward = new Map<string, Array<Record<string, unknown>>>();
     for (const row of (eventResult.results ?? []) as Array<Record<string, unknown>>) {
       const rewardType = String(row.reward_type);
@@ -439,6 +453,8 @@ async function handleRewardPool(request: Request, env: Env): Promise<Response> {
         quotaTotal: Number(record.quota_total),
         quotaUsed: Number(record.quota_used),
         remaining: Math.max(0, Number(record.quota_total) - Number(record.quota_used)),
+        budgetTotal: Number(record.budget_total ?? 0),
+        rewardClaimed: Number(claimedByReward.get(rewardType) ?? 0),
         terms: String(record.terms ?? ""),
         active: Number(record.active) === 1,
         events: (eventsByReward.get(rewardType) ?? []).map((event) => ({
@@ -462,20 +478,20 @@ async function handleRewardPool(request: Request, env: Env): Promise<Response> {
   }
 
   if (request.method !== "POST" && request.method !== "PATCH") return errorResponse("NOT_FOUND", "Reward Pool endpoint not found.", 404);
-  let body: { rewardType?: unknown; description?: unknown; quotaTotal?: unknown; terms?: unknown; active?: unknown };
+  let body: { rewardType?: unknown; description?: unknown; quotaTotal?: unknown; budgetTotal?: unknown; terms?: unknown; active?: unknown };
   try { body = await request.json() as typeof body; } catch { return errorResponse("INVALID_REQUEST", "Invalid JSON request body.", 400); }
   const rewardType = isNonEmptyString(body.rewardType, 120) ? body.rewardType.trim() : match ? decodeURIComponent(match[1]).trim() : "";
   const description = body.description === undefined ? "" : (isNonEmptyString(body.description, 200) ? body.description.trim() : "");
   const terms = body.terms === undefined ? "" : (isNonEmptyString(body.terms, 200) ? body.terms.trim() : "");
   const quotaTotal = parsePositiveInteger(body.quotaTotal);
   const active = body.active === undefined ? 1 : body.active ? 1 : 0;
-  if (!rewardType || quotaTotal === null) return errorResponse("INVALID_REQUEST", "Nama reward dan total stok wajib diisi.", 400);
+  if (!rewardType || quotaTotal === null || !Number.isInteger(budgetTotal) || budgetTotal < 0) return errorResponse("INVALID_REQUEST", "Nama reward, total stok, dan budget reward wajib diisi.", 400);
   const nowIso = new Date().toISOString();
 
   if (request.method === "POST") {
     try {
-      await env.DB.prepare(`INSERT INTO reward_pool (reward_type, description, quota_total, quota_used, terms, active, created_by, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?)`)
-        .bind(rewardType, description, quotaTotal, terms, active, owner.userId, nowIso, nowIso).run();
+      await env.DB.prepare(`INSERT INTO reward_pool (reward_type, description, quota_total, quota_used, budget_total, terms, active, created_by, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?)`)
+        .bind(rewardType, description, quotaTotal, budgetTotal, terms, active, owner.userId, nowIso, nowIso).run();
     } catch { return errorResponse("REWARD_EXISTS", "Reward sudah ada.", 409); }
     await writeAuditSafe(env, { entityType: "REWARD", entityId: rewardType, action: "CREATE", actor: owner.userId, result: "SUCCESS" });
   } else {
@@ -483,7 +499,7 @@ async function handleRewardPool(request: Request, env: Env): Promise<Response> {
     const current = await env.DB.prepare(`SELECT quota_used FROM reward_pool WHERE reward_type = ? LIMIT 1`).bind(rewardType).first<{ quota_used: number }>();
     if (!current) return errorResponse("REWARD_NOT_FOUND", "Reward tidak ditemukan.", 404);
     if (quotaTotal < Number(current.quota_used)) return errorResponse("INVALID_QUOTA", "Total stok tidak boleh lebih kecil dari yang sudah digunakan.", 400);
-    const result = await env.DB.prepare(`UPDATE reward_pool SET description = ?, quota_total = ?, terms = ?, active = ?, updated_at = ? WHERE reward_type = ?`).bind(description, quotaTotal, terms, active, nowIso, rewardType).run();
+    const result = await env.DB.prepare(`UPDATE reward_pool SET description = ?, quota_total = ?, budget_total = ?, terms = ?, active = ?, updated_at = ? WHERE reward_type = ?`).bind(description, quotaTotal, budgetTotal, terms, active, nowIso, rewardType).run();
     if (result.meta.changes !== 1) return errorResponse("REWARD_NOT_FOUND", "Reward tidak ditemukan.", 404);
     await writeAuditSafe(env, { entityType: "REWARD", entityId: rewardType, action: "UPDATE", actor: owner.userId, result: "SUCCESS" });
   }
