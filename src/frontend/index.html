@@ -246,15 +246,27 @@
         </div>
         <label>Pilih Reward <span class="required-mark">*</span><select id="eventRewardType"></select></label>
         <label>Jumlah Reward <span class="required-mark">*</span><input id="eventRewardQuantity" type="number" min="1" placeholder="Masukkan jumlah reward"><small id="eventRewardStock" class="locked-field-note"></small></label>
-        <label>Deskripsi <span class="locked-optional">(Opsional)</span><textarea id="eventDescription" maxlength="200" placeholder="Tuliskan deskripsi event (opsional)"></textarea><span class="locked-counter" id="eventDescriptionCount">0/200</span></label>
         <div id="eventImageField" class="locked-image-field">
-          <div class="locked-field-title">Image Event <span class="locked-optional">(Opsional)</span></div>
-          <input id="eventImage" type="file" accept="image/jpeg,image/webp" aria-label="Image Event">
-          <small class="locked-field-note">Hanya untuk Event Aktif • JPG/WebP • maksimal 300 KB</small>
-          <img id="eventImagePreview" class="locked-image-preview" alt="Preview Image Event" hidden>
-          <button id="removeEventImageButton" class="secondary-button locked-image-remove" type="button" hidden>Hapus Image</button>
+          <div class="locked-field-title">Image Event <span class="locked-required">*</span></div>
+          <div class="locked-image-grid">
+            <label class="locked-image-upload-card" for="eventImage">
+              <input id="eventImage" type="file" accept="image/jpeg,image/webp" aria-label="Image Event">
+              <span class="locked-image-upload-icon" aria-hidden="true">▧+</span>
+              <span class="locked-image-upload-cta">Pilih Image Event</span>
+              <span class="locked-image-upload-meta">Format: JPG / WebP<br>Maks. 300 KB<br>Maks. 1200 × 1200 px</span>
+            </label>
+            <div class="locked-image-preview-card">
+              <div class="locked-image-preview-title">Preview</div>
+              <div class="locked-image-preview-frame">
+                <img id="eventImagePreview" class="locked-image-preview" alt="Preview Image Event" hidden>
+                <span class="locked-image-preview-empty">Preview Image Event</span>
+                <button id="removeEventImageButton" class="locked-image-remove" type="button" aria-label="Hapus Image" hidden>×</button>
+              </div>
+            </div>
+          </div>
           <p id="eventImageMsg" class="msg status-msg"></p>
         </div>
+        <label>Deskripsi <span class="locked-optional">(Opsional)</span><textarea id="eventDescription" maxlength="200" placeholder="Tuliskan deskripsi event (opsional)"></textarea><span class="locked-counter" id="eventDescriptionCount">0/200</span></label>
         <label id="eventStatusField" hidden>Status <span class="required-mark">*</span><select id="eventStatus"><option value="ACTIVE">Aktif</option><option value="INACTIVE">Nonaktif</option></select></label>
         <div class="locked-form-actions"><button id="cancelEventButton" class="secondary-button" type="button">Batal</button><button id="saveEventButton" class="primary-button" type="button">Simpan Event</button></div>
         <p id="eventFormMsg" class="msg status-msg"></p>
