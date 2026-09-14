@@ -1138,6 +1138,7 @@ body[data-role="OWNER"] #eventImageMsg{margin:0;min-height:0}
 .locked-image-preview-title{font-size:10px;font-weight:800;color:#687a73;margin:0 0 6px 1px}
 .locked-image-preview-frame{position:relative;width:100%;height:108px;border-radius:7px;overflow:hidden;background:#f1f6f3;display:flex;align-items:center;justify-content:center}
 .locked-image-preview{display:block;width:100%;height:100%;object-fit:cover;border:0;margin:0;background:#f1f6f3}
+.locked-image-preview[hidden]{display:none !important}
 .locked-image-preview-empty{display:grid;place-items:center;width:100%;height:100%;color:#80908a}
 .locked-image-preview-empty svg{width:42px;height:42px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .locked-image-remove{position:absolute;top:6px;right:6px;width:28px;height:28px;border:0;border-radius:50%;background:#3f4a46;color:#fff;font-size:20px;line-height:27px;padding:0;cursor:pointer;z-index:2}
