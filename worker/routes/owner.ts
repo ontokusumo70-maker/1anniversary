@@ -198,13 +198,19 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
        INNER JOIN events e
          ON p.created_at >= e.starts_at
         AND p.created_at < e.ends_at
-       WHERE p.created_at >= ? AND p.created_at < ?) AS participants,
+       WHERE e.active = 1
+         AND e.starts_at <= ?
+         AND e.ends_at > ?
+         AND p.created_at >= ? AND p.created_at < ?) AS participants,
       (SELECT COUNT(DISTINCT p.customer_id)
        FROM plays p
        INNER JOIN events e
          ON p.created_at >= e.starts_at
         AND p.created_at < e.ends_at
-       WHERE p.created_at >= ? AND p.created_at < ?) AS participants_previous,
+       WHERE e.active = 1
+         AND e.starts_at <= ?
+         AND e.ends_at > ?
+         AND p.created_at >= ? AND p.created_at < ?) AS participants_previous,
       (SELECT COUNT(*) FROM rewards WHERE claimed_at IS NOT NULL AND claimed_at >= ? AND claimed_at < ?) AS claimed_count,
       (SELECT COUNT(*) FROM rewards WHERE claimed_at IS NOT NULL AND claimed_at >= ? AND claimed_at < ?) AS claimed_previous,
       (SELECT COUNT(*) FROM rewards WHERE redeemed_at IS NOT NULL AND redeemed_at >= ? AND redeemed_at < ?) AS redeemed_count,
@@ -218,8 +224,8 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
       (SELECT COUNT(*) FROM rewards WHERE status NOT IN ('WON','CLAIMED','REDEEMED','USED')) AS unclaimed_count,
       (SELECT COUNT(*) FROM audit_log WHERE result IN ('FAILED','REJECTED')) AS error_retry_count
   `).bind(
-    currentStartIso, currentEndIso,
-    previousStartIso, previousEndIso,
+    nowIso, nowIso, currentStartIso, currentEndIso,
+    nowIso, nowIso, previousStartIso, previousEndIso,
     currentStartIso, currentEndIso,
     previousStartIso, previousEndIso,
     currentStartIso, currentEndIso,
@@ -383,16 +389,37 @@ async function handleOwnerCustomers(request: Request, env: Env): Promise<Respons
 
   const url = new URL(request.url);
   const search = (url.searchParams.get("search") || "").trim().slice(0, 128);
+  const scope = (url.searchParams.get("scope") || "").trim().toLowerCase();
+  const activeEventScope = scope === "active-event";
+  const nowIso = new Date().toISOString();
   const pageRaw = Number(url.searchParams.get("page") || 1);
   const pageSizeRaw = Number(url.searchParams.get("pageSize") || 10);
   const page = Number.isInteger(pageRaw) && pageRaw > 0 ? Math.min(pageRaw, 100000) : 1;
   const pageSize = Number.isInteger(pageSizeRaw) && pageSizeRaw > 0 ? Math.min(pageSizeRaw, 50) : 10;
   const offset = (page - 1) * pageSize;
-  const pattern = `%${search.replace(/[\\%_]/g, "\\$&")}%`;
-  const where = search
-    ? `WHERE c.email LIKE ? ESCAPE '\\' OR c.phone_masked LIKE ? ESCAPE '\\' OR c.customer_id LIKE ? ESCAPE '\\'`
-    : "";
-  const params = search ? [pattern, pattern, pattern, pageSize, offset] : [pageSize, offset];
+  const pattern = `%${search.replace(/[\%_]/g, "\\$&")}%`;
+  const whereClauses: string[] = [];
+  const whereParams: unknown[] = [];
+  if (activeEventScope) {
+    whereClauses.push(`EXISTS (
+      SELECT 1
+      FROM plays p_active
+      INNER JOIN events e_active
+        ON p_active.created_at >= e_active.starts_at
+       AND p_active.created_at < e_active.ends_at
+      WHERE p_active.customer_id = c.customer_id
+        AND e_active.active = 1
+        AND e_active.starts_at <= ?
+        AND e_active.ends_at > ?
+    )`);
+    whereParams.push(nowIso, nowIso);
+  }
+  if (search) {
+    whereClauses.push(`(c.email LIKE ? ESCAPE '\\' OR c.phone_masked LIKE ? ESCAPE '\\' OR c.customer_id LIKE ? ESCAPE '\\')`);
+    whereParams.push(pattern, pattern, pattern);
+  }
+  const where = whereClauses.length ? `WHERE ${whereClauses.join(" AND ")}` : "";
+  const params = [...whereParams, pageSize, offset];
 
   const result = await env.DB.prepare(`
     SELECT c.customer_id, c.email, c.phone_masked, c.created_at,
