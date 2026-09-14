@@ -35,20 +35,6 @@
     </div>
   </section>
 
-  <section id="staffAuth" class="screen staff-login-screen" hidden>
-    <div class="staff-login-card">
-      <div class="staff-phone-wrap">
-        <svg class="staff-whatsapp-icon" viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="12" cy="12" r="9.25" fill="none" stroke="currentColor" stroke-width="1.8"/>
-          <path d="M8.4 7.8c.3-.35.7-.35 1-.08l1.2 1.15c.28.27.3.68.08 1l-.55.8c.75 1.35 1.8 2.4 3.15 3.15l.8-.55c.32-.22.73-.2 1 .08l1.15 1.2c.27.3.27.7-.08 1-.48.48-1.1.72-1.76.62-1.7-.26-3.42-1.18-4.85-2.62-1.44-1.43-2.36-3.15-2.62-4.85-.1-.66.14-1.28.62-1.76Z" fill="currentColor"/>
-        </svg>
-        <input id="staffPhone" class="staff-login-input" inputmode="tel" autocomplete="tel" maxlength="32" placeholder="08xxxxxxxxx" aria-label="Nomor telepon Staff">
-      </div>
-      <button id="staffLoginStandalone" class="primary-button staff-login-button" type="button">Login<span class="staff-login-arrow" aria-hidden="true">→</span></button>
-      <p id="staffAuthMsg" class="msg status-msg staff-login-msg"></p>
-    </div>
-  </section>
-
   <section id="auth" class="screen screen-customer auth-screen">
     <div class="poster-panel">
       <div class="poster-copy">
@@ -81,12 +67,6 @@
       <div><span class="eyebrow">CUSTOMER</span><h1>Selamat datang di<br>Teras Laundry Anniversary.</h1></div>
       <img src="/assets/mascot/mascot_celebrate.png" alt="Celebrating mascot" class="heading-mascot">
     </div>
-
-    <section id="customerActiveEvent" class="card active-event-info-card" hidden>
-      <div class="active-event-info-heading"><div><span class="eyebrow">EVENT AKTIF</span><h2 id="customerActiveEventTitle"></h2><p id="customerActiveEventPeriod"></p></div></div>
-      <img id="customerActiveEventImage" class="active-event-info-image" alt="Image Event Aktif" hidden>
-      <p id="customerActiveEventDescription" class="active-event-info-description" hidden></p>
-    </section>
 
     <div class="menu-grid">
       <div class="feature-card game-feature">
@@ -124,11 +104,6 @@
       <div><span class="eyebrow">CASHIER / STAFF</span><h1>Staff Validation</h1><p>Scan QR. Validasi member. Redeem otomatis pada scan pertama yang valid.</p></div>
       <img src="/assets/mascot/mascot_point.png" alt="Staff mascot">
     </div>
-    <section id="staffActiveEvent" class="card active-event-info-card" hidden>
-      <div class="active-event-info-heading"><div><span class="eyebrow">EVENT AKTIF</span><h2 id="staffActiveEventTitle"></h2><p id="staffActiveEventPeriod"></p></div></div>
-      <img id="staffActiveEventImage" class="active-event-info-image" alt="Image Event Aktif" hidden>
-      <p id="staffActiveEventDescription" class="active-event-info-description" hidden></p>
-    </section>
     <div class="card scanner-card">
       <div class="step-chip"><span>1</span> Scan QR Reward</div>
       <p id="scannerSupport" class="section-note">Scan QR reward menggunakan kamera.</p>
@@ -197,7 +172,7 @@
 
     <div id="ownerViewMachines" class="owner-view" hidden>
       <button type="button" class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</button>
-      <div class="owner-page-heading compact"><div class="owner-machine-heading"><h1>Status Mesin</h1><div class="owner-machine-heading-meta"><p>Monitor real-time semua mesin</p><span id="ownerMachineRealtime"></span></div></div></div>
+      <div class="owner-page-heading compact"><div><h1>Status Mesin</h1><p>Monitor real-time semua mesin</p></div></div>
       <div id="machineFilters" class="owner-filter-tabs machine-tabs">
         <button type="button" data-machine-filter="ALL" class="active">Semua (10)</button>
         <button type="button" data-machine-filter="WASHER">Washer (5)</button>
@@ -208,7 +183,7 @@
         <h3>Keterangan Status</h3>
         <div><span class="status-dot idle"></span><b>Idle</b><small>Mesin tersedia</small></div>
         <div><span class="status-dot busy"></span><b>Terpakai</b><small>Mesin sedang digunakan</small></div>
-        <p><span class="owner-inline-icon" data-owner-icon="clock"></span> Real time mesin beroperasi (hh:mm)</p>
+        <p><span class="owner-inline-icon" data-owner-icon="clock"></span> Waktu menunjukkan sisa estimasi (hh:mm:ss)</p>
       </div>
     </div>
 
@@ -246,33 +221,6 @@
         </div>
         <label>Pilih Reward <span class="required-mark">*</span><select id="eventRewardType"></select></label>
         <label>Jumlah Reward <span class="required-mark">*</span><input id="eventRewardQuantity" type="number" min="1" placeholder="Masukkan jumlah reward"><small id="eventRewardStock" class="locked-field-note"></small></label>
-        <div id="eventImageField" class="locked-image-field">
-          <div class="locked-field-title">Image Event <span class="locked-required">*</span></div>
-          <div class="locked-image-grid">
-            <label class="locked-image-upload-card" for="eventImage">
-              <input id="eventImage" type="file" accept="image/jpeg,image/webp" aria-label="Image Event">
-              <span class="locked-image-upload-icon" aria-hidden="true">
-                <svg viewBox="0 0 48 48" role="img" aria-hidden="true">
-                  <rect x="7" y="8" width="28" height="28" rx="4"></rect>
-                  <circle cx="17" cy="17" r="3"></circle>
-                  <path d="M10 31l8-8 6 6 4-4 7 7"></path>
-                  <path d="M36 30v11M30.5 35.5H41.5"></path>
-                </svg>
-              </span>
-              <span class="locked-image-upload-cta">Pilih Image Event</span>
-              <span class="locked-image-upload-meta">Format: JPG / WebP<br>Maks. 300 KB<br>Maks. 1200 × 1200 px</span>
-            </label>
-            <div class="locked-image-preview-card">
-              <div class="locked-image-preview-title">Preview</div>
-              <div class="locked-image-preview-frame">
-                <img id="eventImagePreview" class="locked-image-preview" alt="Preview Image Event" hidden>
-                <span class="locked-image-preview-empty">Preview Image Event</span>
-                <button id="removeEventImageButton" class="locked-image-remove" type="button" aria-label="Hapus Image" hidden>×</button>
-              </div>
-            </div>
-          </div>
-          <p id="eventImageMsg" class="msg status-msg"></p>
-        </div>
         <label>Deskripsi <span class="locked-optional">(Opsional)</span><textarea id="eventDescription" maxlength="200" placeholder="Tuliskan deskripsi event (opsional)"></textarea><span class="locked-counter" id="eventDescriptionCount">0/200</span></label>
         <label id="eventStatusField" hidden>Status <span class="required-mark">*</span><select id="eventStatus"><option value="ACTIVE">Aktif</option><option value="INACTIVE">Nonaktif</option></select></label>
         <div class="locked-form-actions"><button id="cancelEventButton" class="secondary-button" type="button">Batal</button><button id="saveEventButton" class="primary-button" type="button">Simpan Event</button></div>
@@ -286,6 +234,7 @@
           <div><h1>Reward Pool</h1><p>Kelola master reward</p></div>
           <button id="newRewardButton" class="owner-green-button locked-add-button" type="button"><span>＋</span> Tambah Reward</button>
         </div>
+        <div class="locked-reward-budget-total">Total Budget Reward Owner: <b id="rewardBudgetTotal">Rp 0</b></div>
         <div id="rewardFilters" class="owner-filter-tabs locked-module-tabs">
           <button data-reward-filter="ACTIVE" class="active">Aktif (<span id="activeRewardCount">0</span>)</button>
           <button data-reward-filter="INACTIVE">Nonaktif (<span id="inactiveRewardCount">0</span>)</button>
@@ -309,6 +258,7 @@
         <label>Nama Reward <span class="required-mark">*</span><input id="ownerRewardType" maxlength="120" placeholder="Masukkan nama reward"></label>
         <label>Deskripsi Reward<textarea id="rewardDescription" maxlength="200" placeholder="Tulis deskripsi reward"></textarea><span class="locked-counter" id="rewardDescriptionCount">0/200</span></label>
         <label>Total Stok <span class="required-mark">*</span><input id="rewardQuota" type="number" min="1" placeholder="Masukkan total stok"></label>
+        <label>Budget Reward <span class="required-mark">*</span><input id="rewardBudget" type="number" min="0" step="1" inputmode="numeric" placeholder="Masukkan budget reward (Rp)"></label>
         <label>Syarat &amp; Ketentuan<textarea id="rewardTerms" maxlength="200" placeholder="Tulis syarat dan ketentuan (opsional)"></textarea><span class="locked-counter" id="rewardTermsCount">0/200</span></label>
         <label>Status <span class="required-mark">*</span><select id="rewardActive"><option value="ACTIVE">Aktif</option><option value="INACTIVE">Nonaktif</option></select></label>
         <div class="locked-form-actions"><button id="cancelRewardButton" class="secondary-button" type="button">Batal</button><button id="saveRewardButton" class="primary-button" type="button">Simpan Reward</button></div>
@@ -317,19 +267,12 @@
     </div>
 
     <div id="ownerViewCustomerTrace" class="owner-view" hidden>
-      <div id="ownerCustomerListView">
-        <div class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</div>
-        <div class="owner-page-heading compact owner-customer-heading"><div><h1>Customer Trace</h1><p id="ownerCustomerTotal">0 Customers</p></div></div>
-        <div class="owner-customer-search"><label><span class="owner-search-icon" aria-hidden="true">⌕</span><input id="ownerCustomerSearch" maxlength="128" placeholder="Email ID / No. HP" aria-label="Cari customer"></label><button id="ownerCustomerSearchButton" class="primary-button" type="button">Cari</button></div>
-        <div id="ownerCustomerList" class="owner-customer-list"></div>
-        <div class="owner-customer-pagination-summary" id="ownerCustomerPaginationSummary">0 dari 0</div>
-        <div id="ownerCustomerPagination" class="owner-customer-pagination"></div>
-      </div>
-      <div id="ownerCustomerDetailView" hidden>
-        <button type="button" class="owner-back" id="ownerCustomerDetailBack"><span class="owner-back-arrow">←</span> Kembali ke daftar</button>
-        <div id="ownerCustomerDetail" class="owner-customer-detail"></div>
-      </div>
+      <div class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</div>
+      <div class="owner-page-heading compact"><div><h1>Customer Trace</h1><p>Customer → Transaction → Play → Reward</p></div></div>
+      <div class="owner-trace-form"><label>Customer ID<input id="traceCustomerId" maxlength="128" placeholder="Customer ID"></label><button id="traceCustomer" class="primary-button" type="button">Lihat Customer Trace</button></div>
+      <div id="traceResult" class="owner-trace-result"></div>
     </div>
+
     <div id="ownerViewCsvExport" class="owner-view" hidden>
       <div class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</div>
       <div class="owner-page-heading compact"><div><h1>CSV Export</h1><p>Export data Owner</p></div></div>
