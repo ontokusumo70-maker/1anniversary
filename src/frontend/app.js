@@ -1299,12 +1299,12 @@ function renderOwnerMetrics() {
     : 0;
 
   const items = [
-    ["Total Customer", data.participants, "user", data.participantsChangePct, true],
-    ["Reward Claimed", claimed, "gift", claimedPercentage, false],
-    ["Reward Redeemed", redeemed, "percent", redeemedPercentage, false],
+    ["Total Customer", data.participants, "user", data.participantsChangePct, true, false],
+    ["Reward Claimed", claimed, "gift", claimedPercentage, false, true],
+    ["Reward Redeemed", redeemed, "percent", redeemedPercentage, false, false],
   ];
 
-  target.innerHTML = items.map(([label, value, icon, percentage, vsPrevious]) => {
+  target.innerHTML = items.map(([label, value, icon, percentage, vsPrevious, clickable]) => {
     const numericPercentage = Number(percentage || 0);
     const arrow = vsPrevious
       ? (numericPercentage > 0 ? "↑" : numericPercentage < 0 ? "↓" : "→")
@@ -1313,8 +1313,51 @@ function renderOwnerMetrics() {
       ? `${arrow} ${Math.abs(numericPercentage)}%`
       : `${Math.abs(numericPercentage)}%`;
     const note = vsPrevious ? `<span class="owner-metric-note">vs sebelumnya</span>` : "";
-    return `<div class="owner-metric-card"><span class="owner-metric-icon ${icon}">${ownerIconSvg(icon)}</span><small>${label}</small><b>${Number(value || 0).toLocaleString("id-ID")}</b><em>${percentageText}</em>${note}</div>`;
+    const action = clickable ? ` data-owner-metric-action="active-event-reward" role="button" tabindex="0" aria-label="Lihat detail reward event aktif" style="cursor:pointer"` : "";
+    return `<div class="owner-metric-card"${action}><span class="owner-metric-icon ${icon}">${ownerIconSvg(icon)}</span><small>${label}</small><b>${Number(value || 0).toLocaleString("id-ID")}</b><em>${percentageText}</em>${note}</div>`;
   }).join("");
+
+  const claimedCard = target.querySelector('[data-owner-metric-action="active-event-reward"]');
+  if (claimedCard) {
+    claimedCard.onclick = () => openOwnerActiveEventRewardDetail();
+    claimedCard.onkeydown = (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openOwnerActiveEventRewardDetail();
+      }
+    };
+  }
+}
+
+async function openOwnerActiveEventRewardDetail() {
+  const activeEvent = (ownerData?.activeEvents || [])[0];
+  if (!activeEvent) {
+    msg("ownerResult", "Tidak ada event aktif.");
+    return;
+  }
+
+  try {
+    setOwnerView("reward-pool");
+    const { from, to } = ownerDateRangeParams();
+    const params = new URLSearchParams({ from, to });
+    const data = await api(`/owner/reward-pool?${params.toString()}`);
+    ownerData = ownerData || {};
+    ownerData.rewardPool = data.items || [];
+    renderOwnerRewardList();
+    renderRewardOptions();
+
+    const item = ownerData.rewardPool.find((row) =>
+      (row.events || []).some((event) => event.eventId === activeEvent.eventId && event.active)
+    );
+    if (!item) {
+      msg("rewardDetailMsg", "Reward untuk event aktif tidak ditemukan.");
+      return;
+    }
+
+    openRewardDetail(item.rewardType, activeEvent.eventId);
+  } catch (error) {
+    msg("rewardDetailMsg", error.message);
+  }
 }
 
 function renderOwnerMachineSummary() {
@@ -1515,14 +1558,16 @@ function openRewardForm(rewardType = null) {
   msg("rewardFormMsg", "");
 }
 
-function openRewardDetail(rewardType) {
+function openRewardDetail(rewardType, eventId = null) {
   const item = (ownerData?.rewardPool || []).find((row) => row.rewardType === rewardType);
   if (!item) return;
   selectedRewardType = rewardType;
   $("rewardPoolListView").hidden = true;
   $("rewardFormCard").hidden = true;
   $("rewardDetailView").hidden = false;
-  const events = item.events || [];
+  const events = eventId
+    ? (item.events || []).filter((event) => event.eventId === eventId)
+    : (item.events || []);
   $("rewardDetailCard").innerHTML = `
     <div class="locked-detail-rows">
       <div><span>Nama Reward</span><b>${escapeHtml(item.rewardType)}</b></div>
