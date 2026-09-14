@@ -131,8 +131,10 @@
     </section>
     <div class="card scanner-card">
       <div class="step-chip"><span>1</span> Scan QR Reward</div>
-      <p id="scannerSupport" class="section-note">Scan QR reward menggunakan kamera.</p>
+      <p id="scannerSupport" class="section-note">Scan QR reward menggunakan kamera tablet Android.</p>
       <button id="scanCamera" class="primary-button">SCAN QR DENGAN KAMERA</button>
+      <button id="uploadQr" class="secondary-button" type="button">UPLOAD QR DARI GALERI</button>
+      <input id="qrUploadInput" type="file" accept="image/*" hidden>
       <video id="camera" playsinline autoplay hidden></video>
       <pre id="staffResult"></pre>
     </div>
