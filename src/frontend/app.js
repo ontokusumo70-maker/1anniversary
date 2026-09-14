@@ -1449,7 +1449,7 @@ function ownerViews() {
 function setOwnerView(view) {
   const views = ownerViews();
   const target = views[view];
-  if (!target) return;
+  if (!target) return Promise.resolve();
   ownerCurrentView = view;
 
   for (const [name, element] of Object.entries(views)) {
@@ -1460,10 +1460,14 @@ function setOwnerView(view) {
     button.classList.toggle("active", button.dataset.ownerView === view);
   });
 
-  if (view === "machines") renderOwnerMachines();
-  if (view === "events") loadOwnerEvents();
+  if (view === "machines") {
+    renderOwnerMachines();
+    return Promise.resolve();
+  }
+  if (view === "events") return loadOwnerEvents();
   if (view === "reward-pool") return loadOwnerRewardPool();
-  if (view === "customer-trace") loadOwnerCustomers();
+  if (view === "customer-trace") return loadOwnerCustomers();
+  return Promise.resolve();
 }
 
 function renderOwnerMetrics() {
@@ -1538,7 +1542,8 @@ async function openOwnerActiveEventCustomerList() {
 }
 
 async function openOwnerActiveEventRewardDetail() {
-  const activeEvent = (ownerData?.activeEvents || [])[0];
+  const activeEvents = (ownerData?.activeEvents || []).filter((event) => eventCategory(event) === "ACTIVE");
+  const activeEvent = activeEvents[0] || null;
   if (!activeEvent) {
     msg("ownerResult", "Tidak ada event aktif.");
     return;
@@ -1547,9 +1552,16 @@ async function openOwnerActiveEventRewardDetail() {
   try {
     await setOwnerView("reward-pool");
 
-    const item = (ownerData?.rewardPool || []).find((row) =>
-      (row.events || []).some((event) => event.eventId === activeEvent.eventId && event.active)
+    const rewardPool = ownerData?.rewardPool || [];
+    const item = rewardPool.find((row) =>
+      String(row.rewardType || "") === String(activeEvent.rewardType || "") &&
+      (row.events || []).some((event) =>
+        String(event.eventId) === String(activeEvent.eventId) &&
+        event.active &&
+        eventCategory(event) === "ACTIVE"
+      )
     );
+
     if (!item) {
       msg("rewardDetailMsg", "Reward untuk event aktif tidak ditemukan.");
       return;
