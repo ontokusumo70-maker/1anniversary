@@ -951,3 +951,164 @@ body[data-role="OWNER"] .owner-nav-icon{width:27px;height:25px}
   body[data-role="OWNER"] .locked-event-list,
   body[data-role="OWNER"] .locked-reward-list{grid-template-columns:1fr}
 }
+
+/* STAFF LOGIN ROUTE — /staff — SAME CARD STRUCTURE AS OWNER, STAFF ASSET ONLY */
+.staff-login-screen{
+  position:relative;
+  display:block;
+  width:100%;
+  height:100svh;
+  min-height:100svh;
+  margin:0;
+  padding:0;
+  overflow:hidden;
+  background:var(--staff-bg) center top/cover no-repeat;
+}
+
+.staff-login-screen[hidden]{
+  display:none !important;
+}
+
+body:has(#staffAuth:not([hidden])) .topbar,
+body:has(#staffAuth:not([hidden])) .footer-mark,
+body[data-role="STAFF_LOGIN"] .topbar,
+body[data-role="STAFF_LOGIN"] .footer-mark{
+  display:none !important;
+}
+
+body:has(#staffAuth:not([hidden])),
+body[data-role="STAFF_LOGIN"]{
+  min-height:100svh;
+  margin:0;
+  overflow:hidden;
+  background:#e8f7df;
+}
+
+body:has(#staffAuth:not([hidden])) .app-shell,
+body[data-role="STAFF_LOGIN"] .app-shell{
+  width:100%;
+  max-width:none;
+  min-height:100svh;
+  margin:0;
+  padding:0;
+  background:transparent;
+  box-shadow:none;
+}
+
+.staff-login-card{
+  position:absolute;
+  z-index:2;
+  top:26.17%;
+  left:25%;
+  width:43.75%;
+  min-height:0;
+  box-sizing:border-box;
+  padding:2.0% 3.0% 2.0%;
+  border:1px solid rgba(151,204,172,.48);
+  border-radius:24px;
+  background:rgba(255,255,255,.96);
+  box-shadow:0 12px 28px rgba(12,74,45,.12);
+}
+
+.staff-phone-wrap{
+  position:relative;
+  display:flex;
+  align-items:center;
+  width:100%;
+  height:56px;
+  box-sizing:border-box;
+  border:1.5px solid #719d92;
+  border-radius:16px;
+  background:#fff;
+}
+
+.staff-whatsapp-icon{
+  flex:0 0 28px;
+  width:28px;
+  height:28px;
+  margin-left:14px;
+  color:#159b70;
+}
+
+.staff-login-input{
+  width:100%;
+  min-width:0;
+  height:100%;
+  box-sizing:border-box;
+  padding:0 14px 0 10px;
+  border:0 !important;
+  outline:0 !important;
+  box-shadow:none !important;
+  background:transparent !important;
+  color:#245f55;
+  font-size:clamp(15px,1.7vw,18px);
+}
+
+.staff-login-input::placeholder{
+  color:#aeb5b5;
+  opacity:1;
+}
+
+.staff-login-button{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  height:56px;
+  margin-top:12px;
+  border:0;
+  border-radius:16px;
+  background:#13a66f;
+  color:#fff;
+  font-size:clamp(15px,1.8vw,19px);
+  font-weight:600;
+  cursor:pointer;
+}
+
+.staff-login-arrow{
+  position:absolute;
+  right:18px;
+  font-size:28px;
+  line-height:1;
+  font-weight:400;
+}
+
+.staff-login-msg{
+  display:none !important;
+}
+
+@media(max-width:600px){
+  .staff-login-card{
+    top:26.17%;
+    left:25%;
+    width:43.75%;
+    min-height:0;
+    padding:2.0% 3.0% 2.0%;
+    border-radius:18px;
+  }
+
+  .staff-phone-wrap,
+  .staff-login-button{
+    height:42px;
+    border-radius:12px;
+  }
+
+  .staff-whatsapp-icon{
+    flex-basis:21px;
+    width:21px;
+    height:21px;
+    margin-left:9px;
+  }
+
+  .staff-login-input{
+    padding-left:7px;
+    padding-right:8px;
+    font-size:12px;
+  }
+
+  .staff-login-arrow{
+    right:10px;
+    font-size:22px;
+  }
+}
