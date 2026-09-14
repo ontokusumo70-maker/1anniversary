@@ -266,7 +266,13 @@
               <div class="locked-image-preview-title">Preview</div>
               <div class="locked-image-preview-frame">
                 <img id="eventImagePreview" class="locked-image-preview" alt="Preview Image Event" hidden>
-                <span class="locked-image-preview-empty">Preview Image Event</span>
+                <span class="locked-image-preview-empty" aria-hidden="true">
+                  <svg viewBox="0 0 48 48" role="img" aria-hidden="true">
+                    <rect x="7" y="8" width="34" height="32" rx="5"></rect>
+                    <circle cx="18" cy="18" r="4"></circle>
+                    <path d="M10 35l10-10 7 7 5-5 6 8"></path>
+                  </svg>
+                </span>
                 <button id="removeEventImageButton" class="locked-image-remove" type="button" aria-label="Hapus Image" hidden>×</button>
               </div>
             </div>
