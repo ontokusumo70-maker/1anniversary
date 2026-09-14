@@ -22,6 +22,8 @@ let apiBase =
 
 let assetBasePath = "/assets/";
 
+const ownerActiveEventObjectUrls = new Map();
+
 async function api(path, options = {}) {
   const headers = {
     "Content-Type": "application/json",
