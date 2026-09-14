@@ -1160,3 +1160,286 @@ body[data-role="OWNER"] #eventImageMsg{margin:0;min-height:0}
 .locked-reward-card-actions .reward-card-edit,.locked-reward-card-actions .reward-card-delete{min-height:32px;padding:5px 12px;font-size:12px}
 .locked-reward-budget-total{margin:0 0 8px;padding:7px 10px;border:1px solid #e1e9e5;border-radius:8px;background:#f7faf8;color:#687871;font-size:12px;text-align:right}
 .locked-reward-budget-total b{color:#137b59;font-weight:800}
+
+/* STAFF DASHBOARD — APPROVED REFERENCE VISUAL */
+.screen-staff{
+  background:url('/assets/background/staff/staff-bg.PNG') top center/cover no-repeat;
+  min-height:100svh;
+}
+
+.staff-dashboard{
+  min-height:100svh;
+  padding:16px 10px 24px;
+  position:relative;
+  overflow:hidden;
+  background:transparent;
+}
+
+.staff-dashboard-header{
+  padding:6px 4px 10px;
+}
+
+.staff-dashboard-bell{
+  width:34px;
+  height:34px;
+  flex:0 0 34px;
+  border-radius:50%;
+  background:rgba(232,250,239,.92);
+  color:#0b8f61;
+  border:1px solid rgba(115,183,145,.35);
+}
+
+.staff-dashboard-bell svg{
+  width:18px;
+  height:18px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.staff-dashboard-date{
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 4px 16px;
+}
+
+.staff-dashboard-date-copy{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+
+.staff-dashboard-date-copy strong{
+  font-size:15px;
+  color:#173f2f;
+}
+
+.staff-dashboard-date-copy span{
+  font-size:14px;
+  color:#315b49;
+  font-weight:800;
+}
+
+.staff-date-calendar{
+  width:34px;
+  height:34px;
+  flex:0 0 34px;
+  display:grid;
+  place-items:center;
+  border-radius:11px;
+  background:rgba(232,250,239,.9);
+  color:#0b8f61;
+}
+
+.staff-date-calendar svg{
+  width:19px;
+  height:19px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.7;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.staff-dashboard-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+
+.staff-dashboard-card{
+  min-height:194px;
+  padding:18px 14px 16px;
+  background:rgba(255,255,255,.97);
+  border:1px solid rgba(174,214,190,.82);
+  border-radius:20px;
+  box-shadow:0 12px 28px rgba(18,88,52,.11);
+}
+
+.staff-card-icon{
+  width:52px;
+  height:52px;
+  flex:0 0 52px;
+  margin-bottom:14px;
+  border-radius:16px;
+  background:#e3f7ea;
+  color:#078456;
+}
+
+.staff-card-icon svg{
+  width:29px;
+  height:29px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.staff-card-icon-calendar svg{
+  width:30px;
+  height:30px;
+}
+
+.staff-card-icon-machine svg{
+  width:31px;
+  height:31px;
+}
+
+.staff-card-title{
+  font-size:15px;
+  line-height:1.2;
+}
+
+.staff-card-arrow{
+  right:12px;
+  bottom:12px;
+  width:30px;
+  height:30px;
+  background:#eaf8ef;
+  color:#0b8f61;
+}
+
+.staff-dashboard-mascot{
+  margin-top:28px;
+  min-height:220px;
+}
+
+@media(max-width:600px){
+  .screen-staff{
+    background-position:center top;
+    background-size:cover;
+  }
+
+  .staff-dashboard{
+    padding:14px 10px 22px;
+  }
+
+  .staff-dashboard-card{
+    min-height:180px;
+    padding:16px 12px 14px;
+  }
+
+  .staff-card-icon{
+    width:48px;
+    height:48px;
+    flex-basis:48px;
+    border-radius:15px;
+  }
+
+  .staff-card-icon svg{
+    width:27px;
+    height:27px;
+  }
+
+  .staff-card-icon-machine svg{
+    width:29px;
+    height:29px;
+  }
+
+  .staff-dashboard-mascot{
+    margin-top:24px;
+    min-height:190px;
+  }
+
+  .staff-dashboard-mascot img{
+    width:165px;
+    height:165px;
+  }
+}
+
+@media(max-width:380px){
+  .staff-dashboard-grid{
+    gap:9px;
+  }
+
+  .staff-dashboard-card{
+    min-height:174px;
+    padding:14px 10px 13px;
+  }
+
+  .staff-card-title{
+    font-size:14px;
+  }
+
+  .staff-card-value{
+    font-size:10px;
+  }
+
+  .staff-card-note{
+    font-size:9px;
+  }
+}
+
+/* STAFF LANDSCAPE — TABLET / iPAD */
+@media (orientation:landscape) and (min-width:601px){
+  .screen-staff{
+    min-height:100svh;
+    background:url('/assets/background/staff/staff-bg.PNG') center top/cover no-repeat;
+  }
+
+  .screen-staff .staff-dashboard{
+    width:100%;
+    max-width:1100px;
+    min-height:100svh;
+    margin:0 auto;
+    padding:18px 28px 26px;
+  }
+
+  .screen-staff .staff-dashboard-header{
+    padding:4px 2px 10px;
+  }
+
+  .screen-staff .staff-dashboard-header h1{
+    font-size:26px;
+  }
+
+  .screen-staff .staff-dashboard-header p{
+    font-size:12px;
+  }
+
+  .screen-staff .staff-dashboard-date{
+    padding:10px 2px 18px;
+  }
+
+  .screen-staff .staff-dashboard-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:16px;
+    max-width:760px;
+  }
+
+  .screen-staff .staff-dashboard-card{
+    min-height:205px;
+    padding:20px 18px 18px;
+  }
+
+  .screen-staff .staff-dashboard-mascot{
+    max-width:760px;
+    margin-top:20px;
+    min-height:190px;
+  }
+}
+
+@media (orientation:landscape) and (max-width:900px){
+  .screen-staff .staff-dashboard{
+    padding-left:20px;
+    padding-right:20px;
+  }
+
+  .screen-staff .staff-dashboard-grid{
+    gap:12px;
+  }
+
+  .screen-staff .staff-dashboard-card{
+    min-height:175px;
+  }
+
+  .screen-staff .staff-dashboard-mascot{
+    min-height:165px;
+  }
+}
+
