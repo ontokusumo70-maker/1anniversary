@@ -1633,16 +1633,7 @@ body[data-role="OWNER"] #eventImageMsg{margin:0;min-height:0}
   .screen-staff .staff-dashboard-card{min-height:174px}
 }
 
-/* STAFF DASHBOARD — CURRENT LOCKED REFERENCE */
-.app-shell:has(#staff:not([hidden])) > .topbar{
-  display:none!important;
-}
-
-body:has(#staff:not([hidden])) .footer-mark,
-body[data-role="STAFF"] .footer-mark{
-  display:none!important;
-}
-
+/* STAFF DASHBOARD — STAGE 1 LOCKED */
 .screen-staff{
   min-height:100svh;
   background:#f5fff8;
@@ -1656,7 +1647,7 @@ body[data-role="STAFF"] .footer-mark{
   padding:24px 16px 0;
   position:relative;
   overflow:hidden;
-  background:#f5fff8 url('/assets/background/staff/staff-bg.PNG') center bottom/100% auto no-repeat;
+  background:#f5fff8 url('/assets/background/staff/staff-bg.PNG') center top/cover no-repeat;
 }
 
 .screen-staff .staff-dashboard-header{
@@ -1688,53 +1679,16 @@ body[data-role="STAFF"] .footer-mark{
   stroke-linejoin:round;
 }
 
+/* Date block removed for Stage 1. */
 .screen-staff .staff-dashboard-date{
-  padding:98px 4px 20px;
-  display:flex;
-  flex-direction:row;
-  align-items:flex-start;
-  justify-content:space-between;
+  display:none!important;
 }
 
-.screen-staff .staff-dashboard-date-copy{
-  display:flex;
-  flex-direction:column;
-  gap:3px;
-}
-
-.screen-staff .staff-dashboard-date-copy strong{
-  font-size:15px;
-  line-height:1.2;
-  color:#173b30;
-}
-
-.screen-staff .staff-dashboard-date-copy span{
-  font-size:15px;
-  line-height:1.2;
-  color:#173b30;
-  font-weight:900;
-}
-
-.screen-staff .staff-date-calendar{
-  width:34px;
-  height:34px;
-  background:transparent;
-  color:#174e43;
-}
-
-.screen-staff .staff-date-calendar svg{
-  width:28px;
-  height:28px;
-  fill:none;
-  stroke:currentColor;
-  stroke-width:1.7;
-  stroke-linecap:round;
-  stroke-linejoin:round;
-}
-
+/* Two locked dashboard cards. */
 .screen-staff .staff-dashboard-grid{
   grid-template-columns:repeat(2,minmax(0,1fr));
   gap:14px;
+  padding-top:122px;
   position:relative;
   z-index:2;
 }
@@ -1754,18 +1708,18 @@ body[data-role="STAFF"] .footer-mark{
   margin-bottom:12px;
   border-radius:15px;
   background:#e2f7e9;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
 }
 
-.screen-staff .staff-card-icon svg{
-  display:none!important;
-}
-
-.screen-staff .staff-card-icon-calendar{
-  background:#e2f7e9 url('/assets/background/staff/staff-event-icon.PNG') center/34px 34px no-repeat;
-}
-
-.screen-staff .staff-card-icon-machine{
-  background:#e2f7e9 url('/assets/background/staff/staff-machine-icon.PNG') center/34px 34px no-repeat;
+.screen-staff .staff-card-icon img{
+  display:block!important;
+  width:36px!important;
+  height:36px!important;
+  object-fit:contain;
+  opacity:1!important;
+  visibility:visible!important;
 }
 
 .screen-staff .staff-card-title{
@@ -1816,8 +1770,9 @@ body[data-role="STAFF"] .footer-mark{
     top:24px;
   }
 
-  .screen-staff .staff-dashboard-date{
-    padding-top:98px;
+  .screen-staff .staff-dashboard-grid{
+    padding-top:122px;
+    gap:9px;
   }
 
   .screen-staff .staff-dashboard-card{
@@ -1830,21 +1785,16 @@ body[data-role="STAFF"] .footer-mark{
   .screen-staff .staff-dashboard{
     max-width:900px;
     padding:24px 30px 0;
-    background-size:620px auto;
-    background-position:center bottom;
   }
 
   .screen-staff > .staff-dashboard > .staff-dashboard-bell{
     right:30px;
   }
 
-  .screen-staff .staff-dashboard-date{
-    padding-top:88px;
-  }
-
   .screen-staff .staff-dashboard-grid{
     max-width:620px;
     margin:0 auto;
+    padding-top:105px;
   }
 
   .screen-staff .staff-dashboard-card{
