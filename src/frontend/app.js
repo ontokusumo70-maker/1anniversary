@@ -252,10 +252,10 @@ function renderStaffDashboardDate() {
 
   const get = (type) => parts.find((part) => part.type === type)?.value || "";
   const weekday = get("weekday");
-  const update = $("staffDashboardDateText");
+  const update = $("staffDashboardUpdate");
 
   if (update) {
-    update.textContent = `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${get("day")} ${get("month")} ${get("year")}  ${get("hour")}:${get("minute")} WIB`;
+    update.textContent = `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${get("day")} ${get("month")} ${get("year")}, ${get("hour")}:${get("minute")}`;
   }
 }
 
@@ -280,23 +280,17 @@ function showStaffDashboard() {
   }, 1000);
 }
 
-let staffDashboardEventObjectUrl = null;
-function revokeStaffDashboardEventImage() {
-  if (staffDashboardEventObjectUrl) { URL.revokeObjectURL(staffDashboardEventObjectUrl); staffDashboardEventObjectUrl = null; }
-}
 function renderStaffDashboardEvent(data) {
-  const image = $("staffDashboardEventImage");
-  if (!image) return;
-  revokeStaffDashboardEventImage();
-  image.hidden = true;
-  image.removeAttribute("src");
-  if (!data?.active || !data.event?.imageUrl) return;
-  apiBlob(data.event.imageUrl).then((blob) => {
-    if (!image.isConnected) return;
-    staffDashboardEventObjectUrl = URL.createObjectURL(blob);
-    image.src = staffDashboardEventObjectUrl;
-    image.hidden = false;
-  }).catch(() => {});
+  const title = $("staffDashboardEventTitle");
+  const period = $("staffDashboardEventPeriod");
+  if (!title || !period) return;
+  if (!data?.active || !data.event) {
+    title.textContent = "Tidak ada event aktif";
+    period.textContent = "—";
+    return;
+  }
+  title.textContent = data.event.title || "Event Aktif";
+  period.textContent = formatDateRange(data.event.startsAt, data.event.endsAt);
 }
 
 function showRole() {
@@ -1282,21 +1276,6 @@ async function confirmStaffMachineActivation() {
   }
 }
 
-function renderStaffDashboardMachineSummary() {
-  const machines = Array.isArray(staffMachineData) ? staffMachineData : [];
-  const washer = machines.filter((machine) => machine.type === "WASHER");
-  const dryer = machines.filter((machine) => machine.type === "DRYER");
-  const usedWasher = washer.filter((machine) => machine.status === "IN_USE").length;
-  const usedDryer = dryer.filter((machine) => machine.status === "IN_USE").length;
-  const idleWasher = Math.max(0, washer.length - usedWasher);
-  const idleDryer = Math.max(0, dryer.length - usedDryer);
-  if ($("staffDashboardMachineSummary")) $("staffDashboardMachineSummary").textContent = `${washer.length || 5} Washer · ${dryer.length || 5} Dryer`;
-  if ($("staffDashboardIdleWasher")) $("staffDashboardIdleWasher").textContent = String(idleWasher);
-  if ($("staffDashboardIdleDryer")) $("staffDashboardIdleDryer").textContent = String(idleDryer);
-  if ($("staffDashboardUsedWasher")) $("staffDashboardUsedWasher").textContent = String(usedWasher);
-  if ($("staffDashboardUsedDryer")) $("staffDashboardUsedDryer").textContent = String(usedDryer);
-}
-
 async function refreshStaffMachines() {
   try {
     const data = await api("/machines");
@@ -1304,7 +1283,6 @@ async function refreshStaffMachines() {
     renderMachines($("staffMachines"), staffMachineData, true);
     renderStaffMachineStatusList();
     renderStaffMachineStatusMeta();
-    renderStaffDashboardMachineSummary();
   } catch (error) {
     if ($("staffMachines")) $("staffMachines").textContent = error.message;
     if ($("staffMachineStatusList")) $("staffMachineStatusList").textContent = error.message;
