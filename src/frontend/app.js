@@ -255,7 +255,7 @@ function renderStaffDashboardDate() {
   const update = $("staffDashboardUpdate");
 
   if (update) {
-    update.textContent = `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${get("day")} ${get("month")} ${get("year")}, ${get("hour")}:${get("minute")}`;
+    update.textContent = `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${get("day")} ${get("month")} ${get("year")}, ${get("hour")}:${get("minute")} WIB`;
   }
 }
 
@@ -268,7 +268,6 @@ function showStaffDashboard() {
   }
 
   renderStaffDashboardDate();
-  refreshStaffDashboardMachineSummary();
 
   if (staffDashboardClockTimer) {
     window.clearInterval(staffDashboardClockTimer);
@@ -279,35 +278,6 @@ function showStaffDashboard() {
       renderStaffDashboardDate();
     }
   }, 1000);
-}
-
-function renderStaffDashboardMachineSummary(data) {
-  const summary = data?.statusSummary;
-  const activities = data?.activityTotals;
-  if (!summary) return;
-
-  const set = (id, value) => {
-    const element = $(id);
-    if (element) element.textContent = String(value);
-  };
-
-  set("staffDashboardWasherIdle", summary.washer?.idle ?? 0);
-  set("staffDashboardWasherBusy", summary.washer?.inUse ?? 0);
-  set("staffDashboardDryerIdle", summary.dryer?.idle ?? 0);
-  set("staffDashboardDryerBusy", summary.dryer?.inUse ?? 0);
-
-  const total = $("staffDashboardMachineSummary");
-  if (total) {
-    const washerTotal = Number(summary.washer?.total ?? 0);
-    const dryerTotal = Number(summary.dryer?.total ?? 0);
-    const first = total.querySelector(".staff-machine-summary-total");
-    if (first) first.textContent = `${washerTotal} Washer · ${dryerTotal} Dryer`;
-  }
-
-  const activity = $("staffDashboardActivity");
-  if (activity) {
-    activity.textContent = `Total aktivitas ${Number(activities?.washer ?? 0)} Washer · ${Number(activities?.dryer ?? 0)} Dryer`;
-  }
 }
 
 function renderStaffDashboardEvent(data) {
@@ -1306,14 +1276,36 @@ async function confirmStaffMachineActivation() {
   }
 }
 
+function renderStaffDashboardMachineSummary() {
+  const machines = Array.isArray(staffMachineData) ? staffMachineData : [];
+  const washer = machines.filter((machine) => machine.type === "WASHER");
+  const dryer = machines.filter((machine) => machine.type === "DRYER");
+  const usedWasher = washer.filter((machine) => machine.status === "IN_USE").length;
+  const usedDryer = dryer.filter((machine) => machine.status === "IN_USE").length;
+  const idleWasher = Math.max(0, washer.length - usedWasher);
+  const idleDryer = Math.max(0, dryer.length - usedDryer);
+
+  const summary = $("staffDashboardMachineSummary");
+  const idleWasherEl = $("staffDashboardIdleWasher");
+  const idleDryerEl = $("staffDashboardIdleDryer");
+  const usedWasherEl = $("staffDashboardUsedWasher");
+  const usedDryerEl = $("staffDashboardUsedDryer");
+
+  if (summary) summary.textContent = `${washer.length} Washer · ${dryer.length} Dryer`;
+  if (idleWasherEl) idleWasherEl.textContent = String(idleWasher);
+  if (idleDryerEl) idleDryerEl.textContent = String(idleDryer);
+  if (usedWasherEl) usedWasherEl.textContent = String(usedWasher);
+  if (usedDryerEl) usedDryerEl.textContent = String(usedDryer);
+}
+
 async function refreshStaffMachines() {
   try {
     const data = await api("/machines");
     staffMachineData = Array.isArray(data.machines) ? data.machines : [];
+    renderStaffDashboardMachineSummary();
     renderMachines($("staffMachines"), staffMachineData, true);
     renderStaffMachineStatusList();
     renderStaffMachineStatusMeta();
-    renderStaffDashboardMachineSummary(data);
   } catch (error) {
     if ($("staffMachines")) $("staffMachines").textContent = error.message;
     if ($("staffMachineStatusList")) $("staffMachineStatusList").textContent = error.message;
