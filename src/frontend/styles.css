@@ -2365,3 +2365,90 @@ body.staff-machine-modal-open{overflow:hidden}
   .staff-machine-sheet-actions{gap:9px;margin-top:5px}
   .staff-machine-sheet-actions button{height:42px;font-size:12px;border-radius:10px}
 }
+/* STAFF DASHBOARD — APPROVED INFORMATION SERVICE CARD + ADDRESS */
+.screen-staff .staff-service-card{
+  grid-column:1 / -1;
+  margin-top:0;
+  min-height:150px;
+  padding:15px 18px 14px;
+  display:grid;
+  grid-template-columns:58px minmax(0,1fr);
+  gap:14px;
+  align-items:start;
+  background:rgba(255,255,255,.96);
+  border:1px solid #c1e0cf;
+  border-radius:20px;
+  box-shadow:0 8px 22px rgba(18,88,52,.08);
+  position:relative;
+  z-index:2;
+}
+.screen-staff .staff-service-icon{
+  width:54px;
+  height:54px;
+  border-radius:15px;
+  background:#e2f7e9;
+  color:#0b8f61;
+  display:grid;
+  place-items:center;
+}
+.screen-staff .staff-service-icon svg{width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.screen-staff .staff-service-content{min-width:0;color:#4e5754;font-size:12px;line-height:1.55}
+.screen-staff .staff-service-content h2{margin:1px 0 7px;color:#111;font-size:17px;line-height:1.2}
+.screen-staff .staff-service-row{display:grid;grid-template-columns:29px minmax(0,1fr);gap:9px;align-items:start}
+.screen-staff .staff-service-row-icon{width:25px;height:25px;color:#68716d;display:grid;place-items:center}
+.screen-staff .staff-service-row-icon svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.screen-staff .staff-service-coins svg{width:28px;height:28px}
+.screen-staff .staff-service-divider{height:1px;background:#e2e6e4;margin:9px 0 9px 38px}
+.screen-staff .staff-machine-dashboard-summary{width:100%;display:block;min-height:0;margin-top:6px;color:#68756f}
+.screen-staff .staff-machine-summary-total{display:block;font-size:10px;line-height:1.35;margin-bottom:4px}
+.screen-staff .staff-machine-summary-table{display:grid;grid-template-columns:minmax(55px,1fr) 58px 58px;border-top:1px solid #e4e9e7;border-bottom:1px solid #e4e9e7;font-size:9px;line-height:1.25;text-align:center}
+.screen-staff .staff-machine-summary-table>*{padding:3px 2px;border-right:1px solid #e4e9e7}
+.screen-staff .staff-machine-summary-table>*:nth-child(3n){border-right:0}
+.screen-staff .staff-machine-summary-table b{font-weight:800;color:#4e5754}
+.screen-staff .staff-machine-summary-table .summary-status{text-align:left;white-space:nowrap}
+.screen-staff .staff-machine-summary-table .summary-status i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:0}
+.screen-staff .staff-machine-summary-table .summary-status.idle i{background:#0b9f6c}
+.screen-staff .staff-machine-summary-table .summary-status.busy i{background:#f4b51b}
+.screen-staff .staff-machine-summary-activity{display:block;margin-top:4px;font-size:8.5px;line-height:1.25;color:#75807b}
+.screen-staff .staff-dashboard-address{
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:70px;
+  z-index:3;
+  text-align:center;
+  color:#173f32;
+  font-size:8px;
+  line-height:1.35;
+  font-weight:800;
+  text-shadow:0 1px 2px rgba(255,255,255,.7);
+}
+
+@media(max-width:600px){
+  .screen-staff .staff-service-card{min-height:150px;padding:15px 17px 12px;grid-template-columns:56px minmax(0,1fr);gap:12px}
+  .screen-staff .staff-service-icon{width:54px;height:54px}
+  .screen-staff .staff-service-content h2{font-size:17px;margin-bottom:6px}
+  .screen-staff .staff-service-content{font-size:11px;line-height:1.5}
+  .screen-staff .staff-service-row{grid-template-columns:27px minmax(0,1fr);gap:8px}
+  .screen-staff .staff-service-divider{margin-left:35px;margin-top:8px;margin-bottom:8px}
+  .screen-staff .staff-dashboard-address{bottom:64px;font-size:8px}
+}
+
+@media(max-width:380px){
+  .screen-staff .staff-service-card{min-height:146px;padding:13px 14px;grid-template-columns:50px minmax(0,1fr);gap:10px}
+  .screen-staff .staff-service-icon{width:50px;height:50px}
+  .screen-staff .staff-service-icon svg{width:31px;height:31px}
+  .screen-staff .staff-service-content h2{font-size:16px}
+  .screen-staff .staff-service-content{font-size:10px}
+  .screen-staff .staff-service-row{grid-template-columns:25px minmax(0,1fr);gap:6px}
+  .screen-staff .staff-service-row-icon svg{width:22px;height:22px}
+  .screen-staff .staff-service-divider{margin-left:31px}
+  .screen-staff .staff-machine-summary-table{grid-template-columns:minmax(50px,1fr) 54px 54px}
+  .screen-staff .staff-machine-summary-activity{font-size:8px}
+  .screen-staff .staff-dashboard-address{bottom:58px;font-size:7.5px}
+}
+
+@media (orientation:landscape) and (min-width:601px){
+  .screen-staff .staff-service-card{max-width:760px;margin:0 auto;min-height:150px}
+  .screen-staff .staff-dashboard-address{bottom:22px}
+}
