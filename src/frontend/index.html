@@ -149,7 +149,38 @@
     </section>
 
     <section id="staffTools" class="staff-tools" hidden>
-      <button id="staffToolsBack" class="staff-tools-back" type="button">← Kembali ke Dashboard</button>
+      <section id="staffMachineStatusView" class="staff-machine-status-view" hidden>
+        <header class="staff-machine-status-header">
+          <button id="staffMachineStatusBack" class="staff-machine-status-back" type="button" aria-label="Kembali ke Dashboard">←</button>
+          <div class="staff-machine-status-title">
+            <h1>Status Mesin</h1>
+            <p>Monitor real-time semua mesin</p>
+          </div>
+          <div class="staff-machine-status-clock">
+            <strong id="staffMachineStatusDate">Selasa, 15 Sep 2026</strong>
+            <span id="staffMachineStatusTime">13:45 WIB</span>
+          </div>
+        </header>
+
+        <div id="staffMachineFilters" class="staff-machine-filter-tabs">
+          <button type="button" data-staff-machine-filter="ALL" class="active">Semua (10)</button>
+          <button type="button" data-staff-machine-filter="WASHER">Washer (5)</button>
+          <button type="button" data-staff-machine-filter="DRYER">Dryer (5)</button>
+        </div>
+
+        <div id="staffMachineStatusList" class="staff-machine-status-list"></div>
+
+        <section class="staff-machine-status-legend">
+          <h2>Keterangan Status</h2>
+          <div><span class="status-dot idle"></span><b>Idle</b><small>Mesin tersedia</small></div>
+          <div><span class="status-dot busy"></span><b>Terpakai</b><small>Mesin sedang digunakan</small></div>
+          <p><span class="staff-legend-clock" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></span>Real time mesin beroperasi (hh:mm)</p>
+        </section>
+
+        <button id="staffMachineRefresh" class="staff-machine-refresh" type="button"><span aria-hidden="true">⟳</span> Segarkan Status</button>
+      </section>
+
+      <button id="staffToolsBack" class="staff-tools-back" type="button" hidden>← Kembali ke Dashboard</button>
       <section id="staffActiveEvent" class="card active-event-info-card" hidden>
         <div class="active-event-info-heading"><div><span class="eyebrow">EVENT AKTIF</span><h2 id="staffActiveEventTitle"></h2><p id="staffActiveEventPeriod"></p></div></div>
         <img id="staffActiveEventImage" class="active-event-info-image" alt="Image Event Aktif" hidden>
@@ -165,6 +196,35 @@
       <div id="staffMachineTool" class="card machine-card" hidden>
         <div class="card-title-row"><div><span class="eyebrow">OPERASIONAL</span><h2>Aktivasi Mesin</h2></div></div>
         <div id="staffMachines" class="machineGrid"></div>
+      </div>
+
+      <div id="staffMachineActivationModal" class="staff-machine-modal" hidden>
+        <div class="staff-machine-modal-backdrop" data-close-staff-machine-modal></div>
+        <section class="staff-machine-sheet" role="dialog" aria-modal="true" aria-labelledby="staffActivationTitle">
+          <div class="staff-machine-sheet-handle" aria-hidden="true"></div>
+          <header class="staff-machine-sheet-header">
+            <div class="staff-machine-sheet-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="13" r="4.5"/><path d="M8 7h1M11 7h1"/></svg></div>
+            <div>
+              <h2 id="staffActivationTitle">Aktifkan Mesin</h2>
+              <p id="staffActivationMachineId">W1 - Washer</p>
+            </div>
+            <button id="staffActivationClose" class="staff-machine-sheet-close" type="button" aria-label="Tutup">×</button>
+          </header>
+
+          <div class="staff-machine-sheet-info"><span>i</span><p>Pastikan pakaian, deterjen dan pengaturan sudah siap<br class="staff-machine-sheet-info-break">sebelum memulai.</p></div>
+
+          <div class="staff-machine-sheet-details">
+            <div><span class="staff-detail-icon"><svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2"/><circle cx="12" cy="13" r="4"/><path d="M9 7h1M12 7h1"/></svg></span><span>Jenis Mesin</span><b id="staffActivationMachineType">Washer</b></div>
+            <div><span class="staff-detail-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></span><span>Durasi Program</span><b id="staffActivationDuration">32 menit</b></div>
+            <div><span class="staff-detail-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4M12 12l3 2"/></svg></span><span>Estimasi Selesai</span><b id="staffActivationEnd">14:19 WIB</b></div>
+          </div>
+
+          <p id="staffActivationMsg" class="staff-machine-activation-msg"></p>
+          <div class="staff-machine-sheet-actions">
+            <button id="staffActivationCancel" class="staff-machine-cancel" type="button">Batal</button>
+            <button id="staffActivationStart" class="staff-machine-start" type="button">▶&nbsp;&nbsp; Mulai Mesin</button>
+          </div>
+        </section>
       </div>
     </section>
   </section>
