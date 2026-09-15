@@ -1093,153 +1093,263 @@ function renderMachines(
   machines,
   staff = false,
 ) {
-  if (!target) {
-    return;
-  }
-
+  if (!target) return;
   target.innerHTML = "";
-
   for (const machine of machines) {
-    const card =
-      document.createElement(
-        "div",
-      );
-
-    card.className =
-      "machine";
-
-    const title =
-      document.createElement(
-        "b",
-      );
-
-    title.textContent =
-      `${
-        machine.type ===
-        "WASHER"
-          ? "Wash"
-          : "Dry"
-      } ${machine.machineNumber}`;
-
-    const status =
-      document.createElement(
-        "span",
-      );
-
-    status.textContent =
-      machine.statusLabel +
-      (
-        machine.remainingSeconds
-          ? ` • ${Math.ceil(
-              machine.remainingSeconds /
-                60,
-            )} mnt`
-          : ""
-      );
-
-    status.className =
-      machine.status ===
-      "IN_USE"
-        ? "busy"
-        : "idle";
-
-    card.append(
-      title,
-      status,
-    );
-
-    if (
-      staff &&
-      machine.status ===
-        "IDLE"
-    ) {
-      const button =
-        document.createElement(
-          "button",
-        );
-
-      button.textContent =
-        "Aktifkan";
-
-      button.onclick =
-        () =>
-          activateMachine(
-            machine.machineId,
-          );
-
-      card.append(
-        button,
-      );
+    const card = document.createElement("div");
+    card.className = "machine";
+    const title = document.createElement("b");
+    title.textContent = `${machine.type === "WASHER" ? "Wash" : "Dry"} ${machine.machineNumber}`;
+    const status = document.createElement("span");
+    status.textContent = machine.statusLabel + (machine.remainingSeconds ? ` • ${Math.ceil(machine.remainingSeconds / 60)} mnt` : "");
+    status.className = machine.status === "IN_USE" ? "busy" : "idle";
+    card.append(title, status);
+    if (staff && machine.status === "IDLE") {
+      const button = document.createElement("button");
+      button.textContent = "Aktifkan";
+      button.onclick = () => activateMachine(machine.machineId);
+      card.append(button);
     }
-
     target.append(card);
   }
 }
 
-async function refreshMachines() {
-  try {
-    const data =
-      await api(
-        "/machines",
-      );
+let staffMachineData = [];
+let staffMachineFilter = "ALL";
+let staffMachineStatusTimer = null;
+let staffMachineActivationBusy = false;
+let staffSelectedMachine = null;
 
-    renderMachines(
-      $("machines"),
-      data.machines,
-    );
-  } catch (error) {
-    if ($("machines")) {
-      $("machines").textContent =
-        error.message;
-    }
+function formatStaffMachineElapsed(machine) {
+  if (!machine?.startedAt || machine.status !== "IN_USE") return "00:00 mnt";
+  const startedMs = Date.parse(machine.startedAt);
+  if (!Number.isFinite(startedMs)) return "00:00 mnt";
+  const elapsed = Math.max(0, Math.floor((Date.now() - startedMs) / 1000));
+  const minutes = Math.floor(elapsed / 60);
+  const seconds = elapsed % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")} mnt`;
+}
+
+function formatStaffWibDateTime(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jakarta" }).formatToParts(date);
+  const get = (type) => parts.find((part) => part.type === type)?.value || "";
+  const weekday = get("weekday");
+  return {
+    date: `${weekday ? weekday.charAt(0).toUpperCase() + weekday.slice(1) : ""}, ${get("day")} ${get("month")} ${get("year")}`,
+    time: `${get("hour")}:${get("minute")} WIB`,
+  };
+}
+
+function staffMachineTypeLabel(machine) {
+  return machine?.type === "DRYER" ? "Dryer" : "Washer";
+}
+
+function renderStaffMachineStatusList() {
+  const target = $("staffMachineStatusList");
+  if (!target) return;
+  const filtered = staffMachineData.filter((machine) => staffMachineFilter === "ALL" || machine.type === staffMachineFilter);
+  target.innerHTML = "";
+  for (const machine of filtered) {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = `staff-machine-status-row ${machine.status === "IN_USE" ? "is-busy" : "is-idle"}`;
+    const icon = document.createElement("span");
+    icon.className = "staff-machine-row-icon";
+    icon.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="13" r="4.5"/><path d="M8 7h1M11 7h1"/></svg>`;
+    const id = document.createElement("strong");
+    id.textContent = `${machine.type === "WASHER" ? "W" : "D"}${machine.machineNumber}`;
+    const type = document.createElement("span");
+    type.className = "staff-machine-row-type";
+    type.textContent = staffMachineTypeLabel(machine);
+    const status = document.createElement("span");
+    status.className = `staff-machine-row-status ${machine.status === "IN_USE" ? "busy" : "idle"}`;
+    status.textContent = machine.status === "IN_USE" ? "Terpakai" : "Idle";
+    const time = document.createElement("span");
+    time.className = "staff-machine-row-time";
+    time.textContent = formatStaffMachineElapsed(machine);
+    const arrow = document.createElement("span");
+    arrow.className = "staff-machine-row-arrow";
+    arrow.textContent = "›";
+    row.append(icon, id, type, status, time, arrow);
+    row.onclick = () => { if (machine.status === "IDLE") openStaffMachineActivation(machine); };
+    target.append(row);
   }
 }
 
-if ($("refreshMachines")) {
-  $("refreshMachines").onclick =
-    refreshMachines;
+function updateStaffMachineRealtime() {
+  renderStaffMachineStatusList();
+  renderStaffMachineStatusMeta();
+}
+
+function updateStaffMachineFilterButtons() {
+  document.querySelectorAll("#staffMachineFilters [data-staff-machine-filter]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.staffMachineFilter === staffMachineFilter);
+  });
+}
+
+function renderStaffMachineStatusMeta() {
+  const dateEl = $("staffMachineStatusDate");
+  const timeEl = $("staffMachineStatusTime");
+  if (!dateEl || !timeEl) return;
+  const value = formatStaffWibDateTime();
+  dateEl.textContent = value.date;
+  timeEl.textContent = value.time;
+}
+
+function stopStaffMachineStatusTimer() {
+  if (staffMachineStatusTimer) {
+    window.clearInterval(staffMachineStatusTimer);
+    staffMachineStatusTimer = null;
+  }
+}
+
+function startStaffMachineStatusTimer() {
+  stopStaffMachineStatusTimer();
+  staffMachineStatusTimer = window.setInterval(() => {
+    if (state.role === "STAFF" && $("staffMachineStatusView") && !$("staffMachineStatusView").hidden) {
+      updateStaffMachineRealtime();
+    }
+  }, 1000);
+}
+
+function openStaffMachineStatus() {
+  if ($("staffDashboard")) $("staffDashboard").hidden = true;
+  if ($("staffTools")) $("staffTools").hidden = false;
+  if ($("staffMachineStatusView")) $("staffMachineStatusView").hidden = false;
+  if ($("staffActiveEvent")) $("staffActiveEvent").hidden = true;
+  if ($("staffScannerTool")) $("staffScannerTool").hidden = true;
+  if ($("staffMachineTool")) $("staffMachineTool").hidden = true;
+  renderStaffMachineStatusMeta();
+  refreshStaffMachines();
+  startStaffMachineStatusTimer();
+}
+
+function closeStaffMachineStatus() {
+  closeStaffMachineActivation();
+  stopStaffMachineStatusTimer();
+  if ($("staffMachineStatusView")) $("staffMachineStatusView").hidden = true;
+  showStaffDashboard();
+}
+
+function openStaffMachineActivation(machine) {
+  if (!machine || machine.status !== "IDLE") return;
+  staffSelectedMachine = machine;
+  staffMachineActivationBusy = false;
+  if ($("staffActivationMsg")) $("staffActivationMsg").textContent = "";
+  if ($("staffActivationStart")) {
+    $("staffActivationStart").disabled = false;
+    $("staffActivationStart").textContent = "▶  Mulai Mesin";
+  }
+  const type = staffMachineTypeLabel(machine);
+  const id = `${machine.type === "WASHER" ? "W" : "D"}${machine.machineNumber}`;
+  $("staffActivationMachineId").textContent = `${id} - ${type}`;
+  $("staffActivationMachineType").textContent = type;
+  $("staffActivationDuration").textContent = `${Number(machine.durationMinutes || (machine.type === "DRYER" ? 50 : 32))} menit`;
+  const end = new Date(Date.now() + Number(machine.durationMinutes || (machine.type === "DRYER" ? 50 : 32)) * 60000);
+  $("staffActivationEnd").textContent = formatStaffWibDateTime(end).time;
+  $("staffMachineActivationModal").hidden = false;
+  document.body.classList.add("staff-machine-modal-open");
+}
+
+function closeStaffMachineActivation() {
+  const modal = $("staffMachineActivationModal");
+  if (modal) modal.hidden = true;
+  document.body.classList.remove("staff-machine-modal-open");
+  staffSelectedMachine = null;
+  staffMachineActivationBusy = false;
+}
+
+async function confirmStaffMachineActivation() {
+  if (!staffSelectedMachine || staffMachineActivationBusy) return;
+  staffMachineActivationBusy = true;
+  const button = $("staffActivationStart");
+  if (button) { button.disabled = true; button.textContent = "Memulai..."; }
+  try {
+    await api(`/staff/machines/${encodeURIComponent(staffSelectedMachine.machineId)}/activate`, { method: "POST", body: "{}" });
+    closeStaffMachineActivation();
+    await refreshStaffMachines();
+  } catch (error) {
+    const message = $("staffActivationMsg");
+    if (message) message.textContent = error.message;
+    staffMachineActivationBusy = false;
+    if (button) { button.disabled = false; button.textContent = "▶  Mulai Mesin"; }
+  }
 }
 
 async function refreshStaffMachines() {
   try {
-    const data =
-      await api(
-        "/machines",
-      );
-
-    renderMachines(
-      $("staffMachines"),
-      data.machines,
-      true,
-    );
+    const data = await api("/machines");
+    staffMachineData = Array.isArray(data.machines) ? data.machines : [];
+    renderMachines($("staffMachines"), staffMachineData, true);
+    renderStaffMachineStatusList();
+    renderStaffMachineStatusMeta();
   } catch (error) {
-    if ($("staffMachines")) {
-      $("staffMachines").textContent =
-        error.message;
-    }
+    if ($("staffMachines")) $("staffMachines").textContent = error.message;
+    if ($("staffMachineStatusList")) $("staffMachineStatusList").textContent = error.message;
   }
 }
 
-async function activateMachine(
-  id,
-) {
+async function activateMachine(id) {
   try {
-    await api(
-      `/staff/machines/${encodeURIComponent(
-        id,
-      )}/activate`,
-      {
-        method: "POST",
-        body: "{}",
-      },
-    );
-
+    await api(`/staff/machines/${encodeURIComponent(id)}/activate`, { method: "POST", body: "{}" });
     await refreshStaffMachines();
   } catch (error) {
-    msg(
-      "scannerSupport",
-      error.message,
-    );
+    msg("scannerSupport", error.message);
+  }
+}
+
+if ($("refreshMachines")) {
+  $("refreshMachines").onclick = refreshMachines;
+}
+
+if ($("staffMachineFilters")) {
+  $("staffMachineFilters").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-staff-machine-filter]");
+    if (!button) return;
+    staffMachineFilter = button.dataset.staffMachineFilter || "ALL";
+    updateStaffMachineFilterButtons();
+    renderStaffMachineStatusList();
+  });
+}
+
+if ($("staffMachineRefresh")) {
+  $("staffMachineRefresh").onclick = refreshStaffMachines;
+}
+
+if ($("staffMachineStatusBack")) {
+  $("staffMachineStatusBack").onclick = closeStaffMachineStatus;
+}
+
+if ($("staffActivationClose")) {
+  $("staffActivationClose").onclick = closeStaffMachineActivation;
+}
+
+if ($("staffActivationCancel")) {
+  $("staffActivationCancel").onclick = closeStaffMachineActivation;
+}
+
+if ($("staffActivationStart")) {
+  $("staffActivationStart").onclick = confirmStaffMachineActivation;
+}
+
+document.addEventListener("click", (event) => {
+  if (event.target.closest("[data-close-staff-machine-modal]")) {
+    closeStaffMachineActivation();
+  }
+});
+
+if ($("staffDashboardMachineSummary")) {
+  const card = $("staffDashboardMachineSummary").closest(".staff-dashboard-card");
+  if (card) {
+    card.setAttribute("role", "button");
+    card.tabIndex = 0;
+    card.addEventListener("click", openStaffMachineStatus);
+    card.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openStaffMachineStatus();
+      }
+    });
   }
 }
 
