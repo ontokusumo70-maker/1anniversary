@@ -2365,11 +2365,62 @@ body.staff-machine-modal-open{overflow:hidden}
   .staff-machine-sheet-actions{gap:9px;margin-top:5px}
   .staff-machine-sheet-actions button{height:42px;font-size:12px;border-radius:10px}
 }
-/* STAFF DASHBOARD — APPROVED INFORMATION SERVICE CARD + ADDRESS */
+
+/* STAFF DASHBOARD — APPROVED VISUAL RELOCK v2
+   Source: latest production stylesproduction.txt only.
+   Fixes the root cause: previous relative top-shift moved cards visually
+   without moving document flow, causing Informasi Layanan to overlap.
+*/
+.screen-staff .staff-dashboard{
+  max-width:520px;
+  min-height:calc(520px * 1.777896);
+  padding:24px 10px 0;
+  overflow:hidden;
+  background:#f5fff8 url('/assets/background/staff/staff-bg.PNG') top center/100% auto no-repeat;
+}
+.screen-staff .staff-dashboard-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  padding-top:177px;
+  margin:0;
+  position:relative;
+  z-index:2;
+}
+.screen-staff .staff-dashboard-grid > .staff-dashboard-card,
+.screen-staff .staff-dashboard-status-column > .staff-dashboard-card{
+  position:relative;
+  top:0;
+  min-height:246px;
+  height:246px;
+  padding:20px 14px 14px;
+}
+.screen-staff .staff-dashboard-status-column{
+  position:relative;
+  display:block;
+  min-width:0;
+}
+.screen-staff .staff-dashboard-status-column > .staff-dashboard-card{width:100%;margin:0}
+.screen-staff .staff-dashboard-update{
+  position:absolute;
+  left:2px;
+  bottom:calc(100% + 8px);
+  display:block;
+  min-height:0;
+  margin:0;
+  padding:0;
+  font-size:10px;
+  line-height:1.2;
+  font-weight:500;
+  color:#68756f;
+  text-align:left;
+  white-space:nowrap;
+  z-index:3;
+}
 .screen-staff .staff-service-card{
   grid-column:1 / -1;
-  margin-top:0;
-  min-height:150px;
+  margin:10px 0 0;
+  min-height:206px;
+  height:206px;
   padding:15px 18px 14px;
   display:grid;
   grid-template-columns:58px minmax(0,1fr);
@@ -2382,15 +2433,7 @@ body.staff-machine-modal-open{overflow:hidden}
   position:relative;
   z-index:2;
 }
-.screen-staff .staff-service-icon{
-  width:54px;
-  height:54px;
-  border-radius:15px;
-  background:#e2f7e9;
-  color:#0b8f61;
-  display:grid;
-  place-items:center;
-}
+.screen-staff .staff-service-icon{width:54px;height:54px;border-radius:15px;background:#e2f7e9;color:#0b8f61;display:grid;place-items:center}
 .screen-staff .staff-service-icon svg{width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .screen-staff .staff-service-content{min-width:0;color:#4e5754;font-size:12px;line-height:1.55}
 .screen-staff .staff-service-content h2{margin:1px 0 7px;color:#111;font-size:17px;line-height:1.2}
@@ -2410,32 +2453,29 @@ body.staff-machine-modal-open{overflow:hidden}
 .screen-staff .staff-machine-summary-table .summary-status.idle i{background:#0b9f6c}
 .screen-staff .staff-machine-summary-table .summary-status.busy i{background:#f4b51b}
 .screen-staff .staff-machine-summary-activity{display:block;margin-top:4px;font-size:8.5px;line-height:1.25;color:#75807b}
-.screen-staff .staff-dashboard-address{
-  position:absolute;
-  left:0;
-  right:0;
-  bottom:70px;
-  z-index:3;
-  text-align:center;
-  color:#173f32;
-  font-size:8px;
-  line-height:1.35;
-  font-weight:800;
-  text-shadow:0 1px 2px rgba(255,255,255,.7);
-}
-
+.screen-staff .staff-dashboard-mascot{margin-top:18px;min-height:210px;position:relative;display:flex;align-items:flex-end;justify-content:center;gap:10px}
+.screen-staff .staff-dashboard-address{position:absolute;left:0;right:0;bottom:14px;z-index:3;text-align:center;color:#173f32;font-size:8px;line-height:1.35;font-weight:800;text-shadow:0 1px 2px rgba(255,255,255,.7)}
 @media(max-width:600px){
-  .screen-staff .staff-service-card{min-height:150px;padding:15px 17px 12px;grid-template-columns:56px minmax(0,1fr);gap:12px}
+  .screen-staff .staff-dashboard{min-height:calc(100vw * 1.777896);padding:24px 10px 0;background-size:100% auto}
+  .screen-staff .staff-dashboard-grid{padding-top:177px;gap:10px}
+  .screen-staff .staff-dashboard-grid > .staff-dashboard-card,
+  .screen-staff .staff-dashboard-status-column > .staff-dashboard-card{min-height:246px;height:246px;padding:20px 14px 14px}
+  .screen-staff .staff-service-card{min-height:206px;height:206px;margin-top:10px;padding:15px 17px 12px;grid-template-columns:56px minmax(0,1fr);gap:12px}
   .screen-staff .staff-service-icon{width:54px;height:54px}
   .screen-staff .staff-service-content h2{font-size:17px;margin-bottom:6px}
   .screen-staff .staff-service-content{font-size:11px;line-height:1.5}
   .screen-staff .staff-service-row{grid-template-columns:27px minmax(0,1fr);gap:8px}
   .screen-staff .staff-service-divider{margin-left:35px;margin-top:8px;margin-bottom:8px}
-  .screen-staff .staff-dashboard-address{bottom:64px;font-size:8px}
+  .screen-staff .staff-dashboard-mascot{margin-top:18px;min-height:190px}
+  .screen-staff .staff-dashboard-mascot img{width:165px;height:165px}
+  .screen-staff .staff-dashboard-address{bottom:12px;font-size:8px}
 }
-
 @media(max-width:380px){
-  .screen-staff .staff-service-card{min-height:146px;padding:13px 14px;grid-template-columns:50px minmax(0,1fr);gap:10px}
+  .screen-staff .staff-dashboard{padding-left:8px;padding-right:8px}
+  .screen-staff .staff-dashboard-grid{padding-top:177px;gap:9px}
+  .screen-staff .staff-dashboard-grid > .staff-dashboard-card,
+  .screen-staff .staff-dashboard-status-column > .staff-dashboard-card{min-height:246px;height:246px;padding:18px 11px 13px}
+  .screen-staff .staff-service-card{min-height:206px;height:206px;padding:13px 14px;grid-template-columns:50px minmax(0,1fr);gap:10px}
   .screen-staff .staff-service-icon{width:50px;height:50px}
   .screen-staff .staff-service-icon svg{width:31px;height:31px}
   .screen-staff .staff-service-content h2{font-size:16px}
@@ -2445,10 +2485,12 @@ body.staff-machine-modal-open{overflow:hidden}
   .screen-staff .staff-service-divider{margin-left:31px}
   .screen-staff .staff-machine-summary-table{grid-template-columns:minmax(50px,1fr) 54px 54px}
   .screen-staff .staff-machine-summary-activity{font-size:8px}
-  .screen-staff .staff-dashboard-address{bottom:58px;font-size:7.5px}
 }
-
-@media (orientation:landscape) and (min-width:601px){
-  .screen-staff .staff-service-card{max-width:760px;margin:0 auto;min-height:150px}
+@media(orientation:landscape) and (min-width:601px){
+  .screen-staff .staff-dashboard{max-width:900px;min-height:calc(100vw * 1.776835);padding:24px 30px 0;background-size:100% auto;background-position:center top}
+  .screen-staff .staff-dashboard-grid{max-width:620px;margin:0 auto;padding-top:105px;gap:12px}
+  .screen-staff .staff-dashboard-grid > .staff-dashboard-card,
+  .screen-staff .staff-dashboard-status-column > .staff-dashboard-card{min-height:174px;height:174px;padding:20px 18px 18px}
+  .screen-staff .staff-service-card{max-width:760px;margin:10px auto 0;min-height:150px;height:150px}
   .screen-staff .staff-dashboard-address{bottom:22px}
 }
