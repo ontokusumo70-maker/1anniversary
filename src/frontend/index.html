@@ -121,44 +121,71 @@
 
   <section id="staff" class="screen screen-staff" hidden>
     <section id="staffDashboard" class="staff-dashboard">
-
-      <div id="staffDashboardUpdate" class="staff-dashboard-update"></div>
+      <div id="staffDashboardUpdate" class="staff-dashboard-update"><span class="staff-dashboard-date-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 9h16M8 13h2M12 13h2M16 13h0M8 16h2M12 16h2M16 16h0"/></svg></span><span id="staffDashboardDateText">Senin, 15 Sept 2026 20:17 WIB</span></div>
 
       <div class="staff-dashboard-grid">
-        <div class="staff-dashboard-card staff-dashboard-event-card">
+        <article class="staff-dashboard-card staff-dashboard-event-card">
+          <span class="staff-card-icon staff-card-icon-calendar" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 9h16M8 13h3M13 13h3M8 16h3M13 16h3"/></svg></span>
+          <span class="staff-card-title">Event</span>
           <img id="staffDashboardEventImage" class="staff-dashboard-event-image" alt="Image Event" hidden>
-        </div>
+        </article>
 
-        <div class="staff-dashboard-status-column">
-          <div class="staff-dashboard-card staff-dashboard-status-card" role="button" tabindex="0">
-            <span class="staff-card-icon staff-card-icon-machine" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M7 7h10M8 5h1M11 5h1M14 5h1M8 11h8M12 11a4 4 0 1 0 0 8 4 4 0 0 0-0-8Z"/></svg></span>
-            <span class="staff-card-title">Status Mesin</span>
-            <span id="staffDashboardMachineSummary" class="staff-card-value">5 Washer · 5 Dryer</span>
-            <div id="staffDashboardMachineTable" class="staff-dashboard-machine-table" aria-label="Ringkasan status mesin">
-              <span></span><span class="machine-table-head">Washer</span><span class="machine-table-head">Dryer</span>
-              <span class="machine-table-label"><i class="staff-status-dot idle"></i>Idle</span><span id="staffDashboardIdleWasher">0</span><span id="staffDashboardIdleDryer">0</span>
-              <span class="machine-table-label"><i class="staff-status-dot busy"></i>Terpakai</span><span id="staffDashboardUsedWasher">0</span><span id="staffDashboardUsedDryer">0</span>
+        <article class="staff-dashboard-card staff-dashboard-status-card">
+          <span class="staff-card-icon staff-card-icon-machine" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M7 7h10M8 5h1M11 5h1M14 5h1M8 11h8M12 11a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></svg></span>
+          <span class="staff-card-title">Status Mesin</span>
+          <span id="staffDashboardMachineSummary" class="staff-card-value">5 Washer · 5 Dryer</span>
+          <div id="staffDashboardMachineTable" class="staff-dashboard-machine-table" aria-label="Ringkasan status mesin">
+            <div class="machine-stat-column">
+              <b class="machine-table-head">Washer</b>
+              <strong class="machine-table-number" id="staffDashboardIdleWasher">5</strong>
+              <span class="machine-table-status">Idle</span>
+              <strong class="machine-table-number" id="staffDashboardUsedWasher">0</strong>
+              <span class="machine-table-status">Terpakai</span>
+            </div>
+            <div class="machine-stat-column">
+              <b class="machine-table-head">Dryer</b>
+              <strong class="machine-table-number" id="staffDashboardIdleDryer">5</strong>
+              <span class="machine-table-status">Idle</span>
+              <strong class="machine-table-number" id="staffDashboardUsedDryer">0</strong>
+              <span class="machine-table-status">Terpakai</span>
             </div>
           </div>
-        </div>
+        </article>
       </div>
 
       <section class="staff-dashboard-service-card">
-        <div class="staff-service-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 10v6M12 7.5v.1"/></svg></div>
-        <div class="staff-service-content">
-          <h2>Informasi Layanan</h2>
-          <p class="staff-service-open"><strong>Open - Everyday</strong></p>
-          <div class="staff-service-hours"><span>Self Service</span><b>:</b><span>07:00 - 21:00 wib</span></div>
-          <div class="staff-service-hours"><span>Drop-off</span><b>:</b><span>07:00 - 23:00 wib</span></div>
+        <div class="staff-service-header">
+          <div class="staff-service-title-wrap">
+            <span class="staff-service-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 10v6M12 7.5v.1"/></svg></span>
+            <h2>Informasi Layanan</h2>
+          </div>
+          <div class="staff-service-address">
+            <div>Jl. Gegerkalong Hilir No.27</div>
+            <div>Ciwaruga-Bandung</div>
+            <div>info : 085117624377</div>
+          </div>
+        </div>
+
+        <div class="staff-service-body">
+          <div class="staff-service-operation">
+            <span class="staff-service-clock-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></span>
+            <div class="staff-service-copy">
+              <div class="staff-service-open">Open - Everyday</div>
+              <div class="staff-service-hours"><span>Self Service</span><span>07:00 - 21:00 wib</span></div>
+              <div class="staff-service-hours"><span>Drop-off</span><span>07:00 - 23:00 wib</span></div>
+            </div>
+          </div>
           <div class="staff-service-divider"></div>
-          <div class="staff-service-tariff"><span>Tarif Layanan</span><b>:</b><span>1 Koin Rp 10.000,-/ 7 Kg</span></div>
-          <div class="staff-service-fee">Drop-off + Rp 10.000,-</div>
-          <div class="staff-service-address">Jl. Gegerkalong Hilir No.27&nbsp;&nbsp;Ciwaruga-Bandung</div>
-          <div class="staff-service-phone">info : 085117624377</div>
+          <div class="staff-service-tariff-block">
+            <span class="staff-service-tariff-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7.5h11l5 5-8 8-8-5V7.5Z"/><circle cx="9" cy="11" r="1.2"/><path d="m15 8 3-3"/></svg></span>
+            <div class="staff-service-copy">
+              <div class="staff-service-tariff-title">Tarif Layanan</div>
+              <div class="staff-service-tariff-line">1 Koin Rp 10.000,-/ 7 Kg</div>
+              <div class="staff-service-fee">Drop-off + Rp 10.000,-</div>
+            </div>
+          </div>
         </div>
       </section>
-
-      <div class="staff-dashboard-mascot" aria-hidden="true"></div>
     </section>
 
     <section id="staffTools" class="staff-tools" hidden>
