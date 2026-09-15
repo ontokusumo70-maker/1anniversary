@@ -268,6 +268,7 @@ function showStaffDashboard() {
   }
 
   renderStaffDashboardDate();
+  refreshStaffDashboardMachineSummary();
 
   if (staffDashboardClockTimer) {
     window.clearInterval(staffDashboardClockTimer);
@@ -278,19 +279,6 @@ function showStaffDashboard() {
       renderStaffDashboardDate();
     }
   }, 1000);
-}
-
-function renderStaffDashboardEvent(data) {
-  const title = $("staffDashboardEventTitle");
-  const period = $("staffDashboardEventPeriod");
-  if (!title || !period) return;
-  if (!data?.active || !data.event) {
-    title.textContent = "Tidak ada event aktif";
-    period.textContent = "—";
-    return;
-  }
-  title.textContent = data.event.title || "Event Aktif";
-  period.textContent = formatDateRange(data.event.startsAt, data.event.endsAt);
 }
 
 function renderStaffDashboardMachineSummary(data) {
@@ -322,13 +310,17 @@ function renderStaffDashboardMachineSummary(data) {
   }
 }
 
-async function refreshStaffDashboardMachineSummary() {
-  try {
-    const data = await api("/machines");
-    renderStaffDashboardMachineSummary(data);
-  } catch {
-    // Dashboard status remains at its last valid production state.
+function renderStaffDashboardEvent(data) {
+  const title = $("staffDashboardEventTitle");
+  const period = $("staffDashboardEventPeriod");
+  if (!title || !period) return;
+  if (!data?.active || !data.event) {
+    title.textContent = "Tidak ada event aktif";
+    period.textContent = "—";
+    return;
   }
+  title.textContent = data.event.title || "Event Aktif";
+  period.textContent = formatDateRange(data.event.startsAt, data.event.endsAt);
 }
 
 function showRole() {
