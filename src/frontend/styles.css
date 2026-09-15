@@ -1642,4 +1642,3 @@ body.staff-machine-modal-open{overflow:hidden}@media(max-width:600px){
 .screen-staff .staff-service-tariff-title{margin:0 0 calc(100vw * 8 / 961);font-family:Inter,system-ui,sans-serif;font-size:11px;line-height:15px;font-weight:700;color:#172f72;white-space:nowrap}
 .screen-staff .staff-service-tariff-line,.screen-staff .staff-service-fee{margin:0 0 calc(100vw * 5 / 961);font-family:Inter,system-ui,sans-serif;font-size:10px;line-height:14px;font-weight:400;color:#596360;white-space:nowrap}
 .screen-staff .staff-dashboard-mascot{display:none!important}
-dg 
