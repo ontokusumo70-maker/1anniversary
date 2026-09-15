@@ -1937,3 +1937,23 @@ body[data-role="OWNER"] #eventImageMsg{margin:0;min-height:0}
     line-height:1.2;
   }
 }
+
+/* STAFF LANDSCAPE — FINAL CORRECTION
+   Keep the previously corrected date position logic in portrait.
+   In landscape, date stays one line above Status Mesin and both cards remain aligned.
+*/
+@media (orientation:landscape){
+  .screen-staff .staff-dashboard-grid{
+    padding-top:72px;
+  }
+
+  .screen-staff .staff-dashboard-grid > .staff-dashboard-card,
+  .screen-staff .staff-dashboard-status-column > .staff-dashboard-card{
+    top:0;
+  }
+
+  .screen-staff .staff-dashboard-update{
+    bottom:calc(100% + 6px);
+    left:2px;
+  }
+}
