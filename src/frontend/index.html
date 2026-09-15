@@ -126,9 +126,16 @@
 <span class="staff-date-calendar" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 9h16M8 13h3M13 13h3M8 16h3M13 16h3"/></svg></span>
       </div>
 
+      <span id="staffMachineUpdatedAt" class="staff-machine-updated-at" aria-live="polite"></span>
+
       <div class="staff-dashboard-grid">
         <div class="staff-dashboard-card">
-          <span class="staff-card-icon staff-card-icon-calendar" aria-hidden="true"><img src="/assets/background/staff/staff-event-icon.PNG" alt=""></span>
+          <span class="staff-card-icon staff-card-icon-calendar" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <rect x="4" y="5" width="16" height="15" rx="2"></rect>
+              <path d="M8 3v4M16 3v4M4 9h16M8 13h3M13 13h3M8 16h3M13 16h3"></path>
+            </svg>
+          </span>
           <span class="staff-card-title">Event Aktif</span>
           <span id="staffDashboardEventTitle" class="staff-card-value">Memuat event...</span>
           <span id="staffDashboardEventPeriod" class="staff-card-note">—</span>
@@ -136,7 +143,13 @@
         </div>
 
         <div class="staff-dashboard-card">
-          <span class="staff-card-icon staff-card-icon-machine" aria-hidden="true"><img src="/assets/background/staff/staff-machine-icon.PNG" alt=""></span>
+          <span class="staff-card-icon staff-card-icon-machine" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+              <path d="M7 7h2M11 7h2M15 7h2M8 10h8"></path>
+              <circle cx="12" cy="15" r="3.5"></circle>
+            </svg>
+          </span>
           <span class="staff-card-title">Status Mesin</span>
           <span id="staffDashboardMachineSummary" class="staff-card-value">5 Washer · 5 Dryer</span>
           <span class="staff-card-note">Lihat status dan aktivasi mesin</span>
