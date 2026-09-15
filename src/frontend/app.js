@@ -235,20 +235,39 @@ async function loadActiveEventForRole(role) {
   }
 }
 
-function renderStaffDashboardDate() {
-  const now = new Date();
-  const locale = "id-ID";
-  const dayName = now.toLocaleDateString(locale, { weekday: "long" });
-  const dateFull = now.toLocaleDateString(locale, {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-  if ($("staffDayName")) {
-    $("staffDayName").textContent = dayName.charAt(0).toUpperCase() + dayName.slice(1);
-  }
-  if ($("staffDateFull")) {
-    $("staffDateFull").textContent = dateFull;
+function renderStaffDashboardDate(now = new Date()) {
+  const dayNames = [
+    "Minggu",
+    "Senin",
+    "Selasa",
+    "Rabu",
+    "Kamis",
+    "Jumat",
+    "Sabtu",
+  ];
+  const monthNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "Mei",
+    "Jun",
+    "Jul",
+    "Agu",
+    "Sep",
+    "Okt",
+    "Nov",
+    "Des",
+  ];
+  const dayName = dayNames[now.getDay()];
+  const day = String(now.getDate()).padStart(2, "0");
+  const month = monthNames[now.getMonth()];
+  const year = now.getFullYear();
+  const hour = String(now.getHours()).padStart(2, "0");
+  const updatedAt = `${dayName}, ${day} ${month} ${year}, ${hour}:00`;
+
+  if ($("staffMachineUpdatedAt")) {
+    $("staffMachineUpdatedAt").textContent = updatedAt;
   }
 }
 
@@ -1194,6 +1213,7 @@ async function refreshStaffMachines() {
       data.machines,
       true,
     );
+    renderStaffDashboardDate();
   } catch (error) {
     if ($("staffMachines")) {
       $("staffMachines").textContent =
