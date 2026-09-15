@@ -1803,12 +1803,48 @@ body[data-role="OWNER"] #eventImageMsg{margin:0;min-height:0}
 }
 
 
+/* STAFF DASHBOARD — LOCKED REQUESTED VISUAL ONLY */
+.screen-staff .staff-dashboard-grid{
+  align-items:start;
+}
 
-/* STAFF DASHBOARD — REQUESTED VISUAL FIX ONLY */
+.screen-staff .staff-dashboard-status-column{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+
+.screen-staff .staff-dashboard-update{
+  display:block;
+  min-height:14px;
+  margin:0;
+  padding:0 2px;
+  font-size:10px;
+  line-height:1.2;
+  font-weight:500;
+  color:#68756f;
+  text-align:left;
+  white-space:nowrap;
+}
+
+.screen-staff .staff-dashboard-status-column .staff-dashboard-card{
+  width:100%;
+}
+
+.screen-staff .staff-card-icon-calendar,
+.screen-staff .staff-card-icon-machine{
+  background:#e2f7e9;
+}
+
+.screen-staff .staff-card-icon img{
+  display:none;
+}
+
 .screen-staff .staff-card-icon svg{
   display:block;
-  width:32px;
-  height:32px;
+  width:31px;
+  height:31px;
   fill:none;
   stroke:currentColor;
   stroke-width:1.9;
@@ -1816,40 +1852,3 @@ body[data-role="OWNER"] #eventImageMsg{margin:0;min-height:0}
   stroke-linejoin:round;
 }
 
-.screen-staff .staff-card-icon-calendar svg{
-  width:33px;
-  height:33px;
-}
-
-.screen-staff .staff-card-icon-machine svg{
-  width:34px;
-  height:34px;
-}
-
-.screen-staff .staff-machine-updated-at{
-  position:absolute;
-  top:108px;
-  right:30px;
-  z-index:3;
-  margin:0;
-  font-size:10px;
-  line-height:1.4;
-  font-weight:500;
-  color:#68756f;
-  white-space:nowrap;
-}
-
-@media(max-width:380px){
-  .screen-staff .staff-machine-updated-at{
-    top:108px;
-    right:26px;
-    font-size:10px;
-  }
-}
-
-@media (orientation:landscape) and (min-width:601px){
-  .screen-staff .staff-machine-updated-at{
-    top:91px;
-    right:calc((100% - 840px) / 2 + 10px);
-  }
-}
