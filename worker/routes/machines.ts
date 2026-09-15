@@ -210,43 +210,6 @@ export async function handleMachineStatus(
   const now =
     Date.now();
 
-  const activityRows =
-    await env.DB
-      .prepare(
-        `
-        SELECT
-          machine_type,
-          COUNT(*) AS total_activities
-        FROM machine_operations
-        GROUP BY machine_type
-        `,
-      )
-      .all<{
-        machine_type: MachineType;
-        total_activities: number;
-      }>();
-
-  let washerActivities = 0;
-  let dryerActivities = 0;
-
-  for (const row of activityRows.results) {
-    if (row.machine_type === "WASHER") washerActivities = Number(row.total_activities) || 0;
-    if (row.machine_type === "DRYER") dryerActivities = Number(row.total_activities) || 0;
-  }
-
-  const statusSummary = {
-    washer: {
-      total: machines.filter((machine) => machine.machine_type === "WASHER").length,
-      idle: machines.filter((machine) => machine.machine_type === "WASHER" && machine.status === "IDLE").length,
-      inUse: machines.filter((machine) => machine.machine_type === "WASHER" && machine.status === "IN_USE").length,
-    },
-    dryer: {
-      total: machines.filter((machine) => machine.machine_type === "DRYER").length,
-      idle: machines.filter((machine) => machine.machine_type === "DRYER" && machine.status === "IDLE").length,
-      inUse: machines.filter((machine) => machine.machine_type === "DRYER" && machine.status === "IN_USE").length,
-    },
-  };
-
   return json({
     ok: true,
     machines:
@@ -257,11 +220,6 @@ export async function handleMachineStatus(
             now,
           ),
       ),
-    statusSummary,
-    activityTotals: {
-      washer: washerActivities,
-      dryer: dryerActivities,
-    },
     serverTime:
       new Date(now).toISOString(),
   });
