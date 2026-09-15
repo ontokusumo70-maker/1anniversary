@@ -235,19 +235,27 @@ async function loadActiveEventForRole(role) {
   }
 }
 
+let staffDashboardClockTimer = null;
+
 function renderStaffDashboardDate() {
   const now = new Date();
-  const locale = "id-ID";
-  const dayName = now.toLocaleDateString(locale, { weekday: "long" });
-  const datePart = now.toLocaleDateString(locale, {
+  const parts = new Intl.DateTimeFormat("id-ID", {
+    weekday: "long",
     day: "2-digit",
     month: "short",
     year: "numeric",
-  });
-  const hour = String(now.getHours()).padStart(2, "0");
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Jakarta",
+  }).formatToParts(now);
+
+  const get = (type) => parts.find((part) => part.type === type)?.value || "";
+  const weekday = get("weekday");
   const update = $("staffDashboardUpdate");
+
   if (update) {
-    update.textContent = `${dayName.charAt(0).toUpperCase()}${dayName.slice(1)}, ${datePart}, ${hour}:00`;
+    update.textContent = `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${get("day")} ${get("month")} ${get("year")}, ${get("hour")}:${get("minute")}`;
   }
 }
 
@@ -258,7 +266,18 @@ function showStaffDashboard() {
   if ($("staffTools")) {
     $("staffTools").hidden = true;
   }
+
   renderStaffDashboardDate();
+
+  if (staffDashboardClockTimer) {
+    window.clearInterval(staffDashboardClockTimer);
+  }
+
+  staffDashboardClockTimer = window.setInterval(() => {
+    if (state.role === "STAFF" && $("staffDashboard") && !$("staffDashboard").hidden) {
+      renderStaffDashboardDate();
+    }
+  }, 1000);
 }
 
 function renderStaffDashboardEvent(data) {
