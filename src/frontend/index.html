@@ -122,38 +122,25 @@
   <section id="staff" class="screen screen-staff" hidden>
     <section id="staffDashboard" class="staff-dashboard">
       <span class="staff-dashboard-bell" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/><path d="M10 21h4"/></svg></span>
-
-<span class="staff-date-calendar" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 9h16M8 13h3M13 13h3M8 16h3M13 16h3"/></svg></span>
-      </div>
-
-      <span id="staffMachineUpdatedAt" class="staff-machine-updated-at" aria-live="polite"></span>
+      <span class="staff-date-calendar" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 9h16M8 13h3M13 13h3M8 16h3M13 16h3"/></svg></span>
 
       <div class="staff-dashboard-grid">
         <div class="staff-dashboard-card">
-          <span class="staff-card-icon staff-card-icon-calendar" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false">
-              <rect x="4" y="5" width="16" height="15" rx="2"></rect>
-              <path d="M8 3v4M16 3v4M4 9h16M8 13h3M13 13h3M8 16h3M13 16h3"></path>
-            </svg>
-          </span>
+          <span class="staff-card-icon staff-card-icon-calendar" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 9h16M8 13h3M13 13h3M8 16h3M13 16h3"/></svg></span>
           <span class="staff-card-title">Event Aktif</span>
           <span id="staffDashboardEventTitle" class="staff-card-value">Memuat event...</span>
           <span id="staffDashboardEventPeriod" class="staff-card-note">—</span>
           <span class="staff-card-arrow" aria-hidden="true">→</span>
         </div>
 
-        <div class="staff-dashboard-card">
-          <span class="staff-card-icon staff-card-icon-machine" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false">
-              <rect x="4" y="4" width="16" height="16" rx="2"></rect>
-              <path d="M7 7h2M11 7h2M15 7h2M8 10h8"></path>
-              <circle cx="12" cy="15" r="3.5"></circle>
-            </svg>
-          </span>
-          <span class="staff-card-title">Status Mesin</span>
-          <span id="staffDashboardMachineSummary" class="staff-card-value">5 Washer · 5 Dryer</span>
-          <span class="staff-card-note">Lihat status dan aktivasi mesin</span>
-          <span class="staff-card-arrow" aria-hidden="true">→</span>
+        <div class="staff-dashboard-status-column">
+          <span id="staffDashboardUpdate" class="staff-dashboard-update"></span>
+          <div class="staff-dashboard-card">
+            <span class="staff-card-icon staff-card-icon-machine" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M7 7h10M8 5h1M11 5h1M14 5h1M8 11h8M12 11a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></svg></span>
+            <span class="staff-card-title">Status Mesin</span>
+            <span id="staffDashboardMachineSummary" class="staff-card-value">5 Washer · 5 Dryer</span>
+            <span class="staff-card-arrow" aria-hidden="true">→</span>
+          </div>
         </div>
       </div>
 
