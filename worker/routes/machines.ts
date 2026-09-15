@@ -194,12 +194,12 @@ export async function handleMachineStatus(
   env: Env,
 ): Promise<Response> {
   const customerSession =
-    await requireSession(request, env, ["CUSTOMER"]);
+    await requireSession(request, env, ["CUSTOMER", "STAFF"]);
 
   if (!customerSession) {
     return errorResponse(
       "UNAUTHORIZED",
-      "Customer authentication is required.",
+      "Customer or Staff authentication is required.",
       401,
     );
   }
