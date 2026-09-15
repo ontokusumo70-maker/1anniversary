@@ -1869,6 +1869,13 @@ body[data-role="OWNER"] #eventImageMsg{margin:0;min-height:0}
   margin:0;
 }
 
+/* FINAL POSITION LOCK — both dashboard cards stay aligned below the official logo. */
+.screen-staff .staff-dashboard-grid > .staff-dashboard-card,
+.screen-staff .staff-dashboard-status-column > .staff-dashboard-card{
+  position:relative;
+  top:38px;
+}
+
 .screen-staff .staff-dashboard-update{
   position:absolute;
   left:2px;
