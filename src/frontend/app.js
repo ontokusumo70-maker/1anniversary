@@ -252,10 +252,10 @@ function renderStaffDashboardDate() {
 
   const get = (type) => parts.find((part) => part.type === type)?.value || "";
   const weekday = get("weekday");
-  const update = $("staffDashboardUpdate");
+  const update = $("staffDashboardDateText");
 
   if (update) {
-    update.textContent = `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${get("day")} ${get("month")} ${get("year")}, ${get("hour")}:${get("minute")}`;
+    update.textContent = `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${get("day")} ${get("month")} ${get("year")}  ${get("hour")}:${get("minute")} WIB`;
   }
 }
 
