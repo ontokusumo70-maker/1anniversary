@@ -230,12 +230,8 @@ export async function handleMachineStatus(
   let dryerActivities = 0;
 
   for (const row of activityRows.results) {
-    if (row.machine_type === "WASHER") {
-      washerActivities = Number(row.total_activities) || 0;
-    }
-    if (row.machine_type === "DRYER") {
-      dryerActivities = Number(row.total_activities) || 0;
-    }
+    if (row.machine_type === "WASHER") washerActivities = Number(row.total_activities) || 0;
+    if (row.machine_type === "DRYER") dryerActivities = Number(row.total_activities) || 0;
   }
 
   const statusSummary = {
