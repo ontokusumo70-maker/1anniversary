@@ -293,6 +293,44 @@ function renderStaffDashboardEvent(data) {
   period.textContent = formatDateRange(data.event.startsAt, data.event.endsAt);
 }
 
+function renderStaffDashboardMachineSummary(data) {
+  const summary = data?.statusSummary;
+  const activities = data?.activityTotals;
+  if (!summary) return;
+
+  const set = (id, value) => {
+    const element = $(id);
+    if (element) element.textContent = String(value);
+  };
+
+  set("staffDashboardWasherIdle", summary.washer?.idle ?? 0);
+  set("staffDashboardWasherBusy", summary.washer?.inUse ?? 0);
+  set("staffDashboardDryerIdle", summary.dryer?.idle ?? 0);
+  set("staffDashboardDryerBusy", summary.dryer?.inUse ?? 0);
+
+  const total = $("staffDashboardMachineSummary");
+  if (total) {
+    const washerTotal = Number(summary.washer?.total ?? 0);
+    const dryerTotal = Number(summary.dryer?.total ?? 0);
+    const first = total.querySelector(".staff-machine-summary-total");
+    if (first) first.textContent = `${washerTotal} Washer · ${dryerTotal} Dryer`;
+  }
+
+  const activity = $("staffDashboardActivity");
+  if (activity) {
+    activity.textContent = `Total aktivitas ${Number(activities?.washer ?? 0)} Washer · ${Number(activities?.dryer ?? 0)} Dryer`;
+  }
+}
+
+async function refreshStaffDashboardMachineSummary() {
+  try {
+    const data = await api("/machines");
+    renderStaffDashboardMachineSummary(data);
+  } catch {
+    // Dashboard status remains at its last valid production state.
+  }
+}
+
 function showRole() {
   document.body.dataset.role = state.role || "CUSTOMER";
   if ($("ownerAuth")) {
@@ -1283,6 +1321,7 @@ async function refreshStaffMachines() {
     renderMachines($("staffMachines"), staffMachineData, true);
     renderStaffMachineStatusList();
     renderStaffMachineStatusMeta();
+    renderStaffDashboardMachineSummary(data);
   } catch (error) {
     if ($("staffMachines")) $("staffMachines").textContent = error.message;
     if ($("staffMachineStatusList")) $("staffMachineStatusList").textContent = error.message;
