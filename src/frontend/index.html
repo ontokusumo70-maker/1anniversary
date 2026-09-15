@@ -122,54 +122,43 @@
   <section id="staff" class="screen screen-staff" hidden>
     <section id="staffDashboard" class="staff-dashboard">
 
-      <span id="staffDashboardUpdate" class="staff-dashboard-update"></span>
+      <div id="staffDashboardUpdate" class="staff-dashboard-update"></div>
 
       <div class="staff-dashboard-grid">
         <div class="staff-dashboard-card staff-dashboard-event-card">
-          <span class="staff-card-icon staff-card-icon-calendar" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 9h16M7 13h2M11 13h2M15 13h2M7 17h2M11 17h2M15 17h2"/></svg></span>
-          <span class="staff-card-title">Event</span>
-          <span id="staffDashboardEventTitle" class="staff-dashboard-event-hidden" aria-hidden="true"></span>
-          <span id="staffDashboardEventPeriod" class="staff-dashboard-event-hidden" aria-hidden="true"></span>
-          <span class="staff-card-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></svg></span>
+          <img id="staffDashboardEventImage" class="staff-dashboard-event-image" alt="Image Event" hidden>
         </div>
 
         <div class="staff-dashboard-status-column">
-          <div class="staff-dashboard-card staff-dashboard-status-card">
-            <span class="staff-card-icon staff-card-icon-machine" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M7 6h1M10 6h1M13 6h1M16 6h1"/><circle cx="12" cy="13.5" r="4.5"/></svg></span>
+          <div class="staff-dashboard-card staff-dashboard-status-card" role="button" tabindex="0">
+            <span class="staff-card-icon staff-card-icon-machine" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M7 7h10M8 5h1M11 5h1M14 5h1M8 11h8M12 11a4 4 0 1 0 0 8 4 4 0 0 0-0-8Z"/></svg></span>
             <span class="staff-card-title">Status Mesin</span>
             <span id="staffDashboardMachineSummary" class="staff-card-value">5 Washer · 5 Dryer</span>
-            <div class="staff-dashboard-machine-table" aria-label="Ringkasan status mesin">
-              <span class="machine-table-head machine-table-washer">Washer</span>
-              <span class="machine-table-head machine-table-dryer">Dryer</span>
-              <span class="machine-table-label"><i class="staff-status-dot idle"></i>Idle</span>
-              <span id="staffDashboardIdleWasher">5</span>
-              <span id="staffDashboardIdleDryer">5</span>
-              <span class="machine-table-label"><i class="staff-status-dot busy"></i>Terpakai</span>
-              <span id="staffDashboardUsedWasher">0</span>
-              <span id="staffDashboardUsedDryer">0</span>
+            <div id="staffDashboardMachineTable" class="staff-dashboard-machine-table" aria-label="Ringkasan status mesin">
+              <span></span><span class="machine-table-head">Washer</span><span class="machine-table-head">Dryer</span>
+              <span class="machine-table-label"><i class="staff-status-dot idle"></i>Idle</span><span id="staffDashboardIdleWasher">0</span><span id="staffDashboardIdleDryer">0</span>
+              <span class="machine-table-label"><i class="staff-status-dot busy"></i>Terpakai</span><span id="staffDashboardUsedWasher">0</span><span id="staffDashboardUsedDryer">0</span>
             </div>
-            <span class="staff-card-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></svg></span>
           </div>
         </div>
       </div>
 
-      <section class="staff-dashboard-service-card" aria-label="Informasi Layanan">
-        <span class="staff-service-icon staff-service-info" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 10v6M12 7h.01"/></svg></span>
+      <section class="staff-dashboard-service-card">
+        <div class="staff-service-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 10v6M12 7.5v.1"/></svg></div>
         <div class="staff-service-content">
           <h2>Informasi Layanan</h2>
-          <p class="staff-service-open"><span class="staff-service-clock" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>Open - Everyday</p>
-          <p class="staff-service-hours"><span>Self Service</span><b>:</b><span>07:00 sd 21:00 wib</span></p>
-          <p class="staff-service-hours"><span>Drop-off</span><b>:</b><span>07:00 sd 23:00 wib</span></p>
+          <p class="staff-service-open"><strong>Open - Everyday</strong></p>
+          <div class="staff-service-hours"><span>Self Service</span><b>:</b><span>07:00 - 21:00 wib</span></div>
+          <div class="staff-service-hours"><span>Drop-off</span><b>:</b><span>07:00 - 23:00 wib</span></div>
           <div class="staff-service-divider"></div>
-          <p class="staff-service-tariff"><span class="staff-service-coins" aria-hidden="true"><svg viewBox="0 0 24 24"><ellipse cx="8" cy="9" rx="5" ry="2.5"/><path d="M3 9v4c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5V9M13 6.5c0-1.4 2.2-2.5 5-2.5s5 1.1 5 2.5v4c0 1.4-2.2 2.5-5 2.5-1.1 0-2.1-.2-2.9-.6"/><path d="M13 10.5c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5"/></svg></span><span>Tarif&nbsp;&nbsp;&nbsp;:&nbsp;&nbsp;&nbsp;1 Koin Rp 10.000,- / 7 Kg</span></p>
-          <p class="staff-service-fee">Drop-off + Rp 10.000,-</p>
+          <div class="staff-service-tariff"><span>Tarif Layanan</span><b>:</b><span>1 Koin Rp 10.000,-/ 7 Kg</span></div>
+          <div class="staff-service-fee">Drop-off + Rp 10.000,-</div>
+          <div class="staff-service-address">Jl. Gegerkalong Hilir No.27&nbsp;&nbsp;Ciwaruga-Bandung</div>
+          <div class="staff-service-phone">info : 085117624377</div>
         </div>
       </section>
 
-      <div class="staff-dashboard-address">
-        <strong>Jl. Gegerkalong Hilir No.27 - Ciwaruga</strong>
-        <strong>Bandung</strong>
-      </div>
+      <div class="staff-dashboard-mascot" aria-hidden="true"></div>
     </section>
 
     <section id="staffTools" class="staff-tools" hidden>
