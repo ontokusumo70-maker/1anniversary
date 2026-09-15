@@ -1594,51 +1594,66 @@ body.staff-machine-modal-open{overflow:hidden}@media(max-width:600px){
   .staff-machine-sheet-actions button{height:42px;font-size:12px;border-radius:10px}
 }
 
-/* STAFF DASHBOARD — REBUILT FROM LOCKED APPROVAL — SINGLE CANONICAL BLOCK */
-.app-shell:has(#staff:not([hidden])){width:100%;max-width:none;margin:0;padding:0;background:transparent;overflow:hidden}
+/* STAFF DASHBOARD — APPROVAL LOCKED REBUILD
+   Reference canvas: 865 x 1536
+   No legacy Staff Dashboard geometry is retained below this point.
+*/
+body:has(#staff:not([hidden])){margin:0!important;padding:0!important;background:transparent!important;overflow:hidden!important}
+.app-shell:has(#staff:not([hidden])){width:100%;max-width:none;margin:0;padding:0;border-radius:0!important;box-shadow:none!important;background:transparent;overflow:hidden}
 .app-shell:has(#staff:not([hidden]))>.topbar{display:none!important}
-.screen-staff{width:100%;min-height:calc(100vw * 1672 / 941);margin:0;padding:0;background:url('/assets/background/staff/staff-bg.PNG') top center/100% auto no-repeat;overflow:hidden}
-.screen-staff .staff-dashboard{position:relative;width:100%;height:calc(100vw * 1672 / 941);min-height:0;margin:0;padding:0;overflow:hidden;background:transparent}
+.screen-staff{position:relative;width:100%;min-height:100vh;margin:0;padding:0;background:#eefcf3 url('/assets/background/staff/staff-bg.PNG') top center/100% auto no-repeat;overflow:hidden}
+.screen-staff .staff-dashboard{position:relative;width:100%;height:calc(100vw * 1536 / 865);min-height:0;margin:0;padding:0;overflow:hidden;background:transparent}
 
-/* Locked approval canvas = 961x1536. All geometry scales from this reference. */
-.screen-staff .staff-dashboard-update{position:absolute;left:calc(100vw * 490 / 961);top:calc(100vw * 378 / 961);width:calc(100vw * 418 / 961);height:calc(100vw * 51 / 961);box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:calc(100vw * 8 / 961);margin:0;padding:0 calc(100vw * 12 / 961);border:1px solid rgba(196,215,205,.9);border-radius:999px;background:rgba(255,255,255,.94);box-shadow:0 2px 8px rgba(18,88,52,.10);font-family:Inter,system-ui,sans-serif;font-size:calc(100vw * 14 / 961);line-height:1;font-weight:600;color:#596360;white-space:nowrap;z-index:8}
-.screen-staff .staff-dashboard-date-icon{width:calc(100vw * 22 / 961);height:calc(100vw * 22 / 961);display:grid;place-items:center;flex:none;color:#68756f}
+/* DATE */
+.screen-staff .staff-dashboard-update{position:absolute;left:calc(100vw * 441 / 865);top:calc(100vw * 378 / 865);width:calc(100vw * 374 / 865);height:calc(100vw * 51 / 865);display:flex;align-items:center;justify-content:center;gap:calc(100vw * 8 / 865);margin:0;padding:0 calc(100vw * 10 / 865);box-sizing:border-box;border:1px solid rgba(196,215,205,.9);border-radius:999px;background:rgba(255,255,255,.94);box-shadow:0 2px 8px rgba(18,88,52,.10);font-family:Inter,Arial,sans-serif;font-size:calc(100vw * 14 / 865);line-height:1;font-weight:600;color:#596360;white-space:nowrap;z-index:8}
+.screen-staff .staff-dashboard-date-icon{width:calc(100vw * 22 / 865);height:calc(100vw * 22 / 865);display:grid;place-items:center;flex:none;color:#68756f}
 .screen-staff .staff-dashboard-date-icon svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 
-.screen-staff .staff-dashboard-grid{position:absolute;left:calc(100vw * 43 / 961);top:calc(100vw * 432 / 961);width:calc(100vw * 875 / 961);height:calc(100vw * 333 / 961);display:grid;grid-template-columns:1fr 1fr;column-gap:calc(100vw * 5 / 961);margin:0;padding:0;box-sizing:border-box;z-index:5}
-.screen-staff .staff-dashboard-card{position:relative;width:100%;height:100%;min-height:0;margin:0;padding:0;box-sizing:border-box;overflow:hidden;border:1px solid #c8ded4;border-radius:calc(100vw * 18 / 961);background:rgba(255,255,255,.95);box-shadow:none}
-.screen-staff .staff-card-icon{position:absolute;left:calc(100vw * 20 / 961);top:calc(100vw * 20 / 961);width:calc(100vw * 62 / 961);height:calc(100vw * 62 / 961);display:grid;place-items:center;margin:0;border-radius:calc(100vw * 15 / 961);background:#e0f7eb;color:#138c62}
-.screen-staff .staff-card-icon svg{width:52%;height:52%;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-.screen-staff .staff-card-title{position:absolute;left:calc(100vw * 142 / 961);top:calc(100vw * 30 / 961);margin:0;padding:0;font-family:Inter,system-ui,sans-serif;font-size:12px;line-height:16px;font-weight:800;color:#101619;white-space:nowrap}
-.screen-staff .staff-dashboard-event-image{position:absolute;left:calc(100vw * 142 / 961);top:calc(100vw * 68 / 961);width:calc(100vw * 256 / 961);height:calc(100vw * 256 / 961);aspect-ratio:1/1;object-fit:cover;object-position:center;margin:0;padding:0;border:0;border-radius:calc(100vw * 7 / 961);background:#fff}
+/* TWO TOP CARDS */
+.screen-staff .staff-dashboard-grid{position:absolute;left:calc(100vw * 43 / 865);top:calc(100vw * 432 / 865);width:calc(100vw * 779 / 865);height:calc(100vw * 333 / 865);display:grid;grid-template-columns:1fr 1fr;column-gap:calc(100vw * 5 / 865);margin:0;padding:0;box-sizing:border-box;z-index:5}
+.screen-staff .staff-dashboard-card{position:relative;width:100%;height:100%;min-height:0;margin:0;padding:0;box-sizing:border-box;overflow:hidden;border:1px solid #c8ded4;border-radius:calc(100vw * 18 / 865);background:rgba(255,255,255,.95);box-shadow:none}
+.screen-staff .staff-card-icon{position:absolute;left:calc(100vw * 20 / 865);top:calc(100vw * 15 / 865);width:calc(100vw * 102 / 865);height:calc(100vw * 88 / 865);display:grid;place-items:center;margin:0;border-radius:calc(100vw * 15 / 865);background:#e0f7eb;color:#138c62}
+.screen-staff .staff-card-icon svg{width:calc(100vw * 42 / 865);height:calc(100vw * 42 / 865);fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.screen-staff .staff-card-title{position:absolute;left:calc(100vw * 142 / 865);top:calc(100vw * 30 / 865);margin:0;padding:0;font-family:Inter,Arial,sans-serif;font-size:calc(100vw * 14 / 865);line-height:16px;font-weight:800;color:#101619;white-space:nowrap}
+
+/* EVENT — owner-provided 1:1 image */
+.screen-staff .staff-dashboard-event-image{position:absolute;left:calc(100vw * 135 / 865);top:calc(100vw * 67 / 865);width:calc(100vw * 256 / 865);height:calc(100vw * 256 / 865);aspect-ratio:1/1;object-fit:cover;object-position:center;margin:0;padding:0;border:0;border-radius:calc(100vw * 7 / 865);background:#fff}
 .screen-staff .staff-dashboard-event-image[hidden]{display:none!important}
 
-.screen-staff .staff-dashboard-status-card .staff-card-title{left:calc(100vw * 134 / 961)}
-.screen-staff .staff-dashboard-status-card .staff-card-value{position:absolute;left:calc(100vw * 134 / 961);top:calc(100vw * 66 / 961);margin:0;padding:0;font-family:Inter,system-ui,sans-serif;font-size:10px;line-height:14px;font-weight:400;color:#596360;white-space:nowrap}
-.screen-staff .staff-dashboard-machine-table{position:absolute;left:calc(100vw * 20 / 961);right:calc(100vw * 20 / 961);top:calc(100vw * 126 / 961);height:calc(100vw * 178 / 961);display:grid;grid-template-columns:1fr 1fr;column-gap:calc(100vw * 20 / 961);margin:0;padding:calc(100vw * 12 / 961) calc(100vw * 10 / 961);box-sizing:border-box;border-radius:calc(100vw * 14 / 961);background:rgba(239,250,244,.78);font-family:Inter,system-ui,sans-serif}
+/* STATUS MESIN */
+.screen-staff .staff-dashboard-status-card .staff-card-title{left:calc(100vw * 134 / 865)}
+.screen-staff .staff-dashboard-status-card .staff-card-value{position:absolute;left:calc(100vw * 134 / 865);top:calc(100vw * 66 / 865);margin:0;padding:0;font-family:Inter,Arial,sans-serif;font-size:calc(100vw * 14 / 865);line-height:18px;font-weight:400;color:#596360;white-space:nowrap}
+.screen-staff .staff-dashboard-machine-table{position:absolute;left:calc(100vw * 20 / 865);right:calc(100vw * 20 / 865);top:calc(100vw * 116 / 865);height:calc(100vw * 178 / 865);display:grid;grid-template-columns:1fr 1fr;column-gap:calc(100vw * 20 / 865);margin:0;padding:calc(100vw * 12 / 865) calc(100vw * 10 / 865);box-sizing:border-box;border-radius:calc(100vw * 14 / 865);background:rgba(239,250,244,.78);font-family:Inter,Arial,sans-serif}
 .screen-staff .machine-stat-column{position:relative;display:grid;grid-template-rows:28px 50px 28px 50px 22px;align-items:center;text-align:center;min-width:0}
-.screen-staff .machine-stat-column:first-child:after{content:"";position:absolute;right:calc(100vw * -10 / 961);top:calc(100vw * 34 / 961);height:calc(100vw * 112 / 961);width:1px;background:#d4e0da}
-.screen-staff .machine-table-head{font-size:10px;line-height:12px;font-weight:700;white-space:nowrap}
-.screen-staff .machine-table-number{font-size:15px;line-height:18px;font-weight:800;white-space:nowrap}
-.screen-staff .machine-table-status{font-size:9px;line-height:12px;font-weight:400;color:#626b68;white-space:nowrap}
-.screen-staff .machine-stat-column .machine-table-status:first-of-type{border-bottom:1px solid #d6e0db;padding-bottom:calc(100vw * 7 / 961)}
+.screen-staff .machine-stat-column:first-child:after{content:"";position:absolute;right:calc(100vw * -10 / 865);top:calc(100vw * 34 / 865);height:calc(100vw * 112 / 865);width:1px;background:#d4e0da}
+.screen-staff .machine-table-head{font-size:calc(100vw * 14 / 865);line-height:16px;font-weight:700;white-space:nowrap}
+.screen-staff .machine-table-number{font-size:calc(100vw * 22 / 865);line-height:24px;font-weight:800;white-space:nowrap}
+.screen-staff .machine-table-status{font-size:calc(100vw * 14 / 865);line-height:16px;font-weight:400;color:#626b68;white-space:nowrap}
+.screen-staff .machine-stat-column .machine-table-status:first-of-type{border-bottom:1px solid #d6e0db;padding-bottom:calc(100vw * 7 / 865)}
 
-.screen-staff .staff-dashboard-service-card{position:absolute;left:calc(100vw * 43 / 961);top:calc(100vw * 776 / 961);width:calc(100vw * 875 / 961);height:calc(100vw * 245 / 961);box-sizing:border-box;margin:0;padding:0;overflow:hidden;border:1px solid #c8ded4;border-radius:calc(100vw * 18 / 961);background:rgba(255,255,255,.95);box-shadow:none;z-index:5}
-.screen-staff .staff-service-header{position:absolute;left:0;right:0;top:0;height:calc(100vw * 86 / 961)}
-.screen-staff .staff-service-title-wrap{position:absolute;left:calc(100vw * 20 / 961);top:calc(100vw * 20 / 961);display:flex;align-items:center;gap:calc(100vw * 20 / 961)}
-.screen-staff .staff-service-icon{width:calc(100vw * 62 / 961);height:calc(100vw * 62 / 961);display:grid;place-items:center;border-radius:calc(100vw * 15 / 961);background:#e0f7eb;color:#138c62;flex:none}
-.screen-staff .staff-service-icon svg{width:52%;height:52%;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-.screen-staff .staff-service-title-wrap h2{margin:0;padding:0;font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:18px;font-weight:800;color:#141a1a;white-space:nowrap}
-.screen-staff .staff-service-address{position:absolute;right:calc(100vw * 20 / 961);top:calc(100vw * 20 / 961);font-family:Inter,system-ui,sans-serif;font-size:9px;line-height:13px;font-weight:500;color:#1a4030;white-space:nowrap;text-align:left}
-.screen-staff .staff-service-body{position:absolute;left:calc(100vw * 20 / 961);right:calc(100vw * 20 / 961);top:calc(100vw * 100 / 961);height:calc(100vw * 125 / 961);display:grid;grid-template-columns:minmax(0,1fr) 1px minmax(0,1fr);column-gap:calc(100vw * 22 / 961);align-items:start;padding:calc(100vw * 10 / 961) calc(100vw * 20 / 961);box-sizing:border-box;border-radius:calc(100vw * 13 / 961);background:rgba(239,250,244,.78)}
-.screen-staff .staff-service-operation{display:flex;align-items:flex-start;gap:calc(100vw * 16 / 961)}
-.screen-staff .staff-service-clock-icon,.screen-staff .staff-service-tariff-icon{width:calc(100vw * 50 / 961);height:calc(100vw * 50 / 961);display:grid;place-items:center;flex:none;color:#596360}
+/* SERVICE */
+.screen-staff .staff-dashboard-service-card{position:absolute;left:calc(100vw * 43 / 865);top:calc(100vw * 776 / 865);width:calc(100vw * 780 / 865);height:calc(100vw * 245 / 865);box-sizing:border-box;margin:0;padding:0;overflow:hidden;border:1px solid #c8ded4;border-radius:calc(100vw * 18 / 865);background:rgba(255,255,255,.95);box-shadow:none;z-index:5}
+.screen-staff .staff-service-header{position:absolute;left:0;right:0;top:0;height:calc(100vw * 86 / 865)}
+.screen-staff .staff-service-title-wrap{position:absolute;left:calc(100vw * 20 / 865);top:calc(100vw * 10 / 865);display:flex;align-items:center;gap:calc(100vw * 20 / 865)}
+.screen-staff .staff-service-icon{width:calc(100vw * 102 / 865);height:calc(100vw * 88 / 865);display:grid;place-items:center;border-radius:calc(100vw * 15 / 865);background:#e0f7eb;color:#138c62;flex:none}
+.screen-staff .staff-service-icon svg{width:calc(100vw * 42 / 865);height:calc(100vw * 42 / 865);fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.screen-staff .staff-service-title-wrap h2{margin:0;padding:0;font-family:Inter,Arial,sans-serif;font-size:calc(100vw * 14 / 865);line-height:18px;font-weight:800;color:#141a1a;white-space:nowrap}
+.screen-staff .staff-service-address{position:absolute;right:calc(100vw * 20 / 865);top:calc(100vw * 20 / 865);font-family:Inter,Arial,sans-serif;font-size:calc(100vw * 14 / 865);line-height:16px;font-weight:500;color:#1a4030;white-space:nowrap;text-align:left}
+.screen-staff .staff-service-body{position:absolute;left:calc(100vw * 20 / 865);right:calc(100vw * 20 / 865);top:calc(100vw * 100 / 865);height:calc(100vw * 125 / 865);display:grid;grid-template-columns:minmax(0,1fr) 1px minmax(0,1fr);column-gap:calc(100vw * 22 / 865);align-items:start;padding:calc(100vw * 10 / 865) calc(100vw * 20 / 865);box-sizing:border-box;border-radius:calc(100vw * 13 / 865);background:rgba(239,250,244,.78)}
+.screen-staff .staff-service-operation{display:flex;align-items:flex-start;gap:calc(100vw * 16 / 865)}
+.screen-staff .staff-service-clock-icon,.screen-staff .staff-service-tariff-icon{width:calc(100vw * 50 / 865);height:calc(100vw * 50 / 865);display:grid;place-items:center;flex:none;color:#596360}
 .screen-staff .staff-service-tariff-icon{color:#0b8f61}
 .screen-staff .staff-service-clock-icon svg,.screen-staff .staff-service-tariff-icon svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.screen-staff .staff-service-open{margin:0 0 calc(100vw * 8 / 961)!important;padding:0;font-family:Inter,system-ui,sans-serif;font-size:11px!important;line-height:15px!important;font-weight:700!important;color:#172f72;white-space:nowrap}
-.screen-staff .staff-service-hours{display:grid;grid-template-columns:calc(100vw * 140 / 961) 1fr;column-gap:calc(100vw * 10 / 961);margin:0 0 calc(100vw * 5 / 961)!important;padding:0;font-family:Inter,system-ui,sans-serif;font-size:10px!important;line-height:14px!important;color:#596360;white-space:nowrap}
-.screen-staff .staff-service-divider{width:1px;height:calc(100vw * 105 / 961);margin:0;background:#d6e0db}
-.screen-staff .staff-service-tariff-block{display:flex;align-items:flex-start;gap:calc(100vw * 16 / 961)}
-.screen-staff .staff-service-tariff-title{margin:0 0 calc(100vw * 8 / 961);font-family:Inter,system-ui,sans-serif;font-size:11px;line-height:15px;font-weight:700;color:#172f72;white-space:nowrap}
-.screen-staff .staff-service-tariff-line,.screen-staff .staff-service-fee{margin:0 0 calc(100vw * 5 / 961);font-family:Inter,system-ui,sans-serif;font-size:10px;line-height:14px;font-weight:400;color:#596360;white-space:nowrap}
+.screen-staff .staff-service-open{margin:0 0 calc(100vw * 8 / 865)!important;padding:0;font-family:Inter,Arial,sans-serif;font-size:calc(100vw * 14 / 865)!important;line-height:15px!important;font-weight:700!important;color:#172f72;white-space:nowrap}
+.screen-staff .staff-service-hours{display:grid;grid-template-columns:calc(100vw * 140 / 865) 1fr;column-gap:calc(100vw * 10 / 865);margin:0 0 calc(100vw * 5 / 865)!important;padding:0;font-family:Inter,Arial,sans-serif;font-size:calc(100vw * 14 / 865)!important;line-height:14px!important;color:#596360;white-space:nowrap}
+.screen-staff .staff-service-divider{width:1px;height:calc(100vw * 105 / 865);margin:0;background:#d6e0db}
+.screen-staff .staff-service-tariff-block{display:flex;align-items:flex-start;gap:calc(100vw * 16 / 865)}
+.screen-staff .staff-service-tariff-title{margin:0 0 calc(100vw * 8 / 865);font-family:Inter,Arial,sans-serif;font-size:calc(100vw * 14 / 865);line-height:15px;font-weight:700;color:#172f72;white-space:nowrap}
+.screen-staff .staff-service-tariff-line,.screen-staff .staff-service-fee{margin:0 0 calc(100vw * 5 / 865);font-family:Inter,Arial,sans-serif;font-size:calc(100vw * 14 / 865);line-height:14px;font-weight:400;color:#596360;white-space:nowrap}
 .screen-staff .staff-dashboard-mascot{display:none!important}
+
+/* TABLET / LANDSCAPE — preserve the same 865:1536 design proportions */
+@media (orientation:landscape) and (min-width:601px){
+  .screen-staff{background-size:100% auto;overflow:auto}
+  .screen-staff .staff-dashboard{height:calc(100vw * 1536 / 865);min-height:calc(100vw * 1536 / 865);overflow:hidden}
+}
