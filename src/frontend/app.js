@@ -223,6 +223,7 @@ function renderRoleActiveEvent(role, data) {
 async function loadActiveEventForRole(role) {
   try {
     const data = await api("/event/active");
+    if (role === "STAFF") staffActiveEventData = data;
     renderRoleActiveEvent(role, data);
     if (role === "STAFF") {
       renderStaffDashboardEvent(data);
@@ -1231,6 +1232,115 @@ function startStaffMachineStatusTimer() {
   }, 1000);
 }
 
+let staffEventInfoImageObjectUrl = null;
+let staffActiveEventData = null;
+
+function revokeStaffEventInfoImage() {
+  if (staffEventInfoImageObjectUrl) {
+    URL.revokeObjectURL(staffEventInfoImageObjectUrl);
+    staffEventInfoImageObjectUrl = null;
+  }
+}
+
+function renderStaffEventRewards(event) {
+  const target = $("staffEventRewards");
+  if (!target) return;
+
+  const rewards = Array.isArray(event?.rewards) && event.rewards.length
+    ? event.rewards
+    : (event?.rewardType ? [{
+        rewardType: event.rewardType,
+        rewardQuantity: event.rewardQuantity,
+        remaining: event.rewardRemaining ?? event.remaining,
+        terms: event.rewardTerms || event.terms || "—",
+      }] : []);
+
+  target.innerHTML = rewards.length ? rewards.map((reward) => {
+    const name = escapeHtml(reward.rewardType || reward.name || "—");
+    const quantity = Number(reward.remaining ?? reward.rewardQuantity ?? reward.quantity ?? 0);
+    return `<section class="staff-event-detail-card staff-event-reward-card">
+      <span class="staff-event-detail-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="10" y="10" width="28" height="28" rx="4"/><path d="M24 10v28M10 24h28"/><path d="M24 10c-2-7-11-7-11-2 0 5 7 5 11 5M24 10c2-7 11-7 11-2 0 5-7 5-11 5"/></svg></span>
+      <div class="staff-event-reward-copy">
+        <div class="staff-event-reward-top"><h3>Reward</h3><span>Stok Tersedia</span></div>
+        <p>${name}</p>
+        <strong>${Number.isFinite(quantity) ? quantity.toLocaleString("id-ID") : "0"}</strong>
+      </div>
+    </section>`;
+  }).join("") : `<section class="staff-event-detail-card staff-event-reward-card">
+    <span class="staff-event-detail-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="10" y="10" width="28" height="28" rx="4"/><path d="M24 10v28M10 24h28"/></svg></span>
+    <div class="staff-event-reward-copy"><div class="staff-event-reward-top"><h3>Reward</h3><span>Stok Tersedia</span></div><p>—</p><strong>0</strong></div>
+  </section>`;
+}
+
+function renderStaffEventInfo(data) {
+  const event = data?.event;
+  staffActiveEventData = data || null;
+  const image = $("staffEventInfoImage");
+  const title = $("staffEventInfoTitle");
+  const period = $("staffEventInfoPeriod");
+  const description = $("staffEventInfoDescription");
+  const terms = $("staffEventInfoTerms");
+  if (!title || !period || !description || !terms) return;
+
+  revokeStaffEventInfoImage();
+  if (!data?.active || !event) {
+    title.textContent = "Tidak ada event aktif";
+    period.textContent = "—";
+    description.textContent = "—";
+    terms.textContent = "—";
+    renderStaffEventRewards(null);
+    if (image) { image.hidden = true; image.removeAttribute("src"); }
+    return;
+  }
+
+  title.textContent = event.title || "—";
+  period.textContent = formatDateRange(event.startsAt, event.endsAt);
+  description.textContent = event.description || "—";
+
+  const rewards = Array.isArray(event.rewards) && event.rewards.length
+    ? event.rewards
+    : (event.rewardType ? [event] : []);
+  const termsList = rewards.map((reward) => reward.rewardTerms || reward.terms).filter(Boolean);
+  terms.innerHTML = termsList.length > 1
+    ? `<ol>${termsList.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ol>`
+    : escapeHtml(termsList[0] || "—");
+
+  renderStaffEventRewards(event);
+
+  if (image) {
+    image.hidden = true;
+    image.removeAttribute("src");
+    if (event.imageUrl) {
+      apiBlob(event.imageUrl).then((blob) => {
+        if (!( $("staffEventView") && !$('staffEventView').hidden)) return;
+        staffEventInfoImageObjectUrl = URL.createObjectURL(blob);
+        image.src = staffEventInfoImageObjectUrl;
+        image.hidden = false;
+      }).catch(() => {});
+    }
+  }
+}
+
+function openStaffEvent() {
+  if ($("staffDashboard")) $("staffDashboard").hidden = true;
+  if ($("staffTools")) $("staffTools").hidden = false;
+  if ($("staffMachineStatusView")) $("staffMachineStatusView").hidden = true;
+  if ($("staffServicesView")) $("staffServicesView").hidden = true;
+  if ($("staffActiveEvent")) $("staffActiveEvent").hidden = true;
+  if ($("staffEventView")) $("staffEventView").hidden = true;
+  if ($("staffScannerTool")) $("staffScannerTool").hidden = true;
+  if ($("staffMachineTool")) $("staffMachineTool").hidden = true;
+  if ($("staffToolsBack")) $("staffToolsBack").hidden = true;
+  if ($("staffEventView")) $("staffEventView").hidden = false;
+  renderStaffEventInfo(staffActiveEventData);
+}
+
+function closeStaffEvent() {
+  if ($("staffEventView")) $("staffEventView").hidden = true;
+  revokeStaffEventInfoImage();
+  showStaffDashboard();
+}
+
 function openStaffServices() {
   if ($("staffDashboard")) $("staffDashboard").hidden = true;
   if ($("staffTools")) $("staffTools").hidden = false;
@@ -1238,6 +1348,7 @@ function openStaffServices() {
   if ($("staffServicesView")) $("staffServicesView").hidden = false;
   if ($("staffToolsBack")) $("staffToolsBack").hidden = true;
   if ($("staffActiveEvent")) $("staffActiveEvent").hidden = true;
+  if ($("staffEventView")) $("staffEventView").hidden = true;
   if ($("staffScannerTool")) $("staffScannerTool").hidden = true;
   if ($("staffMachineTool")) $("staffMachineTool").hidden = true;
 }
@@ -1252,6 +1363,7 @@ function openStaffMachineStatus() {
   if ($("staffTools")) $("staffTools").hidden = false;
   if ($("staffMachineStatusView")) $("staffMachineStatusView").hidden = false;
   if ($("staffActiveEvent")) $("staffActiveEvent").hidden = true;
+  if ($("staffEventView")) $("staffEventView").hidden = true;
   if ($("staffScannerTool")) $("staffScannerTool").hidden = true;
   if ($("staffMachineTool")) $("staffMachineTool").hidden = true;
   renderStaffMachineStatusMeta();
@@ -1381,6 +1493,19 @@ if ($("staffServicesCard")) {
 if ($("staffServicesBack")) {
   $("staffServicesBack").addEventListener("click", closeStaffServices);
 }
+
+if ($("staffEventCard")) {
+  $("staffEventCard").addEventListener("click", openStaffEvent);
+  $("staffEventCard").addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openStaffEvent();
+    }
+  });
+}
+
+if ($("staffEventBack")) $("staffEventBack").addEventListener("click", closeStaffEvent);
+if ($("staffEventBackBottom")) $("staffEventBackBottom").addEventListener("click", closeStaffEvent);
 
 const STAFF_LAUNDRY_MAP_URL = "https://maps.app.goo.gl/3KfFnHuLeZRsBnYG6?g_st=ic";
 const staffServicesLocationIcon = document.querySelector("#staffServicesView .staff-services-info-address .staff-services-icon-box");
