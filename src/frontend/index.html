@@ -168,7 +168,7 @@
         <span class="staff-services-chevron" aria-hidden="true">›</span>
       </button>
 
-      <section id="staffEventCard" class="staff-dashboard-card staff-event-card">
+      <section id="staffEventCard" class="staff-dashboard-card staff-event-card" role="button" tabindex="0" aria-label="Buka Informasi Event">
         <div class="staff-section-heading">
           <h2>Event</h2>
           <span class="staff-section-chevron" aria-hidden="true">›</span>
@@ -328,6 +328,46 @@
             </ol>
           </div>
         </section>
+      </section>
+
+      <section id="staffEventView" class="staff-event-view" hidden>
+        <header class="staff-event-header">
+          <button id="staffEventBack" class="staff-event-back" type="button" aria-label="Kembali ke Dashboard">
+            <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M29 10 15 24l14 14"/><path d="M16 24h25"/></svg>
+          </button>
+          <div class="staff-event-heading-copy">
+            <h1>Informasi Event</h1>
+          </div>
+        </header>
+
+        <article class="staff-event-info-card">
+          <img id="staffEventInfoImage" class="staff-event-info-image" alt="Gambar Event" hidden>
+          <div class="staff-event-info-body">
+            <span id="staffEventInfoStatus" class="staff-event-status">EVENT AKTIF</span>
+            <h2 id="staffEventInfoTitle">—</h2>
+            <p id="staffEventInfoPeriod" class="staff-event-info-period"><span class="staff-event-calendar-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="8" y="10" width="32" height="30" rx="4"/><path d="M14 6v8M34 6v8M8 19h32"/></svg></span><span class="staff-event-period-text">—</span></p>
+
+            <div id="staffEventRewards" class="staff-event-detail-list"></div>
+
+            <section class="staff-event-detail-card">
+              <span class="staff-event-detail-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M10 7h28v34H10z"/><path d="M16 15h16M16 23h16M16 31h10"/></svg></span>
+              <div>
+                <h3>Deskripsi Event</h3>
+                <p id="staffEventInfoDescription">—</p>
+              </div>
+            </section>
+
+            <section class="staff-event-detail-card">
+              <span class="staff-event-detail-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M10 7h28v34H10z"/><path d="M16 15h16M16 23h16M16 31h12"/></svg></span>
+              <div>
+                <h3>Syarat &amp; Ketentuan</h3>
+                <div id="staffEventInfoTerms">—</div>
+              </div>
+            </section>
+
+            <button id="staffEventBackBottom" class="staff-event-back-bottom" type="button">← &nbsp; Kembali ke Dashboard</button>
+          </div>
+        </article>
       </section>
 
       <button id="staffToolsBack" class="staff-tools-back" type="button" hidden>← Kembali ke Dashboard</button>
