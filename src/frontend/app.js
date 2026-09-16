@@ -280,12 +280,31 @@ function showStaffDashboard() {
   }, 1000);
 }
 
+function renderStaffDashboardMachineSummary() {
+  const machines = Array.isArray(staffMachineData) ? staffMachineData : [];
+  const washer = machines.filter((machine) => machine?.type === "WASHER");
+  const dryer = machines.filter((machine) => machine?.type === "DRYER");
+  const count = (items, status) => items.filter((machine) => machine?.status === status).length;
+
+  const set = (id, value) => {
+    const element = $(id);
+    if (element) element.textContent = String(value);
+  };
+
+  set("staffWasherTotal", washer.length || 5);
+  set("staffWasherIdle", count(washer, "IDLE"));
+  set("staffWasherBusy", count(washer, "IN_USE"));
+  set("staffDryerTotal", dryer.length || 5);
+  set("staffDryerIdle", count(dryer, "IDLE"));
+  set("staffDryerBusy", count(dryer, "IN_USE"));
+}
+
 function renderStaffDashboardEvent(data) {
   const title = $("staffDashboardEventTitle");
   const period = $("staffDashboardEventPeriod");
   if (!title || !period) return;
   if (!data?.active || !data.event) {
-    title.textContent = "Tidak ada event aktif.";
+    title.textContent = "Tidak ada event aktif";
     period.textContent = "—";
     return;
   }
@@ -1280,6 +1299,7 @@ async function refreshStaffMachines() {
   try {
     const data = await api("/machines");
     staffMachineData = Array.isArray(data.machines) ? data.machines : [];
+    renderStaffDashboardMachineSummary();
     renderMachines($("staffMachines"), staffMachineData, true);
     renderStaffMachineStatusList();
     renderStaffMachineStatusMeta();
@@ -1338,16 +1358,20 @@ document.addEventListener("click", (event) => {
   }
 });
 
-const staffDashboardMachineCard = $("staffDashboardMachineCard");
-if (staffDashboardMachineCard) {
-  staffDashboardMachineCard.addEventListener("click", openStaffMachineStatus);
-  staffDashboardMachineCard.addEventListener("keydown", (event) => {
+if ($("staffStatusCard")) {
+  $("staffStatusCard").addEventListener("click", openStaffMachineStatus);
+  $("staffStatusCard").addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       openStaffMachineStatus();
     }
   });
 }
+
+$("staffLogout")?.addEventListener("click", () => {
+  clearSession();
+  window.location.href = "/";
+});
 
 let cameraStream = null;
 
