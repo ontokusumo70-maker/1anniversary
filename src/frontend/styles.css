@@ -2371,10 +2371,40 @@ body[data-role="CUSTOMER_LOGIN"] .app-shell{
   box-shadow:none;
 }
 
+.customer-login-brand{
+  position:absolute;
+  z-index:2;
+  top:7.5%;
+  left:50%;
+  width:min(88%,430px);
+  transform:translateX(-50%);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+
+.customer-login-brand-logo{
+  display:block;
+  width:min(52vw,230px);
+  height:auto;
+  max-height:120px;
+  object-fit:contain;
+}
+
+.customer-login-address{
+  margin:8px 0 0;
+  font-size:12px;
+  line-height:1.4;
+  color:#5d7569;
+  font-weight:500;
+}
+
 .customer-login-card{
   position:absolute;
   z-index:3;
-  top:27%;
+  top:26%;
   left:50%;
   width:min(88%,430px);
   transform:translateX(-50%);
@@ -2385,10 +2415,6 @@ body[data-role="CUSTOMER_LOGIN"] .app-shell{
   box-shadow:0 12px 28px rgba(12,74,45,.12);
 }
 
-.customer-login-heading{text-align:center;margin:0 0 14px}
-.customer-login-heading .eyebrow{font-size:10px}
-.customer-login-heading h1{font-size:25px;line-height:1.08;margin:7px 0 6px;color:#07583e}
-.customer-login-heading p{font-size:12px;line-height:1.4;color:#5d7569;margin:0}
 .customer-login-step{margin:0 0 10px}
 .customer-login-actions{margin-top:2px}
 .customer-login-actions .helper{margin:8px 0 0}
@@ -2397,14 +2423,15 @@ body[data-role="CUSTOMER_LOGIN"] .app-shell{
 .customer-login-msg{margin:8px 0 0;text-align:center}
 
 @media(max-width:600px){
+  .customer-login-brand{top:8%;width:calc(100% - 28px)}
+  .customer-login-brand-logo{width:min(54vw,220px);max-height:112px}
+  .customer-login-address{font-size:12px}
   .customer-login-card{
-    top:28%;
+    top:27%;
     width:calc(100% - 28px);
     padding:19px 17px 16px;
     border-radius:20px;
   }
-  .customer-login-heading h1{font-size:23px}
-  .customer-login-heading p{font-size:11px}
   .customer-login-step{font-size:10px}
 }
 
