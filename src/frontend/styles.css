@@ -1280,7 +1280,7 @@ body[data-role="STAFF"] .topbar{
 .screen-staff .staff-section-heading h2{
   margin:0;
   color:#111827;
-  font-size:22px;
+  font-size:14px;
   line-height:1.2;
   font-weight:900;
 }
@@ -1421,7 +1421,7 @@ body[data-role="STAFF"] .topbar{
 
 .screen-staff .staff-services-card strong{
   flex:1;
-  font-size:22px;
+  font-size:14px;
   line-height:1.2;
   font-weight:900;
 }
@@ -1512,7 +1512,7 @@ body[data-role="STAFF"] .topbar{
   }
 
   .screen-staff .staff-section-heading h2{
-    font-size:16px;
+    font-size:14px;
   }
 
   .screen-staff .staff-section-chevron,
@@ -1581,7 +1581,7 @@ body[data-role="STAFF"] .topbar{
   }
 
   .screen-staff .staff-services-card strong{
-    font-size:15px;
+    font-size:14px;
   }
 
   .screen-staff .staff-services-chevron{
