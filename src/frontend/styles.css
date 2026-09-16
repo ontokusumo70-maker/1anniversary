@@ -2170,15 +2170,15 @@ body.staff-machine-modal-open{overflow:hidden}
   stroke-linejoin:round;
 }
 .staff-services-info-address{gap:14px;justify-content:flex-end}
-''.staff-services-info-address div{display:flex;flex-direction:column;gap:2px;color:#52616a;font-size:15px;line-height:1.22}
+.staff-services-info-address div{display:flex;flex-direction:column;gap:2px;color:#52616a;font-size:15px;line-height:1.22}
 .staff-services-address-copy{min-width:0}
 .staff-services-whatsapp{color:#174ed1;text-decoration:underline;text-underline-offset:2px}
 .staff-services-social{display:flex;align-items:center;justify-content:flex-end;gap:20px;padding-left:22px;border-left:2px solid #d6ddda}
-.staff-services-social-link{width:48px;height:48px;display:grid;place-items:center;text-decoration:none;border-radius:12px;overflow:hidden}
-.staff-services-social-link svg{width:46px;height:46px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
-.staff-services-social-link.instagram{color:#d62976}
-.staff-services-social-link.tiktok{color:#111820;background:#fff}
-.staff-services-social-link.facebook{color:#1877f2}
+.staff-services-social-link{width:36px;height:36px;display:grid;place-items:center;text-decoration:none;border-radius:10px;overflow:hidden;background:transparent}
+.staff-services-social-link svg{width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:2.7;stroke-linecap:round;stroke-linejoin:round}
+.staff-services-social-link.instagram{color:#111820}
+.staff-services-social-link.tiktok{color:#111820;background:transparent}
+.staff-services-social-link.facebook{color:#111820}
 .staff-services-info-grid{
   display:grid;
   grid-template-columns:minmax(0,1fr) 1px minmax(0,1fr);
@@ -2233,8 +2233,8 @@ body.staff-machine-modal-open{overflow:hidden}
   .staff-services-info-address .staff-services-icon-box{display:grid}
   .staff-services-info-address div{font-size:10px}
   .staff-services-social{justify-content:flex-start;gap:14px;padding-left:0;border-left:0;margin-top:2px}
-  .staff-services-social-link{width:38px;height:38px}
-  .staff-services-social-link svg{width:36px;height:36px}
+  .staff-services-social-link{width:30px;height:30px}
+  .staff-services-social-link svg{width:28px;height:28px}
   .staff-services-info-grid{grid-template-columns:1fr;gap:10px;padding-top:12px}
   .staff-services-info-divider{width:100%;height:1px}
   .staff-services-info-block{grid-template-columns:39px minmax(0,1fr);gap:8px}
@@ -2252,4 +2252,10 @@ body.staff-machine-modal-open{overflow:hidden}
 }
 @media (orientation:landscape) and (min-width:601px){
   .staff-services-view{max-width:1100px;margin:0 auto;padding-left:30px;padding-right:30px}
+  .staff-services-info-top{grid-template-columns:minmax(0,38%) minmax(0,1fr);gap:18px}
+  .staff-services-info-address{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:14px;align-items:center;justify-content:initial}
+  .staff-services-info-address .staff-services-icon-box{display:grid}
+  .staff-services-address-copy{min-width:0}
+  .staff-services-address-copy span{white-space:nowrap}
+  .staff-services-social{min-width:0}
 }
