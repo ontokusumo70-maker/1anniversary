@@ -7,7 +7,6 @@ const state = {
   sessionId: null,
   rewardId: null,
   authMode: "CUSTOMER",
-  customerPhone: null,
 };
 
 const SESSION_KEY = "teras_laundry_auth_session";
@@ -86,7 +85,6 @@ function saveSession() {
       role: state.role,
       userId: state.userId,
       expiresAt: state.expiresAt || null,
-      customerPhone: state.customerPhone || null,
     }),
   );
 }
@@ -98,7 +96,6 @@ function clearSession() {
   state.role = null;
   state.userId = null;
   state.expiresAt = null;
-  state.customerPhone = null;
 }
 
 function restoreSession() {
@@ -139,7 +136,6 @@ function restoreSession() {
     state.userId = saved.userId || null;
     state.expiresAt =
       saved.expiresAt || null;
-    state.customerPhone = saved.customerPhone || null;
 
     return true;
   } catch {
@@ -230,8 +226,6 @@ async function loadActiveEventForRole(role) {
     renderRoleActiveEvent(role, data);
     if (role === "STAFF") {
       renderStaffDashboardEvent(data);
-    } else if (role === "CUSTOMER") {
-      renderCustomerDashboardEvent(data);
     }
   } catch {
     renderRoleActiveEvent(role, null);
@@ -299,84 +293,6 @@ function renderStaffDashboardEvent(data) {
   period.textContent = formatDateRange(data.event.startsAt, data.event.endsAt);
 }
 
-
-function updateDashboardMachineSummary(role, machines) {
-  const prefix = role === "STAFF" ? "staff" : "customer";
-  const list = Array.isArray(machines) ? machines : [];
-  const washer = list.filter((m) => m.type === "WASHER");
-  const dryer = list.filter((m) => m.type === "DRYER");
-  const set = (id, value) => { if ($(id)) $(id).textContent = String(value); };
-  set(`${prefix}WasherCount`, washer.length || 5);
-  set(`${prefix}DryerCount`, dryer.length || 5);
-  set(`${prefix}WasherIdle`, washer.filter((m) => m.status !== "IN_USE").length);
-  set(`${prefix}WasherUsed`, washer.filter((m) => m.status === "IN_USE").length);
-  set(`${prefix}DryerIdle`, dryer.filter((m) => m.status !== "IN_USE").length);
-  set(`${prefix}DryerUsed`, dryer.filter((m) => m.status === "IN_USE").length);
-}
-
-async function refreshMachines() {
-  try {
-    const data = await api("/machines");
-    const machines = Array.isArray(data.machines) ? data.machines : [];
-    updateDashboardMachineSummary("CUSTOMER", machines);
-    renderMachines($("machines"), machines, false);
-  } catch (error) {
-    if ($("machines")) $("machines").textContent = error.message;
-  }
-}
-
-function renderCustomerDashboardMeta() {
-  const welcome = $("customerDashboardWelcome");
-  if (welcome) welcome.textContent = `Welcome : ${state.customerPhone || "08xxxxxxxxxx"}`;
-  const date = $("customerDashboardDate");
-  if (date) date.textContent = formatDashboardDate();
-}
-
-function formatDashboardDate() {
-  const parts = new Intl.DateTimeFormat("id-ID", { weekday:"long", day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit", hour12:false, timeZone:"Asia/Jakarta" }).formatToParts(new Date());
-  const get = (t) => parts.find((p) => p.type === t)?.value || "";
-  const weekday = get("weekday");
-  return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${get("day")} ${get("month")} ${get("year")}, ${get("hour")}:${get("minute")}`;
-}
-
-function renderCustomerDashboardEvent(data) {
-  const title = $("customerDashboardEventTitle");
-  const period = $("customerDashboardEventPeriod");
-  if (!title || !period) return;
-  if (!data?.active || !data.event) { title.textContent = "Tidak ada event aktif."; period.textContent = ""; return; }
-  title.textContent = data.event.title || "Event Aktif";
-  period.textContent = formatDateRange(data.event.startsAt, data.event.endsAt);
-}
-
-function showDashboardServices(role) {
-  const prefix = role === "STAFF" ? "staff" : "customer";
-  const frame = $(`${prefix}Dashboard`);
-  const view = $(`${prefix}DashboardServicesView`);
-  if (!frame || !view) return;
-  [...frame.children].forEach((child) => { child.hidden = child !== view; });
-  view.hidden = false;
-}
-
-function hideDashboardServices(role) {
-  const prefix = role === "STAFF" ? "staff" : "customer";
-  const frame = $(`${prefix}Dashboard`);
-  const view = $(`${prefix}DashboardServicesView`);
-  if (!frame || !view) return;
-  view.hidden = true;
-  [...frame.children].forEach((child) => { child.hidden = false; });
-}
-
-function bindDashboardActions() {
-  $("customerDashboardStatus")?.addEventListener("click", refreshMachines);
-  $("staffDashboardServices")?.addEventListener("click", () => showDashboardServices("STAFF"));
-  $("customerDashboardServices")?.addEventListener("click", () => showDashboardServices("CUSTOMER"));
-  $("staffServicesBack")?.addEventListener("click", () => hideDashboardServices("STAFF"));
-  $("customerServicesBack")?.addEventListener("click", () => hideDashboardServices("CUSTOMER"));
-  $("staffDashboardLogout")?.addEventListener("click", () => { clearSession(); window.location.href = "/staff"; });
-  $("customerDashboardLogout")?.addEventListener("click", () => { clearSession(); window.location.href = "/customer"; });
-}
-bindDashboardActions();
-
 function showRole() {
   document.body.dataset.role = state.role || "CUSTOMER";
   if ($("ownerAuth")) {
@@ -407,7 +323,6 @@ function showRole() {
   if (state.role === "CUSTOMER") {
     document.documentElement.style.setProperty("--game-bg", `url("${assetBasePath}background/game/game-bg.PNG")`);
     $("customer").hidden = false;
-    renderCustomerDashboardMeta();
     refreshMachines();
     loadActiveEventForRole("CUSTOMER");
     return;
@@ -747,7 +662,6 @@ async function verifyCustomerOtp() {
     state.userId = data.userId;
     state.expiresAt =
       data.expiresAt || null;
-    state.customerPhone = phone;
 
     saveSession();
 
@@ -1366,10 +1280,20 @@ async function refreshStaffMachines() {
   try {
     const data = await api("/machines");
     staffMachineData = Array.isArray(data.machines) ? data.machines : [];
-    updateDashboardMachineSummary("STAFF", staffMachineData);
     renderMachines($("staffMachines"), staffMachineData, true);
     renderStaffMachineStatusList();
     renderStaffMachineStatusMeta();
+
+    const washer = staffMachineData.filter((machine) => machine.type === "WASHER");
+    const dryer = staffMachineData.filter((machine) => machine.type === "DRYER");
+    const washerIdle = washer.filter((machine) => machine.status === "IDLE").length;
+    const dryerIdle = dryer.filter((machine) => machine.status === "IDLE").length;
+    const washerUsed = washer.length - washerIdle;
+    const dryerUsed = dryer.length - dryerIdle;
+    if ($("staffDashboardWasherIdle")) $("staffDashboardWasherIdle").textContent = String(washerIdle);
+    if ($("staffDashboardWasherUsed")) $("staffDashboardWasherUsed").textContent = String(washerUsed);
+    if ($("staffDashboardDryerIdle")) $("staffDashboardDryerIdle").textContent = String(dryerIdle);
+    if ($("staffDashboardDryerUsed")) $("staffDashboardDryerUsed").textContent = String(dryerUsed);
   } catch (error) {
     if ($("staffMachines")) $("staffMachines").textContent = error.message;
     if ($("staffMachineStatusList")) $("staffMachineStatusList").textContent = error.message;
@@ -1425,16 +1349,21 @@ document.addEventListener("click", (event) => {
   }
 });
 
-if ($("staffDashboardStatus")) {
-  const card = $("staffDashboardStatus");
-  card.addEventListener("click", openStaffMachineStatus);
-  card.addEventListener("keydown", (event) => {
+const staffDashboardMachineCard = $("staffDashboardMachineCard");
+if (staffDashboardMachineCard) {
+  staffDashboardMachineCard.addEventListener("click", openStaffMachineStatus);
+  staffDashboardMachineCard.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       openStaffMachineStatus();
     }
   });
 }
+
+$("staffDashboardLogout")?.addEventListener("click", () => {
+  clearSession();
+  window.location.href = "/staff";
+});
 
 let cameraStream = null;
 
