@@ -190,6 +190,24 @@
         </section>
 
         <button id="customerMachineRefresh" class="staff-machine-refresh" type="button"><span aria-hidden="true">⟳</span> Segarkan Status</button>
+
+        <div id="customerMachineDetailModal" class="customer-machine-detail-modal" hidden>
+          <div class="customer-machine-detail-backdrop" data-close-customer-machine-detail></div>
+          <section class="customer-machine-detail-sheet" role="dialog" aria-modal="true" aria-labelledby="customerMachineDetailTitle">
+            <div class="customer-machine-detail-handle" aria-hidden="true"></div>
+            <header class="customer-machine-detail-header">
+              <div class="customer-machine-detail-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="13" r="4.5"/><path d="M8 7h1M11 7h1"/></svg></div>
+              <div><h2 id="customerMachineDetailTitle">Status Mesin</h2><p id="customerMachineDetailMachineId">W1 - Washer</p></div>
+              <button id="customerMachineDetailClose" class="customer-machine-detail-close" type="button" aria-label="Tutup">×</button>
+            </header>
+            <div class="customer-machine-detail-details">
+              <div><span>Jenis Mesin</span><b id="customerMachineDetailType">Washer</b></div>
+              <div><span>Status</span><b id="customerMachineDetailStatus">Idle</b></div>
+              <div><span>Durasi Program</span><b id="customerMachineDetailDuration">32 menit</b></div>
+              <div><span>Waktu Operasi</span><b id="customerMachineDetailTime">00:00</b></div>
+            </div>
+          </section>
+        </div>
       </section>
 
       <section id="customerServicesView" class="staff-services-view" hidden>
