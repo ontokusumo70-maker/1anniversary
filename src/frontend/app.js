@@ -223,15 +223,19 @@ function renderRoleActiveEvent(role, data) {
 async function loadActiveEventForRole(role) {
   try {
     const data = await api("/event/active");
-    if (role === "STAFF") staffActiveEventData = data;
-    renderRoleActiveEvent(role, data);
     if (role === "STAFF") {
+      staffActiveEventData = data;
+      renderRoleActiveEvent(role, data);
       renderStaffDashboardEvent(data);
+    } else if (role === "CUSTOMER") {
+      renderCustomerDashboardEvent(data);
     }
   } catch {
-    renderRoleActiveEvent(role, null);
     if (role === "STAFF") {
+      renderRoleActiveEvent(role, null);
       renderStaffDashboardEvent(null);
+    } else if (role === "CUSTOMER") {
+      renderCustomerDashboardEvent(null);
     }
   }
 }
@@ -279,6 +283,69 @@ function showStaffDashboard() {
       renderStaffDashboardDate();
     }
   }, 1000);
+}
+
+let customerDashboardClockTimer = null;
+
+function renderCustomerDashboardDate() {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat("id-ID", {
+    weekday: "long", day: "2-digit", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jakarta",
+  }).formatToParts(now);
+  const get = (type) => parts.find((part) => part.type === type)?.value || "";
+  const update = $("customerDashboardUpdate");
+  if (update) {
+    const weekday = get("weekday");
+    update.textContent = `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${get("day")} ${get("month")} ${get("year")}, ${get("hour")}:${get("minute")}`;
+  }
+}
+
+function showCustomerDashboard() {
+  if ($("customerDashboard")) $("customerDashboard").hidden = false;
+  renderCustomerDashboardDate();
+  if (customerDashboardClockTimer) window.clearInterval(customerDashboardClockTimer);
+  customerDashboardClockTimer = window.setInterval(() => {
+    if (state.role === "CUSTOMER" && $("customerDashboard") && !$("customerDashboard").hidden) {
+      renderCustomerDashboardDate();
+    }
+  }, 1000);
+}
+
+function renderCustomerDashboardMachineSummary(machines) {
+  const list = Array.isArray(machines) ? machines : [];
+  const washer = list.filter((machine) => machine?.type === "WASHER");
+  const dryer = list.filter((machine) => machine?.type === "DRYER");
+  const count = (items, status) => items.filter((machine) => machine?.status === status).length;
+  const set = (id, value) => { const element = $(id); if (element) element.textContent = String(value); };
+  set("customerWasherTotal", washer.length || 5);
+  set("customerWasherIdle", count(washer, "IDLE"));
+  set("customerWasherBusy", count(washer, "IN_USE"));
+  set("customerDryerTotal", dryer.length || 5);
+  set("customerDryerIdle", count(dryer, "IDLE"));
+  set("customerDryerBusy", count(dryer, "IN_USE"));
+}
+
+async function refreshCustomerDashboardMachines() {
+  try {
+    const data = await api("/machines");
+    renderCustomerDashboardMachineSummary(data.machines);
+  } catch {
+    renderCustomerDashboardMachineSummary([]);
+  }
+}
+
+function renderCustomerDashboardEvent(data) {
+  const title = $("customerDashboardEventTitle");
+  const period = $("customerDashboardEventPeriod");
+  if (!title || !period) return;
+  if (!data?.active || !data.event) {
+    title.textContent = "Belum ada event";
+    period.textContent = "—";
+    return;
+  }
+  title.textContent = data.event.title || "Event Aktif";
+  period.textContent = formatDateRange(data.event.startsAt, data.event.endsAt);
 }
 
 function renderStaffDashboardMachineSummary() {
@@ -341,9 +408,9 @@ function showRole() {
   }
 
   if (state.role === "CUSTOMER") {
-    document.documentElement.style.setProperty("--game-bg", `url("${assetBasePath}background/game/game-bg.PNG")`);
     $("customer").hidden = false;
-    refreshMachines();
+    showCustomerDashboard();
+    refreshCustomerDashboardMachines();
     loadActiveEventForRole("CUSTOMER");
     return;
   }
@@ -1533,6 +1600,11 @@ if ($("staffStatusCard")) {
     }
   });
 }
+
+$("customerLogout")?.addEventListener("click", () => {
+  clearSession();
+  window.location.href = "/";
+});
 
 $("staffLogout")?.addEventListener("click", () => {
   clearSession();
