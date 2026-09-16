@@ -285,7 +285,7 @@ function renderStaffDashboardEvent(data) {
   const period = $("staffDashboardEventPeriod");
   if (!title || !period) return;
   if (!data?.active || !data.event) {
-    title.textContent = "Tidak ada event aktif";
+    title.textContent = "Tidak ada event aktif.";
     period.textContent = "—";
     return;
   }
@@ -1338,20 +1338,14 @@ document.addEventListener("click", (event) => {
   }
 });
 
-if ($("staffDashboardMachineCard")) {
-  const card = $("staffDashboardMachineCard");
-  card.addEventListener("click", openStaffMachineStatus);
-  card.addEventListener("keydown", (event) => {
+const staffDashboardMachineCard = $("staffDashboardMachineCard");
+if (staffDashboardMachineCard) {
+  staffDashboardMachineCard.addEventListener("click", openStaffMachineStatus);
+  staffDashboardMachineCard.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       openStaffMachineStatus();
     }
-  });
-}
-
-if ($("staffDashboardLogout")) {
-  $("staffDashboardLogout").addEventListener("click", () => {
-    window.location.href = "/staff";
   });
 }
 
