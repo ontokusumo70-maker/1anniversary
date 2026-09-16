@@ -121,58 +121,63 @@
 
   <section id="staff" class="screen screen-staff" hidden>
     <section id="staffDashboard" class="staff-dashboard">
-      <div class="staff-dashboard-date-row">
+      <div class="staff-dashboard-topline">
         <span id="staffDashboardUpdate" class="staff-dashboard-update"></span>
-        <span class="staff-dashboard-date-separator" aria-hidden="true"></span>
-        <button id="staffDashboardLogout" class="staff-dashboard-logout" type="button" aria-label="Logout Staff">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"/><path d="M14 8l4 4-4 4M8 12h10"/></svg>
+        <button id="staffLogout" class="staff-logout" type="button" aria-label="Logout">
+          <span class="staff-logout-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M10 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"/><path d="M14 16l4-4-4-4"/><path d="M9 12h9"/></svg>
+          </span>
           <span>Logout</span>
         </button>
       </div>
 
-      <div class="staff-dashboard-stack">
-        <section class="staff-dashboard-card staff-status-card" id="staffDashboardMachineCard" role="button" tabindex="0" aria-label="Buka Status Mesin">
-          <div class="staff-card-heading">
-            <span class="staff-card-title">Status Mesin</span>
-            <span class="staff-card-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span>
-          </div>
-          <div class="staff-machine-summary-grid">
-            <div class="staff-machine-summary-card">
-              <span class="staff-machine-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M7 7h10M8 5h1M11 5h1M14 5h1M12 11a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></svg></span>
-              <div class="staff-machine-summary-copy">
-                <strong>Washer (5)</strong>
-                <span><i class="staff-status-dot idle"></i>Idle <b id="staffDashboardWasherIdle">5</b></span>
-                <span><i class="staff-status-dot used"></i>Terpakai <b id="staffDashboardWasherUsed">0</b></span>
-              </div>
-            </div>
-            <div class="staff-machine-summary-card">
-              <span class="staff-machine-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M7 7h10M12 11a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></svg></span>
-              <div class="staff-machine-summary-copy">
-                <strong>Dryer (5)</strong>
-                <span><i class="staff-status-dot idle"></i>Idle <b id="staffDashboardDryerIdle">5</b></span>
-                <span><i class="staff-status-dot used"></i>Terpakai <b id="staffDashboardDryerUsed">0</b></span>
-              </div>
+      <section id="staffStatusCard" class="staff-dashboard-card staff-status-card" role="button" tabindex="0" aria-label="Buka Status Mesin">
+        <div class="staff-section-heading">
+          <h2>Status Mesin</h2>
+          <span class="staff-section-chevron" aria-hidden="true">›</span>
+        </div>
+        <div class="staff-machine-summary-grid">
+          <div class="staff-machine-summary">
+            <span class="staff-machine-icon" aria-hidden="true">
+              <svg viewBox="0 0 48 48"><rect x="10" y="5" width="28" height="38" rx="3"/><path d="M15 12h18"/><circle cx="24" cy="27" r="10"/></svg>
+            </span>
+            <div class="staff-machine-summary-copy">
+              <strong>Washer (<span id="staffWasherTotal">5</span>)</strong>
+              <div><span class="staff-status-dot idle"></span><b>Idle</b><em id="staffWasherIdle">5</em></div>
+              <div><span class="staff-status-dot busy"></span><b>Terpakai</b><em id="staffWasherBusy">0</em></div>
             </div>
           </div>
-        </section>
-
-        <section class="staff-dashboard-card staff-service-card" id="staffDashboardServiceCard" role="button" tabindex="0" aria-label="Buka Layanan dan Fasilitas">
-          <span class="staff-service-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.2 2.9h5.6l.7 2.2c.6.2 1.1.5 1.6.9l2.2-.5 2.8 4.8-1.5 1.7c.1.6.1 1.2 0 1.8l1.5 1.7-2.8 4.8-2.2-.5c-.5.4-1 .7-1.6.9l-.7 2.2H9.2l-.7-2.2c-.6-.2-1.1-.5-1.6-.9l-2.2.5-2.8-4.8 1.5-1.7a7.4 7.4 0 0 1 0-1.8L1.9 10.3 4.7 5.5l2.2.5c.5-.4 1-.7 1.6-.9l.7-2.2Z"/><circle cx="12" cy="12" r="3.2"/></svg></span>
-          <span class="staff-card-title">Layanan &amp; Fasilitas</span>
-          <span class="staff-card-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span>
-        </section>
-
-        <section class="staff-dashboard-card staff-event-card" id="staffDashboardEventCard">
-          <div class="staff-card-heading">
-            <span class="staff-card-title">Event</span>
-            <span class="staff-card-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span>
+          <div class="staff-machine-summary">
+            <span class="staff-machine-icon" aria-hidden="true">
+              <svg viewBox="0 0 48 48"><rect x="10" y="5" width="28" height="38" rx="3"/><path d="M15 12h18"/><circle cx="24" cy="27" r="10"/></svg>
+            </span>
+            <div class="staff-machine-summary-copy">
+              <strong>Dryer (<span id="staffDryerTotal">5</span>)</strong>
+              <div><span class="staff-status-dot idle"></span><b>Idle</b><em id="staffDryerIdle">5</em></div>
+              <div><span class="staff-status-dot busy"></span><b>Terpakai</b><em id="staffDryerBusy">0</em></div>
+            </div>
           </div>
-          <div class="staff-event-content">
-            <span id="staffDashboardEventTitle" class="staff-card-value">Memuat event...</span>
-            <span id="staffDashboardEventPeriod" class="staff-card-note">—</span>
-          </div>
-        </section>
-      </div>
+        </div>
+      </section>
+
+      <button id="staffServicesCard" class="staff-services-card" type="button" aria-label="Layanan dan Fasilitas">
+        <span class="staff-services-icon" aria-hidden="true">
+          <svg viewBox="0 0 48 48"><path d="M20 5h8l2 6 5 3 6-2 4 7-5 4v6l5 4-4 7-6-2-5 3-2 6h-8l-2-6-5-3-6 2-4-7 5-4v-6l-5-4 4-7 6 2 5-3 2-6Z"/><circle cx="24" cy="26" r="7"/></svg>
+        </span>
+        <strong>Layanan &amp; Fasilitas</strong>
+        <span class="staff-services-chevron" aria-hidden="true">›</span>
+      </button>
+
+      <section id="staffEventCard" class="staff-dashboard-card staff-event-card">
+        <div class="staff-section-heading">
+          <h2>Event</h2>
+          <span class="staff-section-chevron" aria-hidden="true">›</span>
+        </div>
+        <div class="staff-event-content">
+          <span id="staffDashboardEventTitle">Tidak ada event aktif.</span>
+          <span id="staffDashboardEventPeriod" hidden>—</span>
+        </div>
+      </section>
     </section>
 
     <section id="staffTools" class="staff-tools" hidden>
