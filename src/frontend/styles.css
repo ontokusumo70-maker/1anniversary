@@ -2300,3 +2300,32 @@ body.staff-machine-modal-open{overflow:hidden}
 }
 /* STAFF EVENT — locked reward gift icon */
 .staff-event-gift-icon svg{width:31px;height:31px}
+
+/* INITIAL ROUTE PAINT GUARD — prevent Customer auth flash on /staff and /owner */
+html[data-initial-route="STAFF"] #auth,
+html[data-initial-route="OWNER"] #auth{
+  display:none !important;
+}
+
+html[data-initial-route="STAFF"] #staffAuth,
+html[data-initial-route="OWNER"] #ownerAuth{
+  display:block !important;
+}
+
+html[data-initial-route="STAFF"] .topbar,
+html[data-initial-route="STAFF"] .footer-mark,
+html[data-initial-route="OWNER"] .topbar,
+html[data-initial-route="OWNER"] .footer-mark{
+  display:none !important;
+}
+
+html[data-initial-route="STAFF"] .app-shell,
+html[data-initial-route="OWNER"] .app-shell{
+  width:100%;
+  max-width:none;
+  min-height:100svh;
+  margin:0;
+  padding:0;
+  background:transparent;
+  box-shadow:none;
+}
