@@ -1119,15 +1119,16 @@ body[data-role="STAFF_LOGIN"] .app-shell{
 /* STAFF EVENT INFORMATION — LOCKED VISUAL */
 .staff-event-view{min-height:100svh;padding:0 16px 28px;background:#eefaf3;overflow-x:hidden}
 .staff-event-view[hidden]{display:none!important}
-.staff-event-header{height:102px;display:grid;grid-template-columns:48px minmax(0,1fr);align-items:center;gap:10px;margin:0 -16px;padding:22px 16px 10px;background:#0b8f61;border-radius:0 0 18px 18px}
-.staff-event-back{width:42px;height:42px;padding:0;border:0;border-radius:50%;display:grid;place-items:center;background:transparent;color:#fff}
-.staff-event-back svg{width:31px;height:31px;fill:none;stroke:currentColor;stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round}
-.staff-event-heading-copy h1{margin:0;font-size:24px;line-height:1.05;color:#fff;letter-spacing:-.02em}
+.staff-event-header{display:grid;grid-template-columns:48px minmax(0,1fr);align-items:center;gap:10px;margin:0 -16px;padding:8px 16px;background:#0b8f61;border-radius:0 0 18px 18px}
+.staff-event-back{width:32px;height:32px;padding:0;border:0;border-radius:50%;display:grid;place-items:center;background:transparent;color:#fff}
+.staff-event-back svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round}
+.staff-event-heading-copy h1{margin:0;font-size:14px;line-height:1.05;color:#fff;letter-spacing:-.02em}
 .staff-event-info-card{width:min(100%,520px);margin:0 auto;background:#fff;border-radius:20px;box-shadow:0 10px 30px rgba(16,88,52,.10);padding:18px 12px 14px;box-sizing:border-box}
 .staff-event-info-image{display:block;width:72%;max-width:290px;aspect-ratio:1/1;object-fit:cover;margin:0 auto 14px;border-radius:18px;background:#eef5f1}
 .staff-event-info-body{min-width:0}
 .staff-event-status{display:inline-flex;align-items:center;min-height:27px;padding:5px 11px;border-radius:10px;background:#dff6e8;color:#247d5b;font-size:12px;font-weight:900;line-height:1}
 .staff-event-info-body h2{margin:10px 0 6px;font-size:27px;line-height:1.08;color:#10252a;letter-spacing:-.02em}
+.staff-event-info-body h2.empty-state{font-size:17px;color:#0b8f61;letter-spacing:0}
 .staff-event-info-period{display:flex;align-items:center;gap:10px;margin:0 0 14px;font-size:15px;line-height:1.3;color:#273b40}
 .staff-event-calendar-icon{width:24px;height:24px;flex:0 0 24px;display:grid;place-items:center;color:#174b42}
 .staff-event-calendar-icon svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
@@ -1147,7 +1148,7 @@ body[data-role="STAFF_LOGIN"] .app-shell{
 .staff-event-detail-card ol{margin:0;padding-left:20px}
 .staff-event-detail-card li{margin:2px 0}
 .staff-event-back-bottom{width:100%;margin-top:14px;padding:12px 14px;border:0;border-radius:13px;background:#d9f5e8;color:#287a5b;font-size:14px;font-weight:900}
-@media(min-width:601px){.staff-event-view{max-width:620px;margin:0 auto;padding-left:20px;padding-right:20px}.staff-event-header{margin:0 -20px;padding-left:20px;padding-right:20px}.staff-event-info-card{box-shadow:0 12px 34px rgba(16,88,52,.12);padding:18px 18px 20px}.staff-event-info-image{width:290px;max-width:290px}.staff-event-info-body h2{font-size:30px}}
+@media(min-width:601px){.staff-event-view{max-width:620px;margin:0 auto;padding-left:20px;padding-right:20px}.staff-event-header{margin:0 -20px;padding-left:20px;padding-right:20px}.staff-event-info-card{box-shadow:0 12px 34px rgba(16,88,52,.12);padding:18px 18px 20px}.staff-event-info-image{width:290px;max-width:290px}.staff-event-info-body h2{font-size:30px}.staff-event-info-body h2.empty-state{font-size:17px;color:#0b8f61}}
 
 /* Event Active + D1 image */
 .active-event-info-card{overflow:hidden}
@@ -1189,6 +1190,11 @@ body[data-role="OWNER"] #eventImageMsg{margin:0;min-height:0}
 
 /* STATUS MESIN — keep hidden Event card hidden when Status Mesin is active */
 .screen-staff:has(#staffMachineStatusView:not([hidden])) .active-event-info-card[hidden]{
+  display:none !important;
+}
+
+/* STAFF EVENT VIEW — keep Dashboard Event Active card hidden while Event Information is open */
+.screen-staff:has(#staffEventView:not([hidden])) .active-event-info-card[hidden]{
   display:none !important;
 }
 
@@ -2292,3 +2298,5 @@ body.staff-machine-modal-open{overflow:hidden}
   .staff-services-address-copy span{white-space:nowrap}
   .staff-services-social{min-width:0}
 }
+/* STAFF EVENT — locked reward gift icon */
+.staff-event-gift-icon svg{width:31px;height:31px}
