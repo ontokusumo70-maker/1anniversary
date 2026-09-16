@@ -1315,13 +1315,45 @@ function startStaffMachineStatusTimer() {
 }
 
 
+function scrollCustomerTop() {
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+}
+
+function openCustomerMachineDetail(machine) {
+  if (!machine) return;
+  const modal = $("customerMachineDetailModal");
+  if (!modal) return;
+  const id = `${machine.type === "WASHER" ? "W" : "D"}${machine.machineNumber}`;
+  const type = staffMachineTypeLabel(machine);
+  const status = machine.status === "IN_USE" ? "Terpakai" : "Idle";
+  const duration = Number(machine.durationMinutes || (machine.type === "DRYER" ? 50 : 32));
+  const time = formatStaffMachineElapsed(machine);
+  $("customerMachineDetailMachineId").textContent = `${id} - ${type}`;
+  $("customerMachineDetailType").textContent = type;
+  $("customerMachineDetailStatus").textContent = status;
+  $("customerMachineDetailDuration").textContent = `${duration} menit`;
+  $("customerMachineDetailTime").textContent = time;
+  modal.hidden = false;
+  document.body.classList.add("customer-machine-detail-open");
+  scrollCustomerTop();
+}
+
+function closeCustomerMachineDetail() {
+  const modal = $("customerMachineDetailModal");
+  if (modal) modal.hidden = true;
+  document.body.classList.remove("customer-machine-detail-open");
+}
+
 function renderCustomerMachineStatusList() {
   const target = $("customerMachineStatusList");
   if (!target) return;
   const filtered = customerMachineData.filter((machine) => customerMachineFilter === "ALL" || machine.type === customerMachineFilter);
   target.innerHTML = "";
   for (const machine of filtered) {
-    const row = document.createElement("div");
+    const row = document.createElement("button");
+    row.type = "button";
     row.className = `staff-machine-status-row ${machine.status === "IN_USE" ? "is-busy" : "is-idle"}`;
     const icon = document.createElement("span");
     icon.className = "staff-machine-row-icon";
@@ -1339,8 +1371,9 @@ function renderCustomerMachineStatusList() {
     time.textContent = formatStaffMachineElapsed(machine);
     const arrow = document.createElement("span");
     arrow.className = "staff-machine-row-arrow";
-    arrow.textContent = "";
+    arrow.textContent = "›";
     row.append(icon, id, type, status, time, arrow);
+    row.onclick = () => openCustomerMachineDetail(machine);
     target.append(row);
   }
 }
@@ -1372,6 +1405,8 @@ function startCustomerMachineStatusTimer() {
 }
 
 async function openCustomerMachineStatus() {
+  scrollCustomerTop();
+  closeCustomerMachineDetail();
   if ($("customerDashboard")) $("customerDashboard").hidden = true;
   if ($("customerTools")) $("customerTools").hidden = false;
   if ($("customerMachineStatusView")) $("customerMachineStatusView").hidden = false;
@@ -1385,12 +1420,15 @@ async function openCustomerMachineStatus() {
 }
 
 function closeCustomerMachineStatus() {
+  closeCustomerMachineDetail();
   stopCustomerMachineStatusTimer();
   if ($("customerMachineStatusView")) $("customerMachineStatusView").hidden = true;
   showCustomerDashboard();
 }
 
 function openCustomerServices() {
+  scrollCustomerTop();
+  closeCustomerMachineDetail();
   if ($("customerDashboard")) $("customerDashboard").hidden = true;
   if ($("customerTools")) $("customerTools").hidden = false;
   if ($("customerMachineStatusView")) $("customerMachineStatusView").hidden = true;
@@ -1414,14 +1452,27 @@ function revokeCustomerEventInfoImage() {
 function renderCustomerEventRewards(event) {
   const target = $("customerEventRewards");
   if (!target) return;
-  target.innerHTML = "";
-  const rewards = Array.isArray(event?.rewards) ? event.rewards : [];
-  for (const reward of rewards) {
-    const card = document.createElement("div");
-    card.className = "staff-event-detail-card";
-    card.innerHTML = `<span class="staff-event-detail-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M8 15h32v24H8z"/><path d="M8 15h32v8H8z"/><path d="M24 15v24M16 11c0-3 2-5 5-5 2 0 3 3 3 9M32 11c0-3-2-5-5-5-2 0-3 3-3 9"/></svg></span><div><h3>${escapeHtml(reward.name || reward.title || "Reward")}</h3><p>${escapeHtml(String(reward.quantity ?? reward.stock ?? "—"))}</p></div>`;
-    target.append(card);
-  }
+  const rewards = Array.isArray(event?.rewards) && event.rewards.length
+    ? event.rewards
+    : (event?.rewardType ? [{
+        rewardType: event.rewardType,
+        rewardQuantity: event.rewardQuantity,
+        remaining: event.rewardRemaining ?? event.remaining,
+        terms: event.rewardTerms || event.terms || "—",
+      }] : []);
+
+  target.innerHTML = rewards.length ? rewards.map((reward) => {
+    const name = escapeHtml(reward.rewardType || reward.name || reward.title || "—");
+    const quantity = Number(reward.remaining ?? reward.rewardQuantity ?? reward.quantity ?? reward.stock ?? 0);
+    return `<section class="staff-event-detail-card staff-event-reward-card">
+      <span class="staff-event-detail-icon staff-event-gift-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M9 19h30v23H9z"/><path d="M24 19v23"/><path d="M7 12h34v8H7z"/><path d="M24 12c-1-6-5-9-9-8-4 1-4 6 0 8h9Z"/><path d="M24 12c1-6 5-9 9-8 4 1 4 6 0 8h-9Z"/></svg></span>
+      <div class="staff-event-reward-copy">
+        <div class="staff-event-reward-top"><h3>Reward</h3><span>Stok Tersedia</span></div>
+        <p>${name}</p>
+        <strong>${Number.isFinite(quantity) ? quantity.toLocaleString("id-ID") : "—"}</strong>
+      </div>
+    </section>`;
+  }).join("") : "";
 }
 
 function renderCustomerEventInfo(data) {
@@ -1462,6 +1513,8 @@ function renderCustomerEventInfo(data) {
 }
 
 function openCustomerEvent() {
+  scrollCustomerTop();
+  closeCustomerMachineDetail();
   if ($("customerDashboard")) $("customerDashboard").hidden = true;
   if ($("customerTools")) $("customerTools").hidden = false;
   if ($("customerMachineStatusView")) $("customerMachineStatusView").hidden = true;
@@ -1775,6 +1828,22 @@ if ($("staffStatusCard")) {
 if ($("customerServicesCard")) {
   $("customerServicesCard").addEventListener("click", openCustomerServices);
 }
+
+const CUSTOMER_LAUNDRY_MAP_URL = "https://maps.app.goo.gl/3KfFnHuLeZRsBnYG6?g_st=ic";
+const customerServicesLocationIcon = document.querySelector("#customerServicesView .staff-services-info-address .staff-services-icon-box");
+if (customerServicesLocationIcon) {
+  customerServicesLocationIcon.setAttribute("role", "button");
+  customerServicesLocationIcon.setAttribute("tabindex", "0");
+  customerServicesLocationIcon.addEventListener("click", () => {
+    window.location.href = CUSTOMER_LAUNDRY_MAP_URL;
+  });
+  customerServicesLocationIcon.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      window.location.href = CUSTOMER_LAUNDRY_MAP_URL;
+    }
+  });
+}
 if ($("customerStatusCard")) {
   $("customerStatusCard").addEventListener("click", openCustomerMachineStatus);
   $("customerStatusCard").addEventListener("keydown", (event) => {
@@ -1805,6 +1874,10 @@ if ($("customerMachineFilters")) {
   });
 }
 if ($("customerMachineStatusBack")) $("customerMachineStatusBack").addEventListener("click", closeCustomerMachineStatus);
+if ($("customerMachineDetailClose")) $("customerMachineDetailClose").addEventListener("click", closeCustomerMachineDetail);
+document.addEventListener("click", (event) => {
+  if (event.target.closest("[data-close-customer-machine-detail]")) closeCustomerMachineDetail();
+});
 if ($("customerServicesBack")) $("customerServicesBack").addEventListener("click", closeCustomerServices);
 if ($("customerEventBack")) $("customerEventBack").addEventListener("click", closeCustomerEvent);
 if ($("customerEventBackBottom")) $("customerEventBackBottom").addEventListener("click", closeCustomerEvent);
