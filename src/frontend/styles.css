@@ -2066,179 +2066,174 @@ body.staff-machine-modal-open{overflow:hidden}
 }
 
 
-/* STAFF LAYANAN & FASILITAS */
+/* STAFF LAYANAN & FASILITAS — LOCKED DESIGN */
 .staff-services-view{
   min-height:100svh;
-  padding:0 16px 28px;
+  padding:0 34px 32px;
   background:#fff;
   overflow-x:hidden;
 }
 .staff-services-header{
-  min-height:74px;
+  min-height:102px;
   display:grid;
-  grid-template-columns:48px minmax(0,1fr);
+  grid-template-columns:72px minmax(0,1fr);
   align-items:center;
-  gap:8px;
-  padding:10px 2px 8px;
+  gap:14px;
+  padding:10px 0 12px;
 }
 .staff-services-back{
-  width:36px;
-  height:36px;
+  width:54px;
+  height:54px;
   padding:0;
+  border:0;
   border-radius:50%;
+  display:grid;
+  place-items:center;
   background:#e4f8ed;
   color:#0b8f61;
-  font-size:28px;
-  line-height:1;
-  font-weight:500;
 }
-.staff-services-header h1{
+.staff-services-back svg{width:38px;height:38px;fill:none;stroke:currentColor;stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round}
+.staff-services-heading-copy h1{
   margin:0;
-  font-size:22px;
-  line-height:1.1;
+  font-size:32px;
+  line-height:1.05;
   color:#101820;
-  letter-spacing:-.02em;
+  letter-spacing:-.025em;
+}
+.staff-services-heading-copy p{
+  margin:6px 0 0;
+  font-size:18px;
+  line-height:1.25;
+  color:#71818a;
 }
 .staff-services-photo-card{
   margin:0;
-  border-radius:16px;
+  border-radius:22px;
   overflow:hidden;
   background:#eef4f1;
 }
 .staff-services-photo-card img{
   display:block;
   width:100%;
-  aspect-ratio:4 / 3;
+  aspect-ratio:16 / 5;
   object-fit:cover;
+  object-position:center 52%;
 }
 .staff-services-info-card{
-  margin-top:14px;
-  padding:16px;
-  border:1px solid #e0e5e3;
-  border-radius:16px;
+  margin-top:18px;
+  padding:18px 24px 20px;
+  border:1px solid #bfe5d5;
+  border-radius:22px;
   background:#fff;
-  box-shadow:0 3px 12px rgba(16,24,32,.06);
+  box-shadow:0 2px 8px rgba(16,24,32,.04);
 }
-.staff-services-info-title{
+.staff-services-info-top{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(260px,36%);
+  gap:18px;
+  align-items:center;
+  padding-bottom:14px;
+}
+.staff-services-info-title,.staff-services-info-address{
   display:flex;
   align-items:center;
-  gap:10px;
-  margin-bottom:14px;
 }
+.staff-services-info-title{gap:16px}
 .staff-services-info-title h2{
   margin:0;
-  font-size:18px;
-  line-height:1.2;
+  font-size:25px;
+  line-height:1.1;
   color:#101820;
 }
-.staff-services-info-icon{
-  width:34px;
-  height:34px;
-  flex:0 0 34px;
+.staff-services-icon-box{
+  width:64px;
+  height:64px;
+  flex:0 0 64px;
   display:grid;
   place-items:center;
-  border-radius:10px;
-  background:#e4f8ed;
+  border-radius:16px;
+  background:#e5f8ee;
   color:#0b8f61;
-  font-size:21px;
-  font-weight:800;
 }
+.staff-services-icon-box svg{
+  width:39px;
+  height:39px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2.4;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.staff-services-info-address{gap:14px;justify-content:flex-end}
+.staff-services-info-address div{display:flex;flex-direction:column;gap:2px;color:#52616a;font-size:15px;line-height:1.22}
 .staff-services-info-grid{
   display:grid;
   grid-template-columns:minmax(0,1fr) 1px minmax(0,1fr);
   align-items:stretch;
-  gap:14px;
+  gap:28px;
+  padding-top:16px;
+  border-top:1px solid #eef2f0;
 }
-.staff-services-info-block strong{
-  display:block;
-  margin-bottom:8px;
-  font-size:14px;
-  line-height:1.2;
-  color:#101820;
+.staff-services-info-block{display:grid;grid-template-columns:56px minmax(0,1fr);gap:14px;align-items:start}
+.staff-services-inline-icon{
+  width:48px;height:48px;display:grid;place-items:center;color:#087b59;
 }
-.staff-services-info-block p{
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-  margin:6px 0;
-  font-size:12px;
-  line-height:1.35;
-  color:#66716d;
-}
-.staff-services-info-block p b{
-  color:#4e5955;
-  font-weight:600;
-  text-align:right;
-  white-space:nowrap;
-}
-.staff-services-info-divider{
-  width:1px;
-  background:#dfe5e2;
-}
-.staff-services-contact{
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-  margin-top:14px;
-  padding-top:12px;
-  border-top:1px solid #edf0ef;
-  font-size:11px;
-  line-height:1.35;
-  color:#6a7470;
-}
-.staff-services-contact span:last-child{
-  white-space:nowrap;
-  text-align:right;
-}
+.staff-services-inline-icon svg{width:43px;height:43px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.staff-services-info-block strong{display:block;margin:0 0 10px;font-size:19px;line-height:1.2;color:#0f1720}
+.staff-services-info-block p{display:grid;grid-template-columns:minmax(90px,1fr) auto;gap:12px;margin:7px 0;font-size:15px;line-height:1.3;color:#52616a}
+.staff-services-info-block p b{color:#46545a;font-weight:600;text-align:right;white-space:nowrap}
+.staff-services-info-divider{width:1px;background:#cfd9d5}
 .staff-facility-section{
+  display:grid;
+  grid-template-columns:90px minmax(0,1fr);
+  gap:20px;
+  align-items:start;
   margin-top:18px;
-  padding:16px;
-  border:1px solid #e0e5e3;
-  border-radius:16px;
+  padding:22px 24px;
+  border:1px solid #bfe5d5;
+  border-radius:22px;
   background:#fff;
 }
-.staff-facility-section h2{
-  margin:0 0 10px;
-  font-size:16px;
-  line-height:1.2;
-  color:#101820;
+.staff-facility-icon{
+  width:72px;height:72px;display:grid;place-items:center;border-radius:16px;background:#e5f8ee;color:#0b8f61;
 }
-.staff-facility-section ol{
-  margin:0;
-  padding-left:24px;
-}
-.staff-facility-section li{
-  margin:7px 0;
-  padding-left:3px;
-  font-size:13px;
-  line-height:1.4;
-  color:#4e5955;
-}
-
+.staff-facility-icon svg{width:50px;height:50px;fill:none;stroke:currentColor;stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round}
+.staff-facility-content h2{margin:0 0 12px;font-size:22px;line-height:1.2;color:#101820}
+.staff-facility-content ol{margin:0;padding-left:27px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:34px}
+.staff-facility-content li{margin:4px 0;padding-left:4px;font-size:16px;line-height:1.42;color:#4e5c61}
 @media(max-width:600px){
   .staff-services-view{padding:0 16px 24px}
-  .staff-services-header{min-height:70px;padding:8px 2px 6px}
-  .staff-services-back{width:34px;height:34px;font-size:27px}
-  .staff-services-header h1{font-size:21px}
-  .staff-services-photo-card{border-radius:14px}
-  .staff-services-info-card{margin-top:12px;padding:13px;border-radius:14px}
-  .staff-services-info-title{margin-bottom:11px}
-  .staff-services-info-title h2{font-size:16px}
-  .staff-services-info-icon{width:31px;height:31px;flex-basis:31px;border-radius:9px;font-size:19px}
-  .staff-services-info-grid{gap:10px}
-  .staff-services-info-block strong{font-size:12px;margin-bottom:7px}
-  .staff-services-info-block p{font-size:10px;gap:7px}
+  .staff-services-header{min-height:78px;grid-template-columns:48px minmax(0,1fr);gap:8px;padding:7px 0 8px}
+  .staff-services-back{width:42px;height:42px}
+  .staff-services-back svg{width:31px;height:31px}
+  .staff-services-heading-copy h1{font-size:22px}
+  .staff-services-heading-copy p{margin-top:4px;font-size:12px}
+  .staff-services-photo-card{border-radius:16px}
+  .staff-services-photo-card img{aspect-ratio:16 / 6.5;object-position:center 52%}
+  .staff-services-info-card{margin-top:14px;padding:14px;border-radius:16px}
+  .staff-services-info-top{grid-template-columns:1fr;gap:12px;padding-bottom:12px}
+  .staff-services-info-title{gap:11px}
+  .staff-services-info-title h2{font-size:18px}
+  .staff-services-icon-box{width:43px;height:43px;flex-basis:43px;border-radius:11px}
+  .staff-services-icon-box svg{width:29px;height:29px}
+  .staff-services-info-address{justify-content:flex-start;padding-left:54px;gap:9px}
+  .staff-services-info-address .staff-services-icon-box{display:none}
+  .staff-services-info-address div{font-size:10px}
+  .staff-services-info-grid{grid-template-columns:1fr;gap:10px;padding-top:12px}
+  .staff-services-info-divider{width:100%;height:1px}
+  .staff-services-info-block{grid-template-columns:39px minmax(0,1fr);gap:8px}
+  .staff-services-inline-icon{width:36px;height:36px}
+  .staff-services-inline-icon svg{width:33px;height:33px}
+  .staff-services-info-block strong{font-size:13px;margin-bottom:7px}
+  .staff-services-info-block p{grid-template-columns:minmax(90px,1fr) auto;gap:7px;margin:5px 0;font-size:10px}
   .staff-services-info-block p b{white-space:normal}
-  .staff-services-contact{display:grid;gap:3px;margin-top:11px;padding-top:10px;font-size:9px}
-  .staff-services-contact span:last-child{text-align:left}
-  .staff-facility-section{margin-top:12px;padding:13px;border-radius:14px}
-  .staff-facility-section h2{font-size:13px;margin-bottom:8px}
-  .staff-facility-section li{margin:5px 0;font-size:11px}
+  .staff-facility-section{grid-template-columns:48px minmax(0,1fr);gap:11px;margin-top:12px;padding:14px;border-radius:16px}
+  .staff-facility-icon{width:43px;height:43px;border-radius:11px}
+  .staff-facility-icon svg{width:30px;height:30px}
+  .staff-facility-content h2{font-size:15px;margin-bottom:8px}
+  .staff-facility-content ol{grid-template-columns:1fr;padding-left:22px}
+  .staff-facility-content li{margin:4px 0;font-size:11px;line-height:1.38}
 }
-
 @media (orientation:landscape) and (min-width:601px){
   .staff-services-view{max-width:1100px;margin:0 auto;padding-left:30px;padding-right:30px}
-  .staff-services-photo-card img{aspect-ratio:16 / 7;object-position:center 55%}
-  .staff-services-info-grid{gap:20px}
-  .staff-facility-section{margin-top:14px}
 }
