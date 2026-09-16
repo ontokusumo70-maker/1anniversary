@@ -1159,6 +1159,11 @@ body[data-role="OWNER"] #eventImageMsg{margin:0;min-height:0}
   display:none !important;
 }
 
+/* LAYANAN & FASILITAS — keep hidden Event card hidden when Services is active */
+.screen-staff:has(#staffServicesView:not([hidden])) .active-event-info-card[hidden]{
+  display:none !important;
+}
+
 .locked-reward-card{position:relative}
 .locked-reward-card-main{display:block;width:100%;border:0;background:transparent;text-align:left;padding:0;cursor:pointer;color:inherit}
 .locked-reward-card-actions{display:flex;gap:6px;padding:7px 10px 10px;border-top:1px solid #edf1ef}
@@ -2216,8 +2221,8 @@ body.staff-machine-modal-open{overflow:hidden}
   .staff-services-info-title h2{font-size:18px}
   .staff-services-icon-box{width:43px;height:43px;flex-basis:43px;border-radius:11px}
   .staff-services-icon-box svg{width:29px;height:29px}
-  .staff-services-info-address{justify-content:flex-start;padding-left:54px;gap:9px}
-  .staff-services-info-address .staff-services-icon-box{display:none}
+  .staff-services-info-address{justify-content:flex-start;padding-left:0;gap:9px}
+  .staff-services-info-address .staff-services-icon-box{display:grid}
   .staff-services-info-address div{font-size:10px}
   .staff-services-info-grid{grid-template-columns:1fr;gap:10px;padding-top:12px}
   .staff-services-info-divider{width:100%;height:1px}
