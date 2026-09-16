@@ -2331,7 +2331,7 @@ html[data-initial-route="OWNER"] .app-shell{
 }
 
 /* CUSTOMER LOGIN — PRODUCTION */
-.customer-login-screen{
+ .customer-login-screen{
   position:relative;
   display:block;
   width:100%;
@@ -2340,7 +2340,7 @@ html[data-initial-route="OWNER"] .app-shell{
   margin:0;
   padding:0;
   overflow:hidden;
-  background:url('/assets/background/customer/customer-bg.PNG') center top/cover no-repeat;
+  background:#e8f7df url('/assets/background/customer/customer-bg.PNG') center top/cover no-repeat;
 }
 
 .customer-login-screen[hidden]{display:none !important}
@@ -2376,7 +2376,7 @@ body[data-role="CUSTOMER_LOGIN"] .app-shell{
   z-index:2;
   top:7.5%;
   left:50%;
-  width:min(88%,430px);
+  width:min(74.5%,650px);
   transform:translateX(-50%);
   display:flex;
   flex-direction:column;
@@ -2387,9 +2387,9 @@ body[data-role="CUSTOMER_LOGIN"] .app-shell{
 
 .customer-login-brand-logo{
   display:block;
-  width:min(52vw,230px);
+  width:min(30vw,140px);
   height:auto;
-  max-height:120px;
+  max-height:140px;
   object-fit:contain;
 }
 
@@ -2404,11 +2404,11 @@ body[data-role="CUSTOMER_LOGIN"] .app-shell{
 .customer-login-card{
   position:absolute;
   z-index:3;
-  top:26%;
+  top:23.5%;
   left:50%;
-  width:min(88%,430px);
+  width:min(74.5%,650px);
   transform:translateX(-50%);
-  padding:22px 22px 18px;
+  padding:20px 20px 16px;
   border:1px solid rgba(151,204,172,.48);
   border-radius:24px;
   background:rgba(255,255,255,.96);
@@ -2423,24 +2423,18 @@ body[data-role="CUSTOMER_LOGIN"] .app-shell{
 .customer-login-msg{margin:8px 0 0;text-align:center}
 
 @media(max-width:600px){
-  .customer-login-brand{top:8%;width:calc(100% - 28px)}
-  .customer-login-brand-logo{width:min(54vw,220px);max-height:112px}
-  .customer-login-address{font-size:12px}
+  .customer-login-brand{top:7.5%;width:74.5%}
+  .customer-login-brand-logo{width:min(30vw,140px);max-height:140px}
+  .customer-login-address{font-size:12px;white-space:nowrap}
   .customer-login-card{
-    top:27%;
-    width:calc(100% - 28px);
-    padding:19px 17px 16px;
+    top:23.5%;
+    width:74.5%;
+    padding:18px 16px 15px;
     border-radius:20px;
   }
   .customer-login-step{font-size:10px}
 }
 
 @media(max-width:380px){
-  .customer-login-card{top:25%;width:calc(100% - 20px);padding:16px 14px 14px}
-  .customer-login-heading{margin-bottom:10px}
-  .customer-login-heading h1{font-size:21px}
-}
-
-@media (orientation:landscape) and (min-width:601px){
-  .customer-login-card{top:18%;width:min(440px,52%);padding:20px 22px 17px}
+  .customer-login-card{top:23.5%;width:74.5%;padding:16px 14px 14px}
 }
