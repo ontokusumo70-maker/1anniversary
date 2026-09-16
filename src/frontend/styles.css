@@ -1492,17 +1492,19 @@ body[data-role="STAFF"] .topbar{
   }
 
   .screen-staff .staff-status-card{
-    height:130px;
+    height:131px;
     padding:10px 12px;
     border-radius:14px;
   }
 
-  .screen-staff .staff-section-heading{
-    height:21px;
+  .screen-staff .staff-status-card .staff-section-heading{
+    height:27px;
   }
 
-  .screen-staff .staff-section-heading h2{
-    font-size:16px;
+  .screen-staff .staff-status-card .staff-section-heading h2{
+    font-size:22px;
+    line-height:1.1;
+    font-weight:700;
   }
 
   .screen-staff .staff-section-chevron,
@@ -1515,8 +1517,8 @@ body[data-role="STAFF"] .topbar{
     margin-top:8px;
   }
 
-  .screen-staff .staff-machine-summary{
-    height:83px;
+  .screen-staff .staff-status-card .staff-machine-summary{
+    height:78px;
     gap:10px;
     padding:0 12px;
     border-radius:10px;
@@ -1533,19 +1535,19 @@ body[data-role="STAFF"] .topbar{
     height:36px;
   }
 
-  .screen-staff .staff-machine-summary-copy > strong{
-    margin-bottom:5px;
+  .screen-staff .staff-status-card .staff-machine-summary-copy > strong{
+    margin-bottom:4px;
     font-size:13px;
   }
 
-  .screen-staff .staff-machine-summary-copy > div{
-    height:18px;
+  .screen-staff .staff-status-card .staff-machine-summary-copy > div{
+    height:17px;
     grid-template-columns:12px 1fr auto;
     gap:4px;
     font-size:12px;
   }
 
-  .screen-staff .staff-status-dot{
+  .screen-staff .staff-status-card .staff-status-dot{
     width:12px;
     height:12px;
   }
