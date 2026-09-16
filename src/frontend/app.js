@@ -305,7 +305,7 @@ function renderStaffDashboardEvent(data) {
   const period = $("staffDashboardEventPeriod");
   if (!title || !period) return;
   if (!data?.active || !data.event) {
-    title.textContent = "Tidak ada event aktif";
+    title.textContent = "Belum ada event";
     period.textContent = "—";
     return;
   }
