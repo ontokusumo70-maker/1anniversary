@@ -482,6 +482,12 @@ async function loginStaffStandalone() {
 }
 
 function showCustomerAuth(clearMessage = true) {
+  document.body.dataset.role = "CUSTOMER_LOGIN";
+  document.documentElement.style.setProperty(
+    "--customer-bg",
+    `url("${assetBasePath}background/customer/customer-bg.PNG")`,
+  );
+
   if ($("ownerAuth")) {
     $("ownerAuth").hidden = true;
   }
@@ -630,6 +636,7 @@ async function requestCustomerOtp() {
       data.challengeId;
 
     $("otpBox").hidden = false;
+    $("otp")?.focus();
 
     msg(
       "authMsg",
