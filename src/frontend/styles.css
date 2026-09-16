@@ -2446,3 +2446,10 @@ body[data-role="CUSTOMER_LOGIN"] .app-shell{
   .customer-login-card{top:26%;width:74%;padding:15px 13px 6px}
   .customer-login-brand-logo{width:96px;max-height:96px}
 }
+
+
+/* CUSTOMER DASHBOARD — SAME AS STAFF, CUSTOMER BACKGROUND ONLY */
+.screen-customer.customer-dashboard-screen{position:relative;min-height:100svh;overflow:hidden;background:#e8f7df !important;}
+.screen-customer.customer-dashboard-screen .customer-dashboard-bg{position:fixed;z-index:0;inset:0;width:100%;height:100%;object-fit:cover;object-position:center center;pointer-events:none;user-select:none;}
+.screen-customer.customer-dashboard-screen .customer-dashboard-content{position:relative;z-index:1;}
+.screen-customer.customer-dashboard-screen .staff-dashboard{background:transparent !important;}
