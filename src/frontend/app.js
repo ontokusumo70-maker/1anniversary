@@ -1283,17 +1283,6 @@ async function refreshStaffMachines() {
     renderMachines($("staffMachines"), staffMachineData, true);
     renderStaffMachineStatusList();
     renderStaffMachineStatusMeta();
-
-    const washer = staffMachineData.filter((machine) => machine.type === "WASHER");
-    const dryer = staffMachineData.filter((machine) => machine.type === "DRYER");
-    const washerIdle = washer.filter((machine) => machine.status === "IDLE").length;
-    const dryerIdle = dryer.filter((machine) => machine.status === "IDLE").length;
-    const washerUsed = washer.length - washerIdle;
-    const dryerUsed = dryer.length - dryerIdle;
-    if ($("staffDashboardWasherIdle")) $("staffDashboardWasherIdle").textContent = String(washerIdle);
-    if ($("staffDashboardWasherUsed")) $("staffDashboardWasherUsed").textContent = String(washerUsed);
-    if ($("staffDashboardDryerIdle")) $("staffDashboardDryerIdle").textContent = String(dryerIdle);
-    if ($("staffDashboardDryerUsed")) $("staffDashboardDryerUsed").textContent = String(dryerUsed);
   } catch (error) {
     if ($("staffMachines")) $("staffMachines").textContent = error.message;
     if ($("staffMachineStatusList")) $("staffMachineStatusList").textContent = error.message;
@@ -1349,10 +1338,10 @@ document.addEventListener("click", (event) => {
   }
 });
 
-const staffDashboardMachineCard = $("staffDashboardMachineCard");
-if (staffDashboardMachineCard) {
-  staffDashboardMachineCard.addEventListener("click", openStaffMachineStatus);
-  staffDashboardMachineCard.addEventListener("keydown", (event) => {
+if ($("staffDashboardMachineCard")) {
+  const card = $("staffDashboardMachineCard");
+  card.addEventListener("click", openStaffMachineStatus);
+  card.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       openStaffMachineStatus();
@@ -1360,10 +1349,11 @@ if (staffDashboardMachineCard) {
   });
 }
 
-$("staffDashboardLogout")?.addEventListener("click", () => {
-  clearSession();
-  window.location.href = "/staff";
-});
+if ($("staffDashboardLogout")) {
+  $("staffDashboardLogout").addEventListener("click", () => {
+    window.location.href = "/staff";
+  });
+}
 
 let cameraStream = null;
 
