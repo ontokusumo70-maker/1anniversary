@@ -2330,36 +2330,39 @@ html[data-initial-route="OWNER"] .app-shell{
   box-shadow:none;
 }
 
-/* CUSTOMER LOGIN — PRODUCTION */
- .customer-login-screen{
-  position:relative;
-  display:block;
+/* CUSTOMER LOGIN — LOCKED PRODUCTION */
+.customer-login-screen{
+  position:fixed;
+  z-index:1;
+  inset:0;
   width:100%;
   height:100svh;
   min-height:100svh;
   margin:0;
   padding:0;
   overflow:hidden;
-  background:#e8f7df url('/assets/background/customer/customer-bg.PNG') center top/cover no-repeat;
+  background-color:#e8f7df;
+  background-image:url('/assets/background/customer/customer-bg.PNG');
+  background-position:center center;
+  background-repeat:no-repeat;
+  background-size:cover;
 }
-
 .customer-login-screen[hidden]{display:none !important}
-
 body:has(#auth:not([hidden])) .topbar,
 body:has(#auth:not([hidden])) .footer-mark,
 body[data-role="CUSTOMER_LOGIN"] .topbar,
-body[data-role="CUSTOMER_LOGIN"] .footer-mark{
-  display:none !important;
-}
-
+body[data-role="CUSTOMER_LOGIN"] .footer-mark{display:none !important}
 body:has(#auth:not([hidden])),
 body[data-role="CUSTOMER_LOGIN"]{
   min-height:100svh;
   margin:0;
   overflow:hidden;
-  background:#e8f7df;
+  background-color:#e8f7df;
+  background-image:url('/assets/background/customer/customer-bg.PNG');
+  background-position:center center;
+  background-repeat:no-repeat;
+  background-size:cover;
 }
-
 body:has(#auth:not([hidden])) .app-shell,
 body[data-role="CUSTOMER_LOGIN"] .app-shell{
   width:100%;
@@ -2370,71 +2373,63 @@ body[data-role="CUSTOMER_LOGIN"] .app-shell{
   background:transparent;
   box-shadow:none;
 }
-
 .customer-login-brand{
   position:absolute;
-  z-index:2;
-  top:7.5%;
+  z-index:4;
+  top:6.5%;
   left:50%;
-  width:min(74.5%,650px);
+  width:min(72%,620px);
   transform:translateX(-50%);
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
   text-align:center;
+  pointer-events:none;
 }
-
 .customer-login-brand-logo{
   display:block;
-  width:min(30vw,140px);
+  width:min(23vw,110px);
   height:auto;
-  max-height:140px;
+  max-height:110px;
   object-fit:contain;
 }
-
 .customer-login-address{
-  margin:8px 0 0;
+  margin:7px 0 0;
   font-size:12px;
-  line-height:1.4;
+  line-height:1.35;
   color:#5d7569;
   font-weight:500;
+  white-space:nowrap;
 }
-
 .customer-login-card{
   position:absolute;
   z-index:3;
-  top:23.5%;
+  top:26%;
   left:50%;
-  width:min(74.5%,650px);
+  width:min(72%,620px);
   transform:translateX(-50%);
-  padding:20px 20px 16px;
+  padding:17px 18px 13px;
   border:1px solid rgba(151,204,172,.48);
-  border-radius:24px;
+  border-radius:22px;
   background:rgba(255,255,255,.96);
   box-shadow:0 12px 28px rgba(12,74,45,.12);
 }
-
-.customer-login-step{margin:0 0 10px}
-.customer-login-actions{margin-top:2px}
-.customer-login-actions .helper{margin:8px 0 0}
+.customer-login-actions{margin-top:0}
+.customer-login-actions .helper{margin:7px 0 0}
 .customer-otp-box{margin-top:10px;padding-top:12px}
 .customer-otp-note{font-size:11px;line-height:1.4;color:#668073;margin:0 0 8px;text-align:center}
-.customer-login-msg{margin:8px 0 0;text-align:center}
-
+.customer-login-msg{margin:7px 0 0;text-align:center}
 @media(max-width:600px){
-  .customer-login-brand{top:7.5%;width:74.5%}
-  .customer-login-brand-logo{width:min(30vw,140px);max-height:140px}
+  .customer-login-brand{top:6.5%;width:72%}
+  .customer-login-brand-logo{width:min(23vw,110px);max-height:110px}
   .customer-login-address{font-size:12px;white-space:nowrap}
-  .customer-login-card{
-    top:23.5%;
-    width:74.5%;
-    padding:18px 16px 15px;
-    border-radius:20px;
-  }
-  .customer-login-step{font-size:10px}
+  .customer-login-card{top:26%;width:72%;padding:16px 14px 12px;border-radius:20px}
+  .customer-login-card label{margin:8px 0}
+  .customer-login-card input{margin-top:5px;padding:10px 12px}
+  .customer-login-card button{padding:10px 12px}
 }
-
 @media(max-width:380px){
-  .customer-login-card{top:23.5%;width:74.5%;padding:16px 14px 14px}
+  .customer-login-card{top:26%;width:74%;padding:15px 13px 11px}
+  .customer-login-brand-logo{width:96px;max-height:96px}
 }
