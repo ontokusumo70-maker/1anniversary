@@ -1382,6 +1382,14 @@ if ($("staffServicesBack")) {
   $("staffServicesBack").addEventListener("click", closeStaffServices);
 }
 
+const STAFF_LAUNDRY_MAP_URL = "https://maps.app.goo.gl/3KfFnHuLeZRsBnYG6?g_st=ic";
+const staffServicesLocationIcon = document.querySelector("#staffServicesView .staff-services-info-address .staff-services-icon-box");
+if (staffServicesLocationIcon) {
+  staffServicesLocationIcon.addEventListener("click", () => {
+    window.location.href = STAFF_LAUNDRY_MAP_URL;
+  });
+}
+
 if ($("staffStatusCard")) {
   $("staffStatusCard").addEventListener("click", openStaffMachineStatus);
   $("staffStatusCard").addEventListener("keydown", (event) => {
