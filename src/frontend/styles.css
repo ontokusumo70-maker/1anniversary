@@ -1154,6 +1154,11 @@ body[data-role="OWNER"] #eventImageMsg{margin:0;min-height:0}
   .active-event-info-description{grid-column:1;margin-top:0}
 }
 
+/* STATUS MESIN — keep hidden Event card hidden when Status Mesin is active */
+.screen-staff:has(#staffMachineStatusView:not([hidden])) .active-event-info-card[hidden]{
+  display:none !important;
+}
+
 .locked-reward-card{position:relative}
 .locked-reward-card-main{display:block;width:100%;border:0;background:transparent;text-align:left;padding:0;cursor:pointer;color:inherit}
 .locked-reward-card-actions{display:flex;gap:6px;padding:7px 10px 10px;border-top:1px solid #edf1ef}
