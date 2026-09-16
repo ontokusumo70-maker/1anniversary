@@ -1259,7 +1259,7 @@ function renderStaffEventRewards(event) {
     const name = escapeHtml(reward.rewardType || reward.name || "—");
     const quantity = Number(reward.remaining ?? reward.rewardQuantity ?? reward.quantity ?? 0);
     return `<section class="staff-event-detail-card staff-event-reward-card">
-      <span class="staff-event-detail-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="10" y="10" width="28" height="28" rx="4"/><path d="M24 10v28M10 24h28"/><path d="M24 10c-2-7-11-7-11-2 0 5 7 5 11 5M24 10c2-7 11-7 11-2 0 5-7 5-11 5"/></svg></span>
+      <span class="staff-event-detail-icon staff-event-gift-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M9 19h30v23H9z"/><path d="M24 19v23"/><path d="M7 12h34v8H7z"/><path d="M24 12c-1-6-5-9-9-8-4 1-4 6 0 8h9Z"/><path d="M24 12c1-6 5-9 9-8 4 1 4 6 0 8h-9Z"/></svg></span>
       <div class="staff-event-reward-copy">
         <div class="staff-event-reward-top"><h3>Reward</h3><span>Stok Tersedia</span></div>
         <p>${name}</p>
@@ -1267,7 +1267,7 @@ function renderStaffEventRewards(event) {
       </div>
     </section>`;
   }).join("") : `<section class="staff-event-detail-card staff-event-reward-card">
-    <span class="staff-event-detail-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="10" y="10" width="28" height="28" rx="4"/><path d="M24 10v28M10 24h28"/></svg></span>
+    <span class="staff-event-detail-icon staff-event-gift-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M9 19h30v23H9z"/><path d="M24 19v23"/><path d="M7 12h34v8H7z"/><path d="M24 12c-1-6-5-9-9-8-4 1-4 6 0 8h9Z"/><path d="M24 12c1-6 5-9 9-8 4 1 4 6 0 8h-9Z"/></svg></span>
     <div class="staff-event-reward-copy"><div class="staff-event-reward-top"><h3>Reward</h3><span>Stok Tersedia</span></div><p>—</p><strong>0</strong></div>
   </section>`;
 }
@@ -1284,7 +1284,8 @@ function renderStaffEventInfo(data) {
 
   revokeStaffEventInfoImage();
   if (!data?.active || !event) {
-    title.textContent = "Tidak ada event aktif";
+    title.classList.add("empty-state");
+    title.textContent = "Belum ada event";
     period.textContent = "—";
     description.textContent = "—";
     terms.textContent = "—";
@@ -1293,6 +1294,7 @@ function renderStaffEventInfo(data) {
     return;
   }
 
+  title.classList.remove("empty-state");
   title.textContent = event.title || "—";
   period.textContent = formatDateRange(event.startsAt, event.endsAt);
   description.textContent = event.description || "—";
