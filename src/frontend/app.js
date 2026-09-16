@@ -1231,6 +1231,22 @@ function startStaffMachineStatusTimer() {
   }, 1000);
 }
 
+function openStaffServices() {
+  if ($("staffDashboard")) $("staffDashboard").hidden = true;
+  if ($("staffTools")) $("staffTools").hidden = false;
+  if ($("staffMachineStatusView")) $("staffMachineStatusView").hidden = true;
+  if ($("staffServicesView")) $("staffServicesView").hidden = false;
+  if ($("staffToolsBack")) $("staffToolsBack").hidden = true;
+  if ($("staffActiveEvent")) $("staffActiveEvent").hidden = true;
+  if ($("staffScannerTool")) $("staffScannerTool").hidden = true;
+  if ($("staffMachineTool")) $("staffMachineTool").hidden = true;
+}
+
+function closeStaffServices() {
+  if ($("staffServicesView")) $("staffServicesView").hidden = true;
+  showStaffDashboard();
+}
+
 function openStaffMachineStatus() {
   if ($("staffDashboard")) $("staffDashboard").hidden = true;
   if ($("staffTools")) $("staffTools").hidden = false;
@@ -1357,6 +1373,14 @@ document.addEventListener("click", (event) => {
     closeStaffMachineActivation();
   }
 });
+
+if ($("staffServicesCard")) {
+  $("staffServicesCard").addEventListener("click", openStaffServices);
+}
+
+if ($("staffServicesBack")) {
+  $("staffServicesBack").addEventListener("click", closeStaffServices);
+}
 
 if ($("staffStatusCard")) {
   $("staffStatusCard").addEventListener("click", openStaffMachineStatus);
