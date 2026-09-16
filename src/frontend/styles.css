@@ -2462,3 +2462,56 @@ body[data-role="CUSTOMER_LOGIN"] .app-shell{
 .screen-customer.customer-dashboard-screen:has(#customerServicesView:not([hidden])) .customer-tools,
 .screen-customer.customer-dashboard-screen:has(#customerEventView:not([hidden])) .customer-tools{display:block;}
 .screen-customer.customer-dashboard-screen .customer-tools[hidden]{display:none!important;}
+
+/* CUSTOMER IMPLEMENTATION — CHECKLIST LOCK */
+@media(max-width:600px){
+  .screen-customer.customer-dashboard-screen .staff-dashboard-topline{
+    transform:translateY(-48px);
+  }
+  .screen-customer.customer-dashboard-screen .staff-machine-summary-copy > div{
+    grid-template-columns:12px minmax(0,1fr) 24px;
+    align-items:center;
+  }
+  .screen-customer.customer-dashboard-screen .staff-machine-summary-copy em{
+    width:24px;
+    min-width:24px;
+    text-align:right;
+    font-variant-numeric:tabular-nums;
+  }
+}
+
+.customer-machine-detail-modal{
+  position:fixed;
+  z-index:1000;
+  inset:0;
+  display:grid;
+  align-items:end;
+}
+.customer-machine-detail-modal[hidden]{display:none!important}
+.customer-machine-detail-backdrop{position:absolute;inset:0;background:rgba(13,35,25,.34)}
+.customer-machine-detail-sheet{
+  position:relative;
+  z-index:1;
+  width:min(100%,520px);
+  margin:0 auto;
+  padding:9px 16px 18px;
+  border-radius:20px 20px 0 0;
+  background:#fff;
+  box-shadow:0 -10px 30px rgba(16,88,52,.16);
+}
+.customer-machine-detail-handle{width:42px;height:4px;margin:0 auto 10px;border-radius:999px;background:#d7dfdb}
+.customer-machine-detail-header{display:grid;grid-template-columns:42px minmax(0,1fr) 34px;align-items:center;gap:10px}
+.customer-machine-detail-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:11px;background:#e5f8ee;color:#0b8f61}
+.customer-machine-detail-icon svg{width:27px;height:27px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.customer-machine-detail-header h2{margin:0;font-size:15px;color:#14251f}
+.customer-machine-detail-header p{margin:3px 0 0;font-size:11px;color:#74817b}
+.customer-machine-detail-close{width:34px;height:34px;border:0;border-radius:50%;background:#f0f5f2;color:#50615a;font-size:24px;line-height:1;cursor:pointer}
+.customer-machine-detail-details{display:grid;gap:0;margin-top:14px;border:1px solid #e1e9e5;border-radius:12px;overflow:hidden}
+.customer-machine-detail-details>div{display:grid;grid-template-columns:1fr auto;align-items:center;min-height:43px;padding:8px 11px;border-bottom:1px solid #edf1ef}
+.customer-machine-detail-details>div:last-child{border-bottom:0}
+.customer-machine-detail-details span{font-size:10px;color:#74817b}
+.customer-machine-detail-details b{font-size:11px;color:#173d34;font-weight:800;text-align:right}
+.customer-machine-detail-open{overflow:hidden}
+@media(min-width:601px){
+  .customer-machine-detail-sheet{border-radius:20px;margin-bottom:18px}
+}
