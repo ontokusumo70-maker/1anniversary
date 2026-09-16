@@ -7,6 +7,7 @@ const state = {
   sessionId: null,
   rewardId: null,
   authMode: "CUSTOMER",
+  customerPhone: null,
 };
 
 const SESSION_KEY = "teras_laundry_auth_session";
@@ -96,8 +97,8 @@ function clearSession() {
   state.token = null;
   state.role = null;
   state.userId = null;
-  state.customerPhone = null;
   state.expiresAt = null;
+  state.customerPhone = null;
 }
 
 function restoreSession() {
@@ -136,9 +137,9 @@ function restoreSession() {
     state.token = saved.token;
     state.role = saved.role;
     state.userId = saved.userId || null;
-    state.customerPhone = saved.customerPhone || null;
     state.expiresAt =
       saved.expiresAt || null;
+    state.customerPhone = saved.customerPhone || null;
 
     return true;
   } catch {
@@ -227,13 +228,13 @@ async function loadActiveEventForRole(role) {
   try {
     const data = await api("/event/active");
     renderRoleActiveEvent(role, data);
-    renderDashboardEvent(role, data);
     if (role === "STAFF") {
       renderStaffDashboardEvent(data);
+    } else if (role === "CUSTOMER") {
+      renderCustomerDashboardEvent(data);
     }
   } catch {
     renderRoleActiveEvent(role, null);
-    renderDashboardEvent(role, null);
     if (role === "STAFF") {
       renderStaffDashboardEvent(null);
     }
@@ -242,37 +243,26 @@ async function loadActiveEventForRole(role) {
 
 let staffDashboardClockTimer = null;
 
-function formatDashboardDateTime() {
+function renderStaffDashboardDate() {
+  const now = new Date();
   const parts = new Intl.DateTimeFormat("id-ID", {
-    weekday: "long", day: "2-digit", month: "short", year: "numeric",
-    hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jakarta",
-  }).formatToParts(new Date());
+    weekday: "long",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Jakarta",
+  }).formatToParts(now);
+
   const get = (type) => parts.find((part) => part.type === type)?.value || "";
   const weekday = get("weekday");
-  return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${get("day")} ${get("month")} ${get("year")}, ${get("hour")}:${get("minute")}`;
-}
-
-function renderStaffDashboardDate() {
   const update = $("staffDashboardUpdate");
-  if (update) update.textContent = formatDashboardDateTime();
-}
 
-function renderCustomerDashboardMeta() {
-  const welcome = $("customerDashboardWelcome");
-  const update = $("customerDashboardUpdate");
-  if (welcome) welcome.textContent = `welcome : ${state.customerPhone || "—"}`;
-  if (update) update.textContent = formatDashboardDateTime();
-}
-
-function renderDashboardMachineCounts(prefix, machines) {
-  const list = Array.isArray(machines) ? machines : [];
-  const washer = list.filter((machine) => machine.type === "WASHER");
-  const dryer = list.filter((machine) => machine.type === "DRYER");
-  const set = (id, value) => { if ($(id)) $(id).textContent = String(value); };
-  set(`${prefix}WasherIdle`, washer.filter((m) => m.status !== "IN_USE").length || (washer.length ? 0 : 5));
-  set(`${prefix}WasherBusy`, washer.filter((m) => m.status === "IN_USE").length);
-  set(`${prefix}DryerIdle`, dryer.filter((m) => m.status !== "IN_USE").length || (dryer.length ? 0 : 5));
-  set(`${prefix}DryerBusy`, dryer.filter((m) => m.status === "IN_USE").length);
+  if (update) {
+    update.textContent = `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${get("day")} ${get("month")} ${get("year")}, ${get("hour")}:${get("minute")}`;
+  }
 }
 
 function showStaffDashboard() {
@@ -309,19 +299,83 @@ function renderStaffDashboardEvent(data) {
   period.textContent = formatDateRange(data.event.startsAt, data.event.endsAt);
 }
 
-function renderDashboardEvent(role, data) {
+
+function updateDashboardMachineSummary(role, machines) {
   const prefix = role === "STAFF" ? "staff" : "customer";
-  const title = $(`${prefix}DashboardEventTitle`);
-  const period = $(`${prefix}DashboardEventPeriod`);
-  if (!title || !period) return;
-  if (!data?.active || !data.event) {
-    title.textContent = "Tidak ada event aktif.";
-    period.textContent = "";
-    return;
+  const list = Array.isArray(machines) ? machines : [];
+  const washer = list.filter((m) => m.type === "WASHER");
+  const dryer = list.filter((m) => m.type === "DRYER");
+  const set = (id, value) => { if ($(id)) $(id).textContent = String(value); };
+  set(`${prefix}WasherCount`, washer.length || 5);
+  set(`${prefix}DryerCount`, dryer.length || 5);
+  set(`${prefix}WasherIdle`, washer.filter((m) => m.status !== "IN_USE").length);
+  set(`${prefix}WasherUsed`, washer.filter((m) => m.status === "IN_USE").length);
+  set(`${prefix}DryerIdle`, dryer.filter((m) => m.status !== "IN_USE").length);
+  set(`${prefix}DryerUsed`, dryer.filter((m) => m.status === "IN_USE").length);
+}
+
+async function refreshMachines() {
+  try {
+    const data = await api("/machines");
+    const machines = Array.isArray(data.machines) ? data.machines : [];
+    updateDashboardMachineSummary("CUSTOMER", machines);
+    renderMachines($("machines"), machines, false);
+  } catch (error) {
+    if ($("machines")) $("machines").textContent = error.message;
   }
-  title.textContent = data.event.title || "Event";
+}
+
+function renderCustomerDashboardMeta() {
+  const welcome = $("customerDashboardWelcome");
+  if (welcome) welcome.textContent = `Welcome : ${state.customerPhone || "08xxxxxxxxxx"}`;
+  const date = $("customerDashboardDate");
+  if (date) date.textContent = formatDashboardDate();
+}
+
+function formatDashboardDate() {
+  const parts = new Intl.DateTimeFormat("id-ID", { weekday:"long", day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit", hour12:false, timeZone:"Asia/Jakarta" }).formatToParts(new Date());
+  const get = (t) => parts.find((p) => p.type === t)?.value || "";
+  const weekday = get("weekday");
+  return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${get("day")} ${get("month")} ${get("year")}, ${get("hour")}:${get("minute")}`;
+}
+
+function renderCustomerDashboardEvent(data) {
+  const title = $("customerDashboardEventTitle");
+  const period = $("customerDashboardEventPeriod");
+  if (!title || !period) return;
+  if (!data?.active || !data.event) { title.textContent = "Tidak ada event aktif."; period.textContent = ""; return; }
+  title.textContent = data.event.title || "Event Aktif";
   period.textContent = formatDateRange(data.event.startsAt, data.event.endsAt);
 }
+
+function showDashboardServices(role) {
+  const prefix = role === "STAFF" ? "staff" : "customer";
+  const frame = $(`${prefix}Dashboard`);
+  const view = $(`${prefix}DashboardServicesView`);
+  if (!frame || !view) return;
+  [...frame.children].forEach((child) => { child.hidden = child !== view; });
+  view.hidden = false;
+}
+
+function hideDashboardServices(role) {
+  const prefix = role === "STAFF" ? "staff" : "customer";
+  const frame = $(`${prefix}Dashboard`);
+  const view = $(`${prefix}DashboardServicesView`);
+  if (!frame || !view) return;
+  view.hidden = true;
+  [...frame.children].forEach((child) => { child.hidden = false; });
+}
+
+function bindDashboardActions() {
+  $("customerDashboardStatus")?.addEventListener("click", refreshMachines);
+  $("staffDashboardServices")?.addEventListener("click", () => showDashboardServices("STAFF"));
+  $("customerDashboardServices")?.addEventListener("click", () => showDashboardServices("CUSTOMER"));
+  $("staffServicesBack")?.addEventListener("click", () => hideDashboardServices("STAFF"));
+  $("customerServicesBack")?.addEventListener("click", () => hideDashboardServices("CUSTOMER"));
+  $("staffDashboardLogout")?.addEventListener("click", () => { clearSession(); window.location.href = "/staff"; });
+  $("customerDashboardLogout")?.addEventListener("click", () => { clearSession(); window.location.href = "/customer"; });
+}
+bindDashboardActions();
 
 function showRole() {
   document.body.dataset.role = state.role || "CUSTOMER";
@@ -691,9 +745,9 @@ async function verifyCustomerOtp() {
     state.token = data.token;
     state.role = data.role;
     state.userId = data.userId;
-    state.customerPhone = phone;
     state.expiresAt =
       data.expiresAt || null;
+    state.customerPhone = phone;
 
     saveSession();
 
@@ -1120,17 +1174,6 @@ if ($("startGame")) {
     start;
 }
 
-async function refreshMachines() {
-  try {
-    const data = await api("/machines");
-    const machines = Array.isArray(data.machines) ? data.machines : [];
-    renderDashboardMachineCounts("customer", machines);
-    renderMachines($("machines"), machines, false);
-  } catch (error) {
-    if ($("machines")) $("machines").textContent = error.message;
-  }
-}
-
 function renderMachines(
   target,
   machines,
@@ -1323,7 +1366,7 @@ async function refreshStaffMachines() {
   try {
     const data = await api("/machines");
     staffMachineData = Array.isArray(data.machines) ? data.machines : [];
-    renderDashboardMachineCounts("staff", staffMachineData);
+    updateDashboardMachineSummary("STAFF", staffMachineData);
     renderMachines($("staffMachines"), staffMachineData, true);
     renderStaffMachineStatusList();
     renderStaffMachineStatusMeta();
@@ -1382,19 +1425,15 @@ document.addEventListener("click", (event) => {
   }
 });
 
-if ($("staffDashboardMachineSummary")) {
-  const card = $("staffDashboardMachineSummary").closest(".staff-dashboard-card");
-  if (card) {
-    card.setAttribute("role", "button");
-    card.tabIndex = 0;
-    card.addEventListener("click", openStaffMachineStatus);
-    card.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        openStaffMachineStatus();
-      }
-    });
-  }
+if ($("staffDashboardStatus")) {
+  const card = $("staffDashboardStatus");
+  card.addEventListener("click", openStaffMachineStatus);
+  card.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openStaffMachineStatus();
+    }
+  });
 }
 
 let cameraStream = null;
@@ -2680,26 +2719,6 @@ $("downloadExport")?.addEventListener("click", async () => {
     msg("csvExportMsg", error.message);
   }
 });
-
-function logoutToLogin(role) {
-  clearSession();
-  window.location.href = role === "STAFF" ? "/staff" : role === "CUSTOMER" ? "/customer" : "/";
-}
-
-function toggleDashboardService(role, open) {
-  const dashboard = $(`${role === "STAFF" ? "staff" : "customer"}Dashboard`);
-  const service = $(`${role === "STAFF" ? "staff" : "customer"}DashboardServiceView`);
-  if (!dashboard || !service) return;
-  dashboard.classList.toggle("service-open", open);
-  service.hidden = !open;
-}
-
-$("staffDashboardLogout")?.addEventListener("click", () => logoutToLogin("STAFF"));
-$("customerDashboardLogout")?.addEventListener("click", () => logoutToLogin("CUSTOMER"));
-$("staffDashboardService")?.addEventListener("click", () => toggleDashboardService("STAFF", true));
-$("customerDashboardService")?.addEventListener("click", () => toggleDashboardService("CUSTOMER", true));
-$("staffDashboardServiceBack")?.addEventListener("click", () => toggleDashboardService("STAFF", false));
-$("customerDashboardServiceBack")?.addEventListener("click", () => toggleDashboardService("CUSTOMER", false));
 
 $("ownerLogout")?.addEventListener("click", () => {
   clearSession();
