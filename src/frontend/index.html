@@ -160,6 +160,198 @@
     </section>
 
     
+      <div id="customerTools" class="staff-tools customer-tools" hidden>
+      <section id="customerMachineStatusView" class="staff-machine-status-view" hidden>
+        <header class="staff-machine-status-header">
+          <button id="customerMachineStatusBack" class="staff-machine-status-back" type="button" aria-label="Kembali ke Dashboard">←</button>
+          <div class="staff-machine-status-title">
+            <h1>Status Mesin</h1>
+            <p>Monitor real-time semua mesin</p>
+          </div>
+          <div class="staff-machine-status-clock">
+            <strong id="customerMachineStatusDate">Selasa, 15 Sep 2026</strong>
+            <span id="customerMachineStatusTime">13:45 WIB</span>
+          </div>
+        </header>
+
+        <div id="customerMachineFilters" class="customer-machine-filter-tabs">
+          <button type="button" data-customer-machine-filter="ALL" class="active">Semua (10)</button>
+          <button type="button" data-customer-machine-filter="WASHER">Washer (5)</button>
+          <button type="button" data-customer-machine-filter="DRYER">Dryer (5)</button>
+        </div>
+
+        <div id="customerMachineStatusList" class="staff-machine-status-list"></div>
+
+        <section class="staff-machine-status-legend">
+          <h2>Keterangan Status</h2>
+          <div><span class="status-dot idle"></span><b>Idle</b><small>Mesin tersedia</small></div>
+          <div><span class="status-dot busy"></span><b>Terpakai</b><small>Mesin sedang digunakan</small></div>
+          <p><span class="staff-legend-clock" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></span>Real time mesin beroperasi (hh:mm)</p>
+        </section>
+
+        <button id="customerMachineRefresh" class="staff-machine-refresh" type="button"><span aria-hidden="true">⟳</span> Segarkan Status</button>
+      </section>
+
+      <section id="customerServicesView" class="staff-services-view" hidden>
+        <header class="staff-services-header">
+          <button id="customerServicesBack" class="staff-services-back" type="button" aria-label="Kembali ke Dashboard">
+            <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M29 10 15 24l14 14"/><path d="M16 24h25"/></svg>
+          </button>
+          <div class="staff-services-heading-copy">
+            <h1>Layanan &amp; Fasilitas</h1>
+            <p>Semua kenyamanan untuk pengalaman laundry terbaik</p>
+          </div>
+        </header>
+
+        <figure class="staff-services-photo-card">
+          <img src="/assets/background/laundry/Laundry-area.jpg" alt="Area laundry Teras Laundry">
+        </figure>
+
+        <section class="staff-services-info-card">
+          <div class="staff-services-info-top">
+            <div class="staff-services-info-title">
+              <span class="staff-services-icon-box staff-services-info-icon" aria-hidden="true">
+                <svg class="staff-services-info-symbol" viewBox="0 0 48 48"><circle cx="24" cy="24" r="18"/><path d="M24 21v11"/><circle cx="24" cy="14.5" r="1.5" fill="currentColor" stroke="none"/></svg>
+              </span>
+              <h2>Informasi Layanan</h2>
+            </div>
+            <div class="staff-services-info-address">
+              <span class="staff-services-icon-box" aria-hidden="true">
+                <svg viewBox="0 0 48 48"><path d="M24 42s13-12.3 13-23A13 13 0 1 0 11 19c0 10.7 13 23 13 23Z"/><circle cx="24" cy="19" r="4.5"/></svg>
+              </span>
+              <div class="staff-services-address-copy">
+                <span>Jl. Gegerkalong Hilir No.27</span>
+                <span>Ciwaruga-Bandung</span>
+                <span>info : <a class="staff-services-whatsapp" href="https://wa.me/6285117624377" target="_blank" rel="noopener noreferrer">085117624377</a></span>
+              </div>
+              <nav class="staff-services-social" aria-label="Media sosial Teras Laundry">
+                <a class="staff-services-social-link instagram" href="https://www.instagram.com/teraslaundrycoin.ciwaruga?stkn=MWVzYTN1dHptaHp6bQ==" target="_blank" rel="noopener noreferrer" aria-label="Instagram Teras Laundry">
+                  <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="7" y="7" width="34" height="34" rx="10"/><circle cx="24" cy="24" r="8"/><circle cx="34" cy="14" r="2" fill="currentColor" stroke="none"/></svg>
+                </a>
+                <a class="staff-services-social-link tiktok" href="https://www.tiktok.com/@teraslaundrycoinciwaruga?_r=1&amp;_t=ZS-99mUOH4ItNN" target="_blank" rel="noopener noreferrer" aria-label="TikTok Teras Laundry">
+                  <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8v21.2a8.8 8.8 0 1 1-7-8.6"/><path d="M28 8c1.5 5.2 4.8 8.2 10 8.7"/></svg>
+                </a>
+                <a class="staff-services-social-link facebook" href="https://www.facebook.com/share/1BuDpWuX5J/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" aria-label="Facebook Teras Laundry">
+                  <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="17"/><path d="M27 15h-3c-2.8 0-4 1.7-4 4.4V22h-4v5h4v11h6V27h4l1-5h-5v-2.3c0-1.2.4-1.7 1.8-1.7H27Z" fill="currentColor" stroke="none"/></svg>
+                </a>
+              </nav>
+            </div>
+          </div>
+
+          <div class="staff-services-info-grid">
+            <div class="staff-services-info-block staff-services-info-hours">
+              <span class="staff-services-inline-icon" aria-hidden="true">
+                <svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="16"/><path d="M24 15v10l7 5"/></svg>
+              </span>
+              <div>
+                <strong>Open - Everyday</strong>
+                <p><span>Self Service</span><b>07:00 - 21:00 WIB</b></p>
+                <p><span>Drop-off</span><b>07:00 - 23:00 WIB</b></p>
+              </div>
+            </div>
+            <div class="staff-services-info-divider" aria-hidden="true"></div>
+            <div class="staff-services-info-block staff-services-info-tariff">
+              <span class="staff-services-inline-icon" aria-hidden="true">
+                <svg viewBox="0 0 48 48"><path d="m30 7 11 11-20 20H10V27L30 7Z"/><path d="m27 10 11 11"/><circle cx="30" cy="17" r="2.2"/></svg>
+              </span>
+              <div>
+                <strong>Tarif Layanan</strong>
+                <p><span>1 Koin</span><b>Rp 10.000,- / 7 Kg</b></p>
+                <p><span>Drop-off +</span><b>Rp 10.000,-</b></p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="staff-facility-section">
+          <span class="staff-facility-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48"><rect x="9" y="5" width="30" height="38" rx="4"/><circle cx="24" cy="26" r="9"/><path d="M14 12h20"/><circle cx="32" cy="9" r="1.5" fill="currentColor" stroke="none"/></svg>
+          </span>
+          <div class="staff-facility-content">
+            <h2>Fasilitas Utama:</h2>
+            <ol>
+              <li>Washer 5 unit</li>
+              <li>Dryer 5 unit</li>
+              <li>Koin untuk pengoperasian mesin</li>
+              <li>Laundry Bag</li>
+              <li>Detergent Cair</li>
+              <li>Parfum/pewangi pakaian</li>
+              <li>Meja lipat pakaian</li>
+            </ol>
+          </div>
+        </section>
+
+        <section class="staff-facility-section">
+          <span class="staff-facility-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48"><circle cx="18" cy="16" r="7"/><circle cx="33" cy="18" r="5"/><path d="M7 38c1-8 6-12 11-12s10 4 11 12"/><path d="M29 29c6 0 10 3 11 9"/></svg>
+          </span>
+          <div class="staff-facility-content">
+            <h2>Fasilitas Pendukung:</h2>
+            <ol>
+              <li>Area Parkir</li>
+              <li>Ruang tunggu smoking/non-smoking</li>
+              <li>Free WIFI</li>
+            </ol>
+          </div>
+        </section>
+
+        <section class="staff-facility-section">
+          <span class="staff-facility-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48"><path d="M13 14h22l-3 25H16l-3-25Z"/><path d="M18 10h14c3 0 5-2 5-5"/><path d="M24 20v12"/><path d="M20 25h8"/></svg>
+          </span>
+          <div class="staff-facility-content">
+            <h2>Fasilitas Food &amp; Beverage:</h2>
+            <ol>
+              <li>Aneka Minuman</li>
+              <li>Aneka Cemilan</li>
+              <li>Es Batu Kristal Rp 1.500,-/ Kg</li>
+            </ol>
+          </div>
+        </section>
+      </section>
+
+      <section id="customerEventView" class="staff-event-view" hidden>
+        <header class="staff-event-header">
+          <button id="customerEventBack" class="staff-event-back" type="button" aria-label="Kembali ke Dashboard">
+            <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M29 10 15 24l14 14"/><path d="M16 24h25"/></svg>
+          </button>
+          <div class="staff-event-heading-copy">
+            <h1>Informasi Event</h1>
+          </div>
+        </header>
+
+        <article class="staff-event-info-card">
+          <img id="customerEventInfoImage" class="staff-event-info-image" alt="" hidden>
+          <div class="staff-event-info-body">
+            <span id="customerEventInfoStatus" class="staff-event-status">EVENT AKTIF</span>
+            <h2 id="customerEventInfoTitle">—</h2>
+            <p id="customerEventInfoPeriod" class="staff-event-info-period"><span class="staff-event-calendar-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="8" y="10" width="32" height="30" rx="4"/><path d="M14 6v8M34 6v8M8 19h32"/></svg></span><span class="staff-event-period-text">—</span></p>
+
+            <div id="customerEventRewards" class="staff-event-detail-list"></div>
+
+            <section class="staff-event-detail-card">
+              <span class="staff-event-detail-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M10 7h28v34H10z"/><path d="M16 15h16M16 23h16M16 31h10"/></svg></span>
+              <div>
+                <h3>Deskripsi Event</h3>
+                <p id="customerEventInfoDescription">—</p>
+              </div>
+            </section>
+
+            <section class="staff-event-detail-card">
+              <span class="staff-event-detail-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M10 7h28v34H10z"/><path d="M16 15h16M16 23h16M16 31h12"/></svg></span>
+              <div>
+                <h3>Syarat &amp; Ketentuan</h3>
+                <div id="customerEventInfoTerms">—</div>
+              </div>
+            </section>
+
+            <button id="customerEventBackBottom" class="staff-event-back-bottom" type="button">← &nbsp; Kembali ke Dashboard</button>
+          </div>
+        </article>
+      </section>
+
+      </div>
+
     </div>
   </section>
 
