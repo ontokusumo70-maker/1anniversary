@@ -2329,3 +2329,91 @@ html[data-initial-route="OWNER"] .app-shell{
   background:transparent;
   box-shadow:none;
 }
+
+/* CUSTOMER LOGIN — PRODUCTION */
+.customer-login-screen{
+  position:relative;
+  display:block;
+  width:100%;
+  height:100svh;
+  min-height:100svh;
+  margin:0;
+  padding:0;
+  overflow:hidden;
+  background:url('/assets/background/customer/customer-bg.PNG') center top/cover no-repeat;
+}
+
+.customer-login-screen[hidden]{display:none !important}
+
+body:has(#auth:not([hidden])) .topbar,
+body:has(#auth:not([hidden])) .footer-mark,
+body[data-role="CUSTOMER_LOGIN"] .topbar,
+body[data-role="CUSTOMER_LOGIN"] .footer-mark{
+  display:none !important;
+}
+
+body:has(#auth:not([hidden])),
+body[data-role="CUSTOMER_LOGIN"]{
+  min-height:100svh;
+  margin:0;
+  overflow:hidden;
+  background:#e8f7df;
+}
+
+body:has(#auth:not([hidden])) .app-shell,
+body[data-role="CUSTOMER_LOGIN"] .app-shell{
+  width:100%;
+  max-width:none;
+  min-height:100svh;
+  margin:0;
+  padding:0;
+  background:transparent;
+  box-shadow:none;
+}
+
+.customer-login-card{
+  position:absolute;
+  z-index:3;
+  top:27%;
+  left:50%;
+  width:min(88%,430px);
+  transform:translateX(-50%);
+  padding:22px 22px 18px;
+  border:1px solid rgba(151,204,172,.48);
+  border-radius:24px;
+  background:rgba(255,255,255,.96);
+  box-shadow:0 12px 28px rgba(12,74,45,.12);
+}
+
+.customer-login-heading{text-align:center;margin:0 0 14px}
+.customer-login-heading .eyebrow{font-size:10px}
+.customer-login-heading h1{font-size:25px;line-height:1.08;margin:7px 0 6px;color:#07583e}
+.customer-login-heading p{font-size:12px;line-height:1.4;color:#5d7569;margin:0}
+.customer-login-step{margin:0 0 10px}
+.customer-login-actions{margin-top:2px}
+.customer-login-actions .helper{margin:8px 0 0}
+.customer-otp-box{margin-top:10px;padding-top:12px}
+.customer-otp-note{font-size:11px;line-height:1.4;color:#668073;margin:0 0 8px;text-align:center}
+.customer-login-msg{margin:8px 0 0;text-align:center}
+
+@media(max-width:600px){
+  .customer-login-card{
+    top:28%;
+    width:calc(100% - 28px);
+    padding:19px 17px 16px;
+    border-radius:20px;
+  }
+  .customer-login-heading h1{font-size:23px}
+  .customer-login-heading p{font-size:11px}
+  .customer-login-step{font-size:10px}
+}
+
+@media(max-width:380px){
+  .customer-login-card{top:25%;width:calc(100% - 20px);padding:16px 14px 14px}
+  .customer-login-heading{margin-bottom:10px}
+  .customer-login-heading h1{font-size:21px}
+}
+
+@media (orientation:landscape) and (min-width:601px){
+  .customer-login-card{top:18%;width:min(440px,52%);padding:20px 22px 17px}
+}
