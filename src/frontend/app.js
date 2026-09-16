@@ -329,16 +329,24 @@ function renderCustomerDashboardMachineSummary(machines) {
 async function refreshCustomerDashboardMachines() {
   try {
     const data = await api("/machines");
-    renderCustomerDashboardMachineSummary(data.machines);
+    customerMachineData = Array.isArray(data.machines) ? data.machines : [];
+    renderCustomerDashboardMachineSummary(customerMachineData);
   } catch {
     renderCustomerDashboardMachineSummary([]);
   }
 }
 
+let customerMachineData = [];
+let customerMachineFilter = "ALL";
+let customerMachineStatusTimer = null;
+let customerEventInfoImageObjectUrl = null;
+let customerActiveEventData = null;
+
 function renderCustomerDashboardEvent(data) {
   const title = $("customerDashboardEventTitle");
   const period = $("customerDashboardEventPeriod");
   if (!title || !period) return;
+  customerActiveEventData = data || null;
   if (!data?.active || !data.event) {
     title.textContent = "Belum ada event";
     period.textContent = "—";
@@ -1306,6 +1314,169 @@ function startStaffMachineStatusTimer() {
   }, 1000);
 }
 
+
+function renderCustomerMachineStatusList() {
+  const target = $("customerMachineStatusList");
+  if (!target) return;
+  const filtered = customerMachineData.filter((machine) => customerMachineFilter === "ALL" || machine.type === customerMachineFilter);
+  target.innerHTML = "";
+  for (const machine of filtered) {
+    const row = document.createElement("div");
+    row.className = `staff-machine-status-row ${machine.status === "IN_USE" ? "is-busy" : "is-idle"}`;
+    const icon = document.createElement("span");
+    icon.className = "staff-machine-row-icon";
+    icon.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="13" r="4.5"/><path d="M8 7h1M11 7h1"/></svg>`;
+    const id = document.createElement("strong");
+    id.textContent = `${machine.type === "WASHER" ? "W" : "D"}${machine.machineNumber}`;
+    const type = document.createElement("span");
+    type.className = "staff-machine-row-type";
+    type.textContent = staffMachineTypeLabel(machine);
+    const status = document.createElement("span");
+    status.className = `staff-machine-row-status ${machine.status === "IN_USE" ? "busy" : "idle"}`;
+    status.textContent = machine.status === "IN_USE" ? "Terpakai" : "Idle";
+    const time = document.createElement("span");
+    time.className = "staff-machine-row-time";
+    time.textContent = formatStaffMachineElapsed(machine);
+    const arrow = document.createElement("span");
+    arrow.className = "staff-machine-row-arrow";
+    arrow.textContent = "";
+    row.append(icon, id, type, status, time, arrow);
+    target.append(row);
+  }
+}
+
+function renderCustomerMachineStatusMeta() {
+  const dateEl = $("customerMachineStatusDate");
+  const timeEl = $("customerMachineStatusTime");
+  if (!dateEl || !timeEl) return;
+  const value = formatStaffWibDateTime();
+  dateEl.textContent = value.date;
+  timeEl.textContent = value.time;
+}
+
+function stopCustomerMachineStatusTimer() {
+  if (customerMachineStatusTimer) {
+    window.clearInterval(customerMachineStatusTimer);
+    customerMachineStatusTimer = null;
+  }
+}
+
+function startCustomerMachineStatusTimer() {
+  stopCustomerMachineStatusTimer();
+  customerMachineStatusTimer = window.setInterval(() => {
+    if (state.role === "CUSTOMER" && $("customerMachineStatusView") && !$("customerMachineStatusView").hidden) {
+      renderCustomerMachineStatusList();
+      renderCustomerMachineStatusMeta();
+    }
+  }, 1000);
+}
+
+async function openCustomerMachineStatus() {
+  if ($("customerDashboard")) $("customerDashboard").hidden = true;
+  if ($("customerTools")) $("customerTools").hidden = false;
+  if ($("customerMachineStatusView")) $("customerMachineStatusView").hidden = false;
+  if ($("customerServicesView")) $("customerServicesView").hidden = true;
+  if ($("customerEventView")) $("customerEventView").hidden = true;
+  renderCustomerMachineStatusMeta();
+  renderCustomerMachineStatusList();
+  await refreshCustomerDashboardMachines();
+  renderCustomerMachineStatusList();
+  startCustomerMachineStatusTimer();
+}
+
+function closeCustomerMachineStatus() {
+  stopCustomerMachineStatusTimer();
+  if ($("customerMachineStatusView")) $("customerMachineStatusView").hidden = true;
+  showCustomerDashboard();
+}
+
+function openCustomerServices() {
+  if ($("customerDashboard")) $("customerDashboard").hidden = true;
+  if ($("customerTools")) $("customerTools").hidden = false;
+  if ($("customerMachineStatusView")) $("customerMachineStatusView").hidden = true;
+  if ($("customerServicesView")) $("customerServicesView").hidden = false;
+  if ($("customerEventView")) $("customerEventView").hidden = true;
+  stopCustomerMachineStatusTimer();
+}
+
+function closeCustomerServices() {
+  if ($("customerServicesView")) $("customerServicesView").hidden = true;
+  showCustomerDashboard();
+}
+
+function revokeCustomerEventInfoImage() {
+  if (customerEventInfoImageObjectUrl) {
+    URL.revokeObjectURL(customerEventInfoImageObjectUrl);
+    customerEventInfoImageObjectUrl = null;
+  }
+}
+
+function renderCustomerEventRewards(event) {
+  const target = $("customerEventRewards");
+  if (!target) return;
+  target.innerHTML = "";
+  const rewards = Array.isArray(event?.rewards) ? event.rewards : [];
+  for (const reward of rewards) {
+    const card = document.createElement("div");
+    card.className = "staff-event-detail-card";
+    card.innerHTML = `<span class="staff-event-detail-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M8 15h32v24H8z"/><path d="M8 15h32v8H8z"/><path d="M24 15v24M16 11c0-3 2-5 5-5 2 0 3 3 3 9M32 11c0-3-2-5-5-5-2 0-3 3-3 9"/></svg></span><div><h3>${escapeHtml(reward.name || reward.title || "Reward")}</h3><p>${escapeHtml(String(reward.quantity ?? reward.stock ?? "—"))}</p></div>`;
+    target.append(card);
+  }
+}
+
+function renderCustomerEventInfo(data) {
+  const image = $("customerEventInfoImage");
+  const title = $("customerEventInfoTitle");
+  const period = $("customerEventInfoPeriod");
+  const periodText = $("customerEventPeriodText");
+  const description = $("customerEventInfoDescription");
+  const terms = $("customerEventInfoTerms");
+  revokeCustomerEventInfoImage();
+  if (!data?.active || !data.event) {
+    if (image) image.hidden = true;
+    if (title) { title.textContent = "Belum ada event"; title.classList.add("empty-state"); }
+    if (periodText) periodText.textContent = "—";
+    if (description) description.textContent = "Belum ada event aktif.";
+    if (terms) terms.textContent = "—";
+    renderCustomerEventRewards(null);
+    return;
+  }
+  const event = data.event;
+  if (title) { title.textContent = event.title || "Event Aktif"; title.classList.remove("empty-state"); }
+  if (periodText) periodText.textContent = formatDateRange(event.startsAt, event.endsAt);
+  if (description) description.textContent = event.description || "—";
+  if (terms) terms.textContent = event.terms || "—";
+  renderCustomerEventRewards(event);
+  if (image) {
+    image.hidden = true;
+    image.removeAttribute("src");
+    if (event.imageUrl) {
+      apiBlob(event.imageUrl).then((blob) => {
+        if (!$("customerEventView") || $("customerEventView").hidden) return;
+        customerEventInfoImageObjectUrl = URL.createObjectURL(blob);
+        image.src = customerEventInfoImageObjectUrl;
+        image.hidden = false;
+      }).catch(() => {});
+    }
+  }
+}
+
+function openCustomerEvent() {
+  if ($("customerDashboard")) $("customerDashboard").hidden = true;
+  if ($("customerTools")) $("customerTools").hidden = false;
+  if ($("customerMachineStatusView")) $("customerMachineStatusView").hidden = true;
+  if ($("customerServicesView")) $("customerServicesView").hidden = true;
+  if ($("customerEventView")) $("customerEventView").hidden = false;
+  stopCustomerMachineStatusTimer();
+  renderCustomerEventInfo(customerActiveEventData);
+}
+
+function closeCustomerEvent() {
+  if ($("customerEventView")) $("customerEventView").hidden = true;
+  revokeCustomerEventInfoImage();
+  showCustomerDashboard();
+}
+
 let staffEventInfoImageObjectUrl = null;
 let staffActiveEventData = null;
 
@@ -1600,6 +1771,48 @@ if ($("staffStatusCard")) {
     }
   });
 }
+
+if ($("customerServicesCard")) {
+  $("customerServicesCard").addEventListener("click", openCustomerServices);
+}
+if ($("customerStatusCard")) {
+  $("customerStatusCard").addEventListener("click", openCustomerMachineStatus);
+  $("customerStatusCard").addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openCustomerMachineStatus();
+    }
+  });
+}
+if ($("customerEventCard")) {
+  $("customerEventCard").addEventListener("click", openCustomerEvent);
+  $("customerEventCard").addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openCustomerEvent();
+    }
+  });
+}
+if ($("customerMachineFilters")) {
+  $("customerMachineFilters").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-customer-machine-filter]");
+    if (!button) return;
+    customerMachineFilter = button.dataset.customerMachineFilter || "ALL";
+    $("customerMachineFilters").querySelectorAll("[data-customer-machine-filter]").forEach((item) => {
+      item.classList.toggle("active", item === button);
+    });
+    renderCustomerMachineStatusList();
+  });
+}
+if ($("customerMachineStatusBack")) $("customerMachineStatusBack").addEventListener("click", closeCustomerMachineStatus);
+if ($("customerServicesBack")) $("customerServicesBack").addEventListener("click", closeCustomerServices);
+if ($("customerEventBack")) $("customerEventBack").addEventListener("click", closeCustomerEvent);
+if ($("customerEventBackBottom")) $("customerEventBackBottom").addEventListener("click", closeCustomerEvent);
+if ($("customerMachineRefresh")) $("customerMachineRefresh").addEventListener("click", async () => {
+  await refreshCustomerDashboardMachines();
+  renderCustomerMachineStatusList();
+  renderCustomerMachineStatusMeta();
+});
 
 $("customerLogout")?.addEventListener("click", () => {
   clearSession();
