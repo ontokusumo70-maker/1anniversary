@@ -1624,11 +1624,8 @@ body[data-role="STAFF"] .topbar{
   overflow-x:hidden;
 }
 .staff-machine-status-view::before{
-  content:"";
-  display:block;
-  height:100px;
-  margin:0 -16px;
-  background:url('/assets/background/staff/staff-bg.PNG') top center/100% auto no-repeat;
+  content:none;
+  display:none;
 }
 .staff-machine-status-header{
   display:grid;
@@ -2018,7 +2015,7 @@ body.staff-machine-modal-open{overflow:hidden}
 
 /* STAFF STATUS / ACTIVATION — MOBILE PIXEL LOCK */
 @media(max-width:600px){
-  .staff-machine-status-view::before{height:100px}
+  .staff-machine-status-view::before{display:none}
   .staff-machine-status-header{min-height:70px;padding:8px 2px 6px}
   .staff-machine-status-back{width:34px;height:34px;font-size:27px}
   .staff-machine-status-title h1{font-size:21px}
