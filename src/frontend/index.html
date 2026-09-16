@@ -77,30 +77,104 @@
   </section>
 
   <section id="customer" class="screen screen-customer" hidden>
-    <div class="dashboard-frame customer-dashboard-frame">
-      <header class="dashboard-brand-row"><img class="dashboard-brand-logo" src="/assets/branding/branding.png" alt="Teras Laundry"><div class="dashboard-slogan">Bersih<br>Lebih Mudah<br>Lebih Bahagia ♡</div></header>
-      <div class="dashboard-user-row customer-user-row"><strong id="customerDashboardWelcome">Welcome : 08xxxxxxxxxx</strong><div class="dashboard-meta-row"><span id="customerDashboardDate"></span><button id="customerDashboardLogout" class="dashboard-logout" type="button">↪ <span>Logout</span></button></div></div>
-      <section class="dashboard-card dashboard-status-card" id="customerDashboardStatus" role="button" tabindex="0" aria-label="Buka Status Mesin"><div class="dashboard-card-heading"><h2>Status Mesin</h2><span class="dashboard-card-arrow" aria-hidden="true">›</span></div><div class="dashboard-machine-columns"><div class="dashboard-machine-summary"><div class="dashboard-machine-icon washer-icon" aria-hidden="true"></div><div><strong>Washer (<span id="customerWasherCount">5</span>)</strong><div><i class="status-dot idle-dot"></i>Idle <b id="customerWasherIdle">5</b></div><div><i class="status-dot used-dot"></i>Terpakai <b id="customerWasherUsed">0</b></div></div></div><div class="dashboard-machine-summary"><div class="dashboard-machine-icon dryer-icon" aria-hidden="true"></div><div><strong>Dryer (<span id="customerDryerCount">5</span>)</strong><div><i class="status-dot idle-dot"></i>Idle <b id="customerDryerIdle">5</b></div><div><i class="status-dot used-dot"></i>Terpakai <b id="customerDryerUsed">0</b></div></div></div></div></section>
-      <button id="customerDashboardServices" class="dashboard-card dashboard-services-card" type="button"><span class="dashboard-service-icon" aria-hidden="true">⚙</span><strong>Layanan &amp; Fasilitas</strong><span class="dashboard-card-arrow" aria-hidden="true">›</span></button>
-      <section class="dashboard-card dashboard-event-card" id="customerDashboardEvent" role="button" tabindex="0" aria-label="Buka Event"><div class="dashboard-card-heading"><h2>Event</h2><span class="dashboard-card-arrow" aria-hidden="true">›</span></div><div class="dashboard-event-body"><strong id="customerDashboardEventTitle">Tidak ada event aktif.</strong><span id="customerDashboardEventPeriod"></span></div></section>
-      <section id="customerDashboardServicesView" class="dashboard-services-view" hidden><div class="dashboard-services-view-header"><button id="customerServicesBack" type="button">‹</button><h2>Layanan &amp; Fasilitas</h2></div><section class="dashboard-service-full-card"><div class="service-full-heading"><span class="service-info-icon">i</span><h3>Informasi Layanan</h3><div class="service-address"><b>⌖</b><span>Jl. Gegerkalong Hilir No.27<br>Ciwaruga-Bandung<br>info : 085117624377</span></div></div><div class="service-full-grid"><div><b>◷ Open - Everyday</b><span>Self Service&nbsp;&nbsp;&nbsp; 07:00 - 21:00 wib</span><span>Drop-off&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 07:00 - 23:00 wib</span></div><div><b>♢ Tarif Layanan</b><span>1 Koin Rp 10.000,- / 7 Kg</span><span>Drop-off + Rp 10.000,-</span></div></div></section></section>
-      <div class="customer-legacy-content" hidden>
-        <section id="customerActiveEvent" class="card active-event-info-card" hidden><div class="active-event-info-heading"><div><span class="eyebrow">EVENT AKTIF</span><h2 id="customerActiveEventTitle"></h2><p id="customerActiveEventPeriod"></p></div></div><img id="customerActiveEventImage" class="active-event-info-image" alt="Image Event Aktif" hidden><p id="customerActiveEventDescription" class="active-event-info-description" hidden></p></section>
-        <div class="menu-grid"><div class="feature-card game-feature"><div class="feature-copy"><span class="eyebrow">ANNIVERSARY GAME</span><h2>COIN CATCH</h2><p>Tangkap coin selama 15 detik.</p></div><img src="/assets/coin/coin_1st_persp.png" alt="Anniversary coin" class="feature-coin"></div><div class="service-card"><span>MEMBER</span><strong>1 transaksi = 1 Play</strong><small>Server menentukan eligibility &amp; reward.</small></div></div>
-        <div class="card game-card"><div class="card-title-row"><div><span class="eyebrow">PLAY</span><h2>Mulai permainan</h2></div><span class="timer-pill">15 DETIK</span></div><label>ID Transaksi<input id="transactionId" maxlength="128" placeholder="Masukkan ID transaksi"></label><button id="startGame" class="primary-button">MULAI GAME</button><div id="gameBox" hidden><div class="gameHud"><span>WAKTU <b id="time">15</b></span><span>SKOR <b id="score">0</b></span></div><div class="game-stage"><canvas id="game" width="360" height="520" aria-label="Coin Catch"></canvas><img class="game-mascot" src="/assets/mascot/mascot_run.png" alt="Running mascot"></div></div><div id="rewardBox" class="reward-card" hidden><img src="/assets/mascot/mascot_celebrate.png" alt="Reward mascot" class="reward-mascot"><div><span class="eyebrow">REWARD</span><h3 id="rewardTitle">REWARD BERHASIL DIKLAIM</h3><p id="rewardType"></p></div><div id="qr"></div><code id="token"></code></div><p id="gameMsg" class="msg status-msg"></p></div>
-        <div class="card machine-card"><div class="card-title-row"><div><span class="eyebrow">OUTLET</span><h2>Status Mesin</h2></div><button id="refreshMachines" class="icon-button">Refresh</button></div><p class="section-note">Customer View Only • 5 Washer + 5 Dryer</p><div id="machines" class="machineGrid"></div></div>
+    <div class="screen-heading">
+      <div><span class="eyebrow">CUSTOMER</span><h1>Selamat datang di<br>Teras Laundry Anniversary.</h1></div>
+      <img src="/assets/mascot/mascot_celebrate.png" alt="Celebrating mascot" class="heading-mascot">
+    </div>
+
+    <section id="customerActiveEvent" class="card active-event-info-card" hidden>
+      <div class="active-event-info-heading"><div><span class="eyebrow">EVENT AKTIF</span><h2 id="customerActiveEventTitle"></h2><p id="customerActiveEventPeriod"></p></div></div>
+      <img id="customerActiveEventImage" class="active-event-info-image" alt="Image Event Aktif" hidden>
+      <p id="customerActiveEventDescription" class="active-event-info-description" hidden></p>
+    </section>
+
+    <div class="menu-grid">
+      <div class="feature-card game-feature">
+        <div class="feature-copy"><span class="eyebrow">ANNIVERSARY GAME</span><h2>COIN CATCH</h2><p>Tangkap coin selama 15 detik.</p></div>
+        <img src="/assets/coin/coin_1st_persp.png" alt="Anniversary coin" class="feature-coin">
       </div>
+      <div class="service-card"><span>MEMBER</span><strong>1 transaksi = 1 Play</strong><small>Server menentukan eligibility & reward.</small></div>
+    </div>
+
+    <div class="card game-card">
+      <div class="card-title-row"><div><span class="eyebrow">PLAY</span><h2>Mulai permainan</h2></div><span class="timer-pill">15 DETIK</span></div>
+      <label>ID Transaksi<input id="transactionId" maxlength="128" placeholder="Masukkan ID transaksi"></label>
+      <button id="startGame" class="primary-button">MULAI GAME</button>
+      <div id="gameBox" hidden>
+        <div class="gameHud"><span>WAKTU <b id="time">15</b></span><span>SKOR <b id="score">0</b></span></div>
+        <div class="game-stage"><canvas id="game" width="360" height="520" aria-label="Coin Catch"></canvas><img class="game-mascot" src="/assets/mascot/mascot_run.png" alt="Running mascot"></div>
+      </div>
+      <div id="rewardBox" class="reward-card" hidden>
+        <img src="/assets/mascot/mascot_celebrate.png" alt="Reward mascot" class="reward-mascot">
+        <div><span class="eyebrow">REWARD</span><h3 id="rewardTitle">REWARD BERHASIL DIKLAIM</h3><p id="rewardType"></p></div>
+        <div id="qr"></div><code id="token"></code>
+      </div>
+      <p id="gameMsg" class="msg status-msg"></p>
+    </div>
+
+    <div class="card machine-card">
+      <div class="card-title-row"><div><span class="eyebrow">OUTLET</span><h2>Status Mesin</h2></div><button id="refreshMachines" class="icon-button">Refresh</button></div>
+      <p class="section-note">Customer View Only • 5 Washer + 5 Dryer</p>
+      <div id="machines" class="machineGrid"></div>
     </div>
   </section>
+
   <section id="staff" class="screen screen-staff" hidden>
-    <section id="staffDashboard" class="staff-dashboard dashboard-frame staff-dashboard-frame">
-      <header class="dashboard-brand-row"><img class="dashboard-brand-logo" src="/assets/branding/branding.png" alt="Teras Laundry"><div class="dashboard-slogan">Bersih<br>Lebih Mudah<br>Lebih Bahagia ♡</div></header>
-      <div class="dashboard-user-row staff-user-row"><div class="dashboard-meta-row"><span id="staffDashboardUpdate"></span><button id="staffDashboardLogout" class="dashboard-logout" type="button">↪ <span>Logout</span></button></div></div>
-      <section class="dashboard-card dashboard-status-card" id="staffDashboardStatus" role="button" tabindex="0" aria-label="Buka Status Mesin"><div class="dashboard-card-heading"><h2>Status Mesin</h2><span class="dashboard-card-arrow" aria-hidden="true">›</span></div><div class="dashboard-machine-columns"><div class="dashboard-machine-summary"><div class="dashboard-machine-icon washer-icon" aria-hidden="true"></div><div><strong>Washer (<span id="staffWasherCount">5</span>)</strong><div><i class="status-dot idle-dot"></i>Idle <b id="staffWasherIdle">5</b></div><div><i class="status-dot used-dot"></i>Terpakai <b id="staffWasherUsed">0</b></div></div></div><div class="dashboard-machine-summary"><div class="dashboard-machine-icon dryer-icon" aria-hidden="true"></div><div><strong>Dryer (<span id="staffDryerCount">5</span>)</strong><div><i class="status-dot idle-dot"></i>Idle <b id="staffDryerIdle">5</b></div><div><i class="status-dot used-dot"></i>Terpakai <b id="staffDryerUsed">0</b></div></div></div></div></section>
-      <button id="staffDashboardServices" class="dashboard-card dashboard-services-card" type="button"><span class="dashboard-service-icon" aria-hidden="true">⚙</span><strong>Layanan &amp; Fasilitas</strong><span class="dashboard-card-arrow" aria-hidden="true">›</span></button>
-      <section class="dashboard-card dashboard-event-card" id="staffDashboardEvent" role="button" tabindex="0" aria-label="Buka Event"><div class="dashboard-card-heading"><h2>Event</h2><span class="dashboard-card-arrow" aria-hidden="true">›</span></div><div class="dashboard-event-body"><strong id="staffDashboardEventTitle">Tidak ada event aktif.</strong><span id="staffDashboardEventPeriod"></span></div></section>
-      <section id="staffDashboardServicesView" class="dashboard-services-view" hidden><div class="dashboard-services-view-header"><button id="staffServicesBack" type="button">‹</button><h2>Layanan &amp; Fasilitas</h2></div><section class="dashboard-service-full-card"><div class="service-full-heading"><span class="service-info-icon">i</span><h3>Informasi Layanan</h3><div class="service-address"><b>⌖</b><span>Jl. Gegerkalong Hilir No.27<br>Ciwaruga-Bandung<br>info : 085117624377</span></div></div><div class="service-full-grid"><div><b>◷ Open - Everyday</b><span>Self Service&nbsp;&nbsp;&nbsp; 07:00 - 21:00 wib</span><span>Drop-off&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 07:00 - 23:00 wib</span></div><div><b>♢ Tarif Layanan</b><span>1 Koin Rp 10.000,- / 7 Kg</span><span>Drop-off + Rp 10.000,-</span></div></div></section></section>
+    <section id="staffDashboard" class="staff-dashboard">
+      <div class="staff-dashboard-date-row">
+        <span id="staffDashboardUpdate" class="staff-dashboard-update"></span>
+        <span class="staff-dashboard-date-separator" aria-hidden="true"></span>
+        <button id="staffDashboardLogout" class="staff-dashboard-logout" type="button" aria-label="Logout Staff">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"/><path d="M14 8l4 4-4 4M8 12h10"/></svg>
+          <span>Logout</span>
+        </button>
+      </div>
+
+      <div class="staff-dashboard-stack">
+        <section class="staff-dashboard-card staff-status-card" id="staffDashboardMachineCard" role="button" tabindex="0" aria-label="Buka Status Mesin">
+          <div class="staff-card-heading">
+            <span class="staff-card-title">Status Mesin</span>
+            <span class="staff-card-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span>
+          </div>
+          <div class="staff-machine-summary-grid">
+            <div class="staff-machine-summary-card">
+              <span class="staff-machine-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M7 7h10M8 5h1M11 5h1M14 5h1M8 11h8M12 11a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></svg></span>
+              <div class="staff-machine-summary-copy">
+                <strong>Washer (5)</strong>
+                <span><i class="staff-status-dot idle"></i>Idle <b id="staffDashboardWasherIdle">5</b></span>
+                <span><i class="staff-status-dot used"></i>Terpakai <b id="staffDashboardWasherUsed">0</b></span>
+              </div>
+            </div>
+            <div class="staff-machine-summary-card">
+              <span class="staff-machine-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M7 7h10M8 11h8M12 11a4 4 0 1 0 0 8 4 4 0 0 0-8 0Z"/></svg></span>
+              <div class="staff-machine-summary-copy">
+                <strong>Dryer (5)</strong>
+                <span><i class="staff-status-dot idle"></i>Idle <b id="staffDashboardDryerIdle">5</b></span>
+                <span><i class="staff-status-dot used"></i>Terpakai <b id="staffDashboardDryerUsed">0</b></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="staff-dashboard-card staff-service-card" id="staffDashboardServiceCard">
+          <span class="staff-service-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.2 2.9h5.6l.7 2.2c.6.2 1.1.5 1.6.9l2.2-.5 2.8 4.8-1.5 1.7c.1.6.1 1.2 0 1.8l1.5 1.7-2.8 4.8-2.2-.5c-.5.4-1 .7-1.6.9l-.7 2.2H9.2l-.7-2.2c-.6-.2-1.1-.5-1.6-.9l-2.2.5-2.8-4.8 1.5-1.7a7.4 7.4 0 0 1 0-1.8L1.9 10.3 4.7 5.5l2.2.5c.5-.4 1-.7 1.6-.9l.7-2.2Z"/><circle cx="12" cy="12" r="3.2"/></svg></span>
+          <span class="staff-card-title">Layanan &amp; Fasilitas</span>
+          <span class="staff-card-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span>
+        </section>
+
+        <section class="staff-dashboard-card staff-event-card" id="staffDashboardEventCard">
+          <div class="staff-card-heading">
+            <span class="staff-card-title">Event</span>
+            <span class="staff-card-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span>
+          </div>
+          <div class="staff-event-content">
+            <span id="staffDashboardEventTitle" class="staff-card-value">Memuat event...</span>
+            <span id="staffDashboardEventPeriod" class="staff-card-note">—</span>
+          </div>
+        </section>
+      </div>
     </section>
+
     <section id="staffTools" class="staff-tools" hidden>
       <section id="staffMachineStatusView" class="staff-machine-status-view" hidden>
         <header class="staff-machine-status-header">
