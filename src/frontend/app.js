@@ -430,7 +430,7 @@ function resolveRolePath(rawPath = window.location.pathname || "/") {
 function setRoleRoute(role) {
   const route = ROLE_ROUTES[role];
   if (!route) return;
-  document.documentElement.dataset.initialRoute = `${role}_ROLE`;
+  document.documentElement.dataset.initialRoute = role;
   if (normalizePathname() !== route) {
     window.history.replaceState({ role }, "", route);
   }
