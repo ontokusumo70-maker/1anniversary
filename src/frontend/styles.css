@@ -2628,3 +2628,6 @@ body[data-role="CUSTOMER_LOGIN"] .app-shell{
 @media(min-width:601px){
   .customer-machine-detail-sheet{border-radius:20px;margin-bottom:18px}
 }
+
+/* CUSTOMER CLEAN ONLY: hide global anniversary topbar for Customer role. */
+body[data-role="CUSTOMER"] .app-shell > .topbar{display:none!important;}
