@@ -2628,19 +2628,3 @@ body[data-role="CUSTOMER_LOGIN"] .app-shell{
 @media(min-width:601px){
   .customer-machine-detail-sheet{border-radius:20px;margin-bottom:18px}
 }
-
-
-/* CUSTOMER CLEAN ONLY: hide global anniversary shell on Customer route. */
-body[data-role="CUSTOMER"] .app-shell > .topbar,
-body[data-role="CUSTOMER"] #rootLanding,
-body[data-role="CUSTOMER"] .footer-mark{display:none!important;}
-
-/* CUSTOMER ROLE CLEAN GUARD: survives refresh even if runtime role state falls back. */
-html[data-customer-role-route="1"] .app-shell > .topbar,
-html[data-customer-role-route="1"] #rootLanding,
-html[data-customer-role-route="1"] .footer-mark{display:none!important;}
-html[data-customer-role-route="1"] #ownerAuth,
-html[data-customer-role-route="1"] #staffAuth,
-html[data-customer-role-route="1"] #auth,
-html[data-customer-role-route="1"] #staff,
-html[data-customer-role-route="1"] #owner{display:none!important;}
