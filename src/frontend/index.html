@@ -9,7 +9,15 @@
     (function () {
       const rawPath = window.location.pathname || "/";
       let pathname = rawPath;
-      try { pathname = decodeURIComponent(rawPath); } catch {}
+      for (let i = 0; i < 3; i++) {
+        try {
+          const nextPath = decodeURIComponent(pathname);
+          if (nextPath === pathname) break;
+          pathname = nextPath;
+        } catch {
+          break;
+        }
+      }
       pathname = pathname.replace(/\/+$/, "") || "/";
       if (pathname === "/owner" || pathname.startsWith("/owner/")) {
         document.documentElement.dataset.initialRoute = "OWNER";
