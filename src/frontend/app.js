@@ -401,7 +401,12 @@ function renderStaffDashboardEvent(data) {
 }
 
 function normalizePathname() {
-  return window.location.pathname.replace(/\/+$/, "") || "/";
+  const rawPath = window.location.pathname || "/";
+  let decodedPath = rawPath;
+  try {
+    decodedPath = decodeURIComponent(rawPath);
+  } catch {}
+  return decodedPath.replace(/\/+$/, "") || "/";
 }
 
 function setRoleRoute(role) {
