@@ -403,10 +403,28 @@ function renderStaffDashboardEvent(data) {
 function normalizePathname() {
   const rawPath = window.location.pathname || "/";
   let decodedPath = rawPath;
-  try {
-    decodedPath = decodeURIComponent(rawPath);
-  } catch {}
+  for (let i = 0; i < 3; i++) {
+    try {
+      const nextPath = decodeURIComponent(decodedPath);
+      if (nextPath === decodedPath) break;
+      decodedPath = nextPath;
+    } catch {
+      break;
+    }
+  }
   return decodedPath.replace(/\/+$/, "") || "/";
+}
+
+function matchRoleRoute(pathname) {
+  const exactMatch = Object.entries(ROLE_ROUTES).find(
+    ([, route]) => route === pathname,
+  );
+  if (exactMatch) return exactMatch;
+
+  const prefixMatch = Object.entries(ROLE_ROUTES).find(
+    ([, route]) => pathname.startsWith(route.split("/role ")[0] + "/role"),
+  );
+  return prefixMatch || null;
 }
 
 function setRoleRoute(role) {
@@ -3722,7 +3740,7 @@ async function initialize() {
     return;
   }
 
-  const roleRoute = Object.entries(ROLE_ROUTES).find(([, route]) => route === pathname);
+  const roleRoute = matchRoleRoute(pathname);
 
   if (roleRoute) {
     const [expectedRole] = roleRoute;
