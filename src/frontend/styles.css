@@ -2408,6 +2408,9 @@ html[data-initial-route="STAFF"] #staffAuth,
 html[data-initial-route="OWNER"] #ownerAuth{
   display:block !important;
 }
+html[data-initial-route="CUSTOMER"] #auth{
+  display:block !important;
+}
 
 html[data-initial-route="STAFF"] .topbar,
 html[data-initial-route="STAFF"] .footer-mark,
