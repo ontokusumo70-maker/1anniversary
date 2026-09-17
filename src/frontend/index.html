@@ -7,7 +7,7 @@
   <title>Teras Laundry • 1st Anniversary</title>
   <script>
     (function () {
-      const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
+      const pathname = decodeURIComponent(window.location.pathname || "/").replace(/\/+$/, "") || "/";
       if (pathname === "/owner") {
         document.documentElement.dataset.initialRoute = "OWNER";
       } else if (pathname === "/staff") {
