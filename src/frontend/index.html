@@ -7,19 +7,30 @@
   <title>Teras Laundry • 1st Anniversary</title>
   <script>
     (function () {
-      const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
-      if (pathname === "/owner" || pathname.startsWith("/owner/")) {
-        document.documentElement.dataset.initialRoute =
-          pathname === "/owner" ? "OWNER" : "OWNER_ROLE";
-      } else if (pathname === "/staff" || pathname.startsWith("/staff/")) {
-        document.documentElement.dataset.initialRoute =
-          pathname === "/staff" ? "STAFF" : "STAFF_ROLE";
-      } else if (
-        pathname === "/customer" ||
-        pathname.startsWith("/customer/")
-      ) {
-        document.documentElement.dataset.initialRoute =
-          pathname === "/customer" ? "CUSTOMER" : "CUSTOMER_ROLE";
+      const rawPath = window.location.pathname || "/";
+      let pathname = rawPath;
+      for (let i = 0; i < 3; i++) {
+        try {
+          const nextPath = decodeURIComponent(pathname);
+          if (nextPath === pathname) break;
+          pathname = nextPath;
+        } catch {
+          break;
+        }
+      }
+      pathname = pathname.replace(/\/+$/, "") || "/";
+      if (pathname === "/owner") {
+        document.documentElement.dataset.initialRoute = "OWNER";
+      } else if (pathname === "/staff") {
+        document.documentElement.dataset.initialRoute = "STAFF";
+      } else if (pathname === "/customer") {
+        document.documentElement.dataset.initialRoute = "CUSTOMER";
+      } else if (pathname.startsWith("/owner/")) {
+        document.documentElement.dataset.initialRoute = "OWNER_ROLE";
+      } else if (pathname.startsWith("/staff/")) {
+        document.documentElement.dataset.initialRoute = "STAFF_ROLE";
+      } else if (pathname.startsWith("/customer/")) {
+        document.documentElement.dataset.initialRoute = "CUSTOMER_ROLE";
       } else {
         document.documentElement.dataset.initialRoute = "ROOT";
       }
@@ -29,8 +40,22 @@
 </head>
 <body data-role="CUSTOMER">
 <main class="app-shell">
+  <header class="topbar">
+    <div class="brand-lockup">
+      <img id="brand" src="/assets/branding/branding.png" alt="Teras Laundry">
+      <div>
+        <span class="anniversary-kicker">TERAS LAUNDRY</span>
+        <strong>1st ANNIVERSARY</strong>
+        <small>10 HARI MENUJU 1 TAHUN</small>
+      </div>
+    </div>
+    <div class="anniversary-coin"><img src="/assets/coin/coin_1st_front.png" alt="1st anniversary coin"></div>
+  </header>
 
-
+  <section id="rootLanding" class="root-landing-screen" hidden aria-label="Teras Laundry 1st Anniversary">
+    <img class="root-landing-mascot" src="/assets/mascot/mascot_angle.png" alt="" aria-hidden="true">
+    <img class="root-landing-brand" src="/assets/branding/branding.png" alt="Teras Laundry">
+  </section>
 
   <section id="ownerAuth" class="screen owner-login-screen" hidden>
     <div class="owner-login-card">
