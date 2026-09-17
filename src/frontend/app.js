@@ -1,4 +1,4 @@
-const state = {
+ const state = {
   token: null,
   role: null,
   userId: null,
@@ -422,7 +422,7 @@ function matchRoleRoute(pathname) {
   if (exactMatch) return exactMatch;
 
   const prefixMatch = Object.entries(ROLE_ROUTES).find(
-    ([, route]) => pathname.startsWith(route.split("/role ")[0] + "/role"),
+    ([, route]) => pathname.startsWith(route.split("/role ")[0] + "/"),
   );
   return prefixMatch || null;
 }
