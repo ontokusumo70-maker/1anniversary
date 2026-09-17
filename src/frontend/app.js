@@ -223,19 +223,15 @@ function renderRoleActiveEvent(role, data) {
 async function loadActiveEventForRole(role) {
   try {
     const data = await api("/event/active");
+    if (role === "STAFF") staffActiveEventData = data;
+    renderRoleActiveEvent(role, data);
     if (role === "STAFF") {
-      staffActiveEventData = data;
-      renderRoleActiveEvent(role, data);
       renderStaffDashboardEvent(data);
-    } else if (role === "CUSTOMER") {
-      renderCustomerDashboardEvent(data);
     }
   } catch {
+    renderRoleActiveEvent(role, null);
     if (role === "STAFF") {
-      renderRoleActiveEvent(role, null);
       renderStaffDashboardEvent(null);
-    } else if (role === "CUSTOMER") {
-      renderCustomerDashboardEvent(null);
     }
   }
 }
@@ -283,77 +279,6 @@ function showStaffDashboard() {
       renderStaffDashboardDate();
     }
   }, 1000);
-}
-
-let customerDashboardClockTimer = null;
-
-function renderCustomerDashboardDate() {
-  const now = new Date();
-  const parts = new Intl.DateTimeFormat("id-ID", {
-    weekday: "long", day: "2-digit", month: "short", year: "numeric",
-    hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jakarta",
-  }).formatToParts(now);
-  const get = (type) => parts.find((part) => part.type === type)?.value || "";
-  const update = $("customerDashboardUpdate");
-  if (update) {
-    const weekday = get("weekday");
-    update.textContent = `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${get("day")} ${get("month")} ${get("year")}, ${get("hour")}:${get("minute")}`;
-  }
-}
-
-function showCustomerDashboard() {
-  if ($("customerDashboard")) $("customerDashboard").hidden = false;
-  renderCustomerDashboardDate();
-  if (customerDashboardClockTimer) window.clearInterval(customerDashboardClockTimer);
-  customerDashboardClockTimer = window.setInterval(() => {
-    if (state.role === "CUSTOMER" && $("customerDashboard") && !$("customerDashboard").hidden) {
-      renderCustomerDashboardDate();
-    }
-  }, 1000);
-}
-
-function renderCustomerDashboardMachineSummary(machines) {
-  const list = Array.isArray(machines) ? machines : [];
-  const washer = list.filter((machine) => machine?.type === "WASHER");
-  const dryer = list.filter((machine) => machine?.type === "DRYER");
-  const count = (items, status) => items.filter((machine) => machine?.status === status).length;
-  const set = (id, value) => { const element = $(id); if (element) element.textContent = String(value); };
-  set("customerWasherTotal", washer.length || 5);
-  set("customerWasherIdle", count(washer, "IDLE"));
-  set("customerWasherBusy", count(washer, "IN_USE"));
-  set("customerDryerTotal", dryer.length || 5);
-  set("customerDryerIdle", count(dryer, "IDLE"));
-  set("customerDryerBusy", count(dryer, "IN_USE"));
-}
-
-async function refreshCustomerDashboardMachines() {
-  try {
-    const data = await api("/machines");
-    customerMachineData = Array.isArray(data.machines) ? data.machines : [];
-    renderCustomerDashboardMachineSummary(customerMachineData);
-  } catch {
-    renderCustomerDashboardMachineSummary([]);
-  }
-}
-
-let customerMachineData = [];
-let customerMachineFilter = "ALL";
-let customerMachineStatusTimer = null;
-let customerEventInfoImageObjectUrl = null;
-let customerActiveEventData = null;
-
-function renderCustomerDashboardEvent(data) {
-  const title = $("customerDashboardEventTitle");
-  const period = $("customerDashboardEventPeriod");
-  if (!title || !period) return;
-  customerActiveEventData = data || null;
-  if (!data?.active || !data.event) {
-    title.textContent = "Belum ada event";
-    period.textContent = "—";
-    return;
-  }
-  title.textContent = data.event.title || "Event Aktif";
-  period.textContent = formatDateRange(data.event.startsAt, data.event.endsAt);
 }
 
 function renderStaffDashboardMachineSummary() {
@@ -416,9 +341,9 @@ function showRole() {
   }
 
   if (state.role === "CUSTOMER") {
+    document.documentElement.style.setProperty("--game-bg", `url("${assetBasePath}background/game/game-bg.PNG")`);
     $("customer").hidden = false;
-    showCustomerDashboard();
-    refreshCustomerDashboardMachines();
+    refreshMachines();
     loadActiveEventForRole("CUSTOMER");
     return;
   }
@@ -1314,239 +1239,6 @@ function startStaffMachineStatusTimer() {
   }, 1000);
 }
 
-
-function scrollCustomerTop() {
-  window.scrollTo(0, 0);
-  document.documentElement.scrollTop = 0;
-  document.body.scrollTop = 0;
-  const tools = $("customerTools");
-  if (tools) tools.scrollTop = 0;
-}
-
-function openCustomerMachineDetail(machine) {
-  if (!machine) return;
-  const modal = $("customerMachineDetailModal");
-  if (!modal) return;
-  const id = `${machine.type === "WASHER" ? "W" : "D"}${machine.machineNumber}`;
-  const type = staffMachineTypeLabel(machine);
-  const status = machine.status === "IN_USE" ? "Terpakai" : "Idle";
-  const duration = Number(machine.durationMinutes || (machine.type === "DRYER" ? 50 : 32));
-  const time = formatStaffMachineElapsed(machine);
-  $("customerMachineDetailMachineId").textContent = `${id} - ${type}`;
-  $("customerMachineDetailType").textContent = type;
-  $("customerMachineDetailStatus").textContent = status;
-  $("customerMachineDetailDuration").textContent = `${duration} menit`;
-  $("customerMachineDetailTime").textContent = time;
-  modal.hidden = false;
-  document.body.classList.add("customer-machine-detail-open");
-  scrollCustomerTop();
-}
-
-function closeCustomerMachineDetail() {
-  const modal = $("customerMachineDetailModal");
-  if (modal) modal.hidden = true;
-  document.body.classList.remove("customer-machine-detail-open");
-}
-
-function renderCustomerMachineStatusList() {
-  const target = $("customerMachineStatusList");
-  if (!target) return;
-  const filtered = customerMachineData.filter((machine) => customerMachineFilter === "ALL" || machine.type === customerMachineFilter);
-  target.innerHTML = "";
-  for (const machine of filtered) {
-    const row = document.createElement("button");
-    row.type = "button";
-    row.className = `staff-machine-status-row ${machine.status === "IN_USE" ? "is-busy" : "is-idle"}`;
-    const icon = document.createElement("span");
-    icon.className = "staff-machine-row-icon";
-    icon.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="13" r="4.5"/><path d="M8 7h1M11 7h1"/></svg>`;
-    const id = document.createElement("strong");
-    id.textContent = `${machine.type === "WASHER" ? "W" : "D"}${machine.machineNumber}`;
-    const type = document.createElement("span");
-    type.className = "staff-machine-row-type";
-    type.textContent = staffMachineTypeLabel(machine);
-    const status = document.createElement("span");
-    status.className = `staff-machine-row-status ${machine.status === "IN_USE" ? "busy" : "idle"}`;
-    status.textContent = machine.status === "IN_USE" ? "Terpakai" : "Idle";
-    const time = document.createElement("span");
-    time.className = "staff-machine-row-time";
-    time.textContent = formatStaffMachineElapsed(machine);
-    const arrow = document.createElement("span");
-    arrow.className = "staff-machine-row-arrow";
-    arrow.textContent = "›";
-    row.append(icon, id, type, status, time, arrow);
-    row.onclick = () => openCustomerMachineDetail(machine);
-    target.append(row);
-  }
-}
-
-function renderCustomerMachineStatusMeta() {
-  const dateEl = $("customerMachineStatusDate");
-  const timeEl = $("customerMachineStatusTime");
-  if (!dateEl || !timeEl) return;
-  const value = formatStaffWibDateTime();
-  dateEl.textContent = value.date;
-  timeEl.textContent = value.time;
-}
-
-function stopCustomerMachineStatusTimer() {
-  if (customerMachineStatusTimer) {
-    window.clearInterval(customerMachineStatusTimer);
-    customerMachineStatusTimer = null;
-  }
-}
-
-function startCustomerMachineStatusTimer() {
-  stopCustomerMachineStatusTimer();
-  customerMachineStatusTimer = window.setInterval(() => {
-    if (state.role === "CUSTOMER" && $("customerMachineStatusView") && !$("customerMachineStatusView").hidden) {
-      renderCustomerMachineStatusList();
-      renderCustomerMachineStatusMeta();
-    }
-  }, 1000);
-}
-
-async function openCustomerMachineStatus() {
-  scrollCustomerTop();
-  closeCustomerMachineDetail();
-  if ($("customerDashboard")) $("customerDashboard").hidden = true;
-  if ($("customerTools")) $("customerTools").hidden = false;
-  if ($("customerMachineStatusView")) $("customerMachineStatusView").hidden = false;
-  if ($("customerServicesView")) $("customerServicesView").hidden = true;
-  if ($("customerEventView")) $("customerEventView").hidden = true;
-  renderCustomerMachineStatusMeta();
-  renderCustomerMachineStatusList();
-  await refreshCustomerDashboardMachines();
-  renderCustomerMachineStatusList();
-  startCustomerMachineStatusTimer();
-  requestAnimationFrame(scrollCustomerTop);
-}
-
-function closeCustomerMachineStatus() {
-  closeCustomerMachineDetail();
-  stopCustomerMachineStatusTimer();
-  if ($("customerMachineStatusView")) $("customerMachineStatusView").hidden = true;
-  showCustomerDashboard();
-}
-
-function openCustomerServices() {
-  scrollCustomerTop();
-  closeCustomerMachineDetail();
-  if ($("customerDashboard")) $("customerDashboard").hidden = true;
-  if ($("customerTools")) $("customerTools").hidden = false;
-  if ($("customerMachineStatusView")) $("customerMachineStatusView").hidden = true;
-  if ($("customerServicesView")) $("customerServicesView").hidden = false;
-  if ($("customerEventView")) $("customerEventView").hidden = true;
-  stopCustomerMachineStatusTimer();
-  requestAnimationFrame(scrollCustomerTop);
-}
-
-function closeCustomerServices() {
-  if ($("customerServicesView")) $("customerServicesView").hidden = true;
-  showCustomerDashboard();
-}
-
-function revokeCustomerEventInfoImage() {
-  if (customerEventInfoImageObjectUrl) {
-    URL.revokeObjectURL(customerEventInfoImageObjectUrl);
-    customerEventInfoImageObjectUrl = null;
-  }
-}
-
-function renderCustomerEventRewards(event) {
-  const target = $("customerEventRewards");
-  if (!target) return;
-
-  const rewards = Array.isArray(event?.rewards) && event.rewards.length
-    ? event.rewards
-    : (event?.rewardType ? [{
-        rewardType: event.rewardType,
-        rewardQuantity: event.rewardQuantity,
-        remaining: event.rewardRemaining ?? event.remaining,
-        terms: event.rewardTerms || event.terms || "—",
-      }] : []);
-
-  target.innerHTML = rewards.length ? rewards.map((reward) => {
-    const name = escapeHtml(reward.rewardType || reward.name || "—");
-    const quantity = Number(reward.remaining ?? reward.rewardQuantity ?? reward.quantity ?? 0);
-    return `<section class="staff-event-detail-card staff-event-reward-card">
-      <span class="staff-event-detail-icon staff-event-gift-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M9 19h30v23H9z"/><path d="M24 19v23"/><path d="M7 12h34v8H7z"/><path d="M24 12c-1-6-5-9-9-8-4 1-4 6 0 8h9Z"/><path d="M24 12c1-6 5-9 9-8 4 1 4 6 0 8h-9Z"/></svg></span>
-      <div class="staff-event-reward-copy">
-        <div class="staff-event-reward-top"><h3>Reward</h3><span>Stok Tersedia</span></div>
-        <p>${name}</p>
-        <strong>${Number.isFinite(quantity) ? quantity.toLocaleString("id-ID") : "0"}</strong>
-      </div>
-    </section>`;
-  }).join("") : `<section class="staff-event-detail-card staff-event-reward-card">
-    <span class="staff-event-detail-icon staff-event-gift-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M9 19h30v23H9z"/><path d="M24 19v23"/><path d="M7 12h34v8H7z"/><path d="M24 12c-1-6-5-9-9-8-4 1-4 6 0 8h9Z"/><path d="M24 12c1-6 5-9 9-8 4 1 4 6 0 8h-9Z"/></svg></span>
-    <div class="staff-event-reward-copy"><div class="staff-event-reward-top"><h3>Reward</h3><span>Stok Tersedia</span></div><p>—</p><strong>0</strong></div>
-  </section>`;
-}
-
-function renderCustomerEventInfo(data) {
-  const image = $("customerEventInfoImage");
-  const title = $("customerEventInfoTitle");
-  const period = $("customerEventInfoPeriod");
-  const periodText = $("customerEventPeriodText");
-  const description = $("customerEventInfoDescription");
-  const terms = $("customerEventInfoTerms");
-  revokeCustomerEventInfoImage();
-  if (!data?.active || !data.event) {
-    if (image) image.hidden = true;
-    if (title) { title.textContent = "Belum ada event"; title.classList.add("empty-state"); }
-    if (periodText) periodText.textContent = "—";
-    if (description) description.textContent = "Belum ada event aktif.";
-    if (terms) terms.textContent = "—";
-    renderCustomerEventRewards(null);
-    return;
-  }
-  const event = data.event;
-  if (title) { title.textContent = event.title || "Event Aktif"; title.classList.remove("empty-state"); }
-  if (periodText) periodText.textContent = formatDateRange(event.startsAt, event.endsAt);
-  if (description) description.textContent = event.description || "—";
-  if (terms) {
-    const rewards = Array.isArray(event.rewards) && event.rewards.length
-      ? event.rewards
-      : (event.rewardType ? [event] : []);
-    const termsList = rewards.map((reward) => reward.rewardTerms || reward.terms).filter(Boolean);
-    terms.innerHTML = termsList.length > 1
-      ? `<ol>${termsList.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ol>`
-      : escapeHtml(termsList[0] || "—");
-  }
-  renderCustomerEventRewards(event);
-  if (image) {
-    image.hidden = true;
-    image.removeAttribute("src");
-    if (event.imageUrl) {
-      apiBlob(event.imageUrl).then((blob) => {
-        if (!$("customerEventView") || $("customerEventView").hidden) return;
-        customerEventInfoImageObjectUrl = URL.createObjectURL(blob);
-        image.src = customerEventInfoImageObjectUrl;
-        image.hidden = false;
-      }).catch(() => {});
-    }
-  }
-}
-
-function openCustomerEvent() {
-  scrollCustomerTop();
-  closeCustomerMachineDetail();
-  if ($("customerDashboard")) $("customerDashboard").hidden = true;
-  if ($("customerTools")) $("customerTools").hidden = false;
-  if ($("customerMachineStatusView")) $("customerMachineStatusView").hidden = true;
-  if ($("customerServicesView")) $("customerServicesView").hidden = true;
-  if ($("customerEventView")) $("customerEventView").hidden = false;
-  stopCustomerMachineStatusTimer();
-  renderCustomerEventInfo(customerActiveEventData);
-  requestAnimationFrame(scrollCustomerTop);
-}
-
-function closeCustomerEvent() {
-  if ($("customerEventView")) $("customerEventView").hidden = true;
-  revokeCustomerEventInfoImage();
-  showCustomerDashboard();
-}
-
 let staffEventInfoImageObjectUrl = null;
 let staffActiveEventData = null;
 
@@ -1841,73 +1533,6 @@ if ($("staffStatusCard")) {
     }
   });
 }
-
-if ($("customerServicesCard")) {
-  $("customerServicesCard").addEventListener("click", openCustomerServices);
-}
-
-const CUSTOMER_LAUNDRY_MAP_URL = "https://maps.app.goo.gl/3KfFnHuLeZRsBnYG6?g_st=ic";
-const customerServicesLocationIcon = document.querySelector("#customerServicesView .staff-services-info-address .staff-services-icon-box");
-if (customerServicesLocationIcon) {
-  customerServicesLocationIcon.setAttribute("role", "button");
-  customerServicesLocationIcon.setAttribute("tabindex", "0");
-  customerServicesLocationIcon.addEventListener("click", () => {
-    window.location.href = CUSTOMER_LAUNDRY_MAP_URL;
-  });
-  customerServicesLocationIcon.addEventListener("keydown", (event) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      window.location.href = CUSTOMER_LAUNDRY_MAP_URL;
-    }
-  });
-}
-if ($("customerStatusCard")) {
-  $("customerStatusCard").addEventListener("click", openCustomerMachineStatus);
-  $("customerStatusCard").addEventListener("keydown", (event) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      openCustomerMachineStatus();
-    }
-  });
-}
-if ($("customerEventCard")) {
-  $("customerEventCard").addEventListener("click", openCustomerEvent);
-  $("customerEventCard").addEventListener("keydown", (event) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      openCustomerEvent();
-    }
-  });
-}
-if ($("customerMachineFilters")) {
-  $("customerMachineFilters").addEventListener("click", (event) => {
-    const button = event.target.closest("[data-customer-machine-filter]");
-    if (!button) return;
-    customerMachineFilter = button.dataset.customerMachineFilter || "ALL";
-    $("customerMachineFilters").querySelectorAll("[data-customer-machine-filter]").forEach((item) => {
-      item.classList.toggle("active", item === button);
-    });
-    renderCustomerMachineStatusList();
-  });
-}
-if ($("customerMachineStatusBack")) $("customerMachineStatusBack").addEventListener("click", closeCustomerMachineStatus);
-if ($("customerMachineDetailClose")) $("customerMachineDetailClose").addEventListener("click", closeCustomerMachineDetail);
-document.addEventListener("click", (event) => {
-  if (event.target.closest("[data-close-customer-machine-detail]")) closeCustomerMachineDetail();
-});
-if ($("customerServicesBack")) $("customerServicesBack").addEventListener("click", closeCustomerServices);
-if ($("customerEventBack")) $("customerEventBack").addEventListener("click", closeCustomerEvent);
-if ($("customerEventBackBottom")) $("customerEventBackBottom").addEventListener("click", closeCustomerEvent);
-if ($("customerMachineRefresh")) $("customerMachineRefresh").addEventListener("click", async () => {
-  await refreshCustomerDashboardMachines();
-  renderCustomerMachineStatusList();
-  renderCustomerMachineStatusMeta();
-});
-
-$("customerLogout")?.addEventListener("click", () => {
-  clearSession();
-  window.location.href = "/";
-});
 
 $("staffLogout")?.addEventListener("click", () => {
   clearSession();
