@@ -1440,7 +1440,8 @@ function openCustomerMachineDetail(machine) {
   const status = machine.status === "IN_USE" ? "Terpakai" : "Idle";
   const duration = Number(machine.durationMinutes || (machine.type === "DRYER" ? 50 : 32));
   const time = formatStaffMachineElapsed(machine);
-  $("customerMachineDetailMachineId").textContent = id;
+  $("customerMachineDetailTitle").textContent = id;
+  $("customerMachineDetailMachineId").textContent = "";
   $("customerMachineDetailType").textContent = type;
   $("customerMachineDetailStatus").textContent = status;
   $("customerMachineDetailDuration").textContent = `${duration} menit`;
@@ -1516,8 +1517,15 @@ function startCustomerMachineStatusTimer() {
 
 async function openCustomerMachineStatus() {
   saveCustomerView("STATUS");
-  scrollCustomerTop();
   closeCustomerMachineDetail();
+  if ($("customer")) {
+    $("customer").hidden = false;
+  }
+  document.body.dataset.role = "CUSTOMER";
+  if (normalizePathname() !== ROLE_ROUTES.CUSTOMER) {
+    window.history.replaceState({ role: "CUSTOMER" }, "", ROLE_ROUTES.CUSTOMER);
+  }
+  scrollCustomerTop();
   if ($("customerDashboard")) $("customerDashboard").hidden = true;
   if ($("customerTools")) $("customerTools").hidden = false;
   if ($("customerMachineStatusView")) $("customerMachineStatusView").hidden = false;
@@ -1536,7 +1544,9 @@ function closeCustomerMachineStatus() {
   closeCustomerMachineDetail();
   stopCustomerMachineStatusTimer();
   if ($("customerMachineStatusView")) $("customerMachineStatusView").hidden = true;
+  if ($("customerTools")) $("customerTools").hidden = true;
   showCustomerDashboard();
+  scrollCustomerTop();
 }
 
 function openCustomerServices() {
