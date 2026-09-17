@@ -2628,3 +2628,28 @@ body[data-role="CUSTOMER_LOGIN"] .app-shell{
 @media(min-width:601px){
   .customer-machine-detail-sheet{border-radius:20px;margin-bottom:18px}
 }
+
+/* CUSTOMER CLEAN ONLY: hide global anniversary topbar for Customer role. */
+body[data-role="CUSTOMER"] .app-shell > .topbar{display:none!important;}
+/* ROUTE PRE-PAINT GATE: select the correct role screen before app.js runs. */
+html[data-initial-route="OWNER_ROLE"] #auth,
+html[data-initial-route="OWNER"] #auth,
+html[data-initial-route="STAFF_ROLE"] #auth,
+html[data-initial-route="STAFF"] #auth{
+  display:none !important;
+}
+html[data-initial-route="OWNER_ROLE"] #ownerAuth,
+html[data-initial-route="OWNER"] #ownerAuth{
+  display:block !important;
+}
+html[data-initial-route="STAFF_ROLE"] #staffAuth,
+html[data-initial-route="STAFF"] #staffAuth{
+  display:block !important;
+}
+html[data-initial-route="CUSTOMER_ROLE"] #ownerAuth,
+html[data-initial-route="CUSTOMER"] #ownerAuth,
+html[data-initial-route="CUSTOMER_ROLE"] #staffAuth,
+html[data-initial-route="CUSTOMER"] #staffAuth{
+  display:none !important;
+}
+
