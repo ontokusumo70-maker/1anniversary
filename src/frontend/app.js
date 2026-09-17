@@ -3713,30 +3713,29 @@ function makeQrSvg(text) {
 }
 
 async function initialize() {
-  await loadConfig();
-
+  // Resolve the browser route BEFORE any network/config request.
+  // This prevents a slow/failed /config request from exposing the default
+  // Customer screen during refresh of Owner or Staff role URLs.
   const pathname = normalizePathname();
-
-  if (pathname === "/") {
-    showRootLanding();
-    return;
-  }
 
   if (pathname === LOGIN_ROUTES.OWNER) {
     clearSession();
     showOwnerLogin();
+    await loadConfig();
     return;
   }
 
   if (pathname === LOGIN_ROUTES.STAFF) {
     clearSession();
     showStaffLogin();
+    await loadConfig();
     return;
   }
 
   if (pathname === LOGIN_ROUTES.CUSTOMER) {
     clearSession();
     showCustomerAuth();
+    await loadConfig();
     return;
   }
 
@@ -3744,13 +3743,32 @@ async function initialize() {
 
   if (roleRoute) {
     const [expectedRole] = roleRoute;
-    if (restoreSession() && state.role === expectedRole) {
+
+    // Decide the role immediately from the URL. Never fall through to the
+    // default Customer screen while configuration is loading.
+    const hasValidSession = restoreSession() && state.role === expectedRole;
+
+    if (!hasValidSession) {
+      clearSession();
+      if (expectedRole === "OWNER") {
+        showOwnerLogin();
+      } else if (expectedRole === "STAFF") {
+        showStaffLogin();
+      } else {
+        showCustomerAuth();
+      }
+      await loadConfig();
+      return;
+    }
+
+    // Authenticated role: load configuration first, then render that role.
+    await loadConfig();
+    if (state.role === expectedRole) {
       showRole();
       return;
     }
 
     clearSession();
-    window.history.replaceState({}, "", LOGIN_ROUTES[expectedRole]);
     if (expectedRole === "OWNER") {
       showOwnerLogin();
     } else if (expectedRole === "STAFF") {
@@ -3761,7 +3779,12 @@ async function initialize() {
     return;
   }
 
-  showRootLanding();
+  // Root/unknown paths no longer expose the Anniversary landing page.
+  // Route them to the normal Customer login entry point.
+  window.history.replaceState({}, "", LOGIN_ROUTES.CUSTOMER);
+  clearSession();
+  showCustomerAuth();
+  await loadConfig();
 }
 
 initialize();
