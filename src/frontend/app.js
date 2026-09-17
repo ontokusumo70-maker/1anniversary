@@ -427,6 +427,41 @@ function showRootLanding() {
   window.scrollTo(0, 0);
 }
 
+const CUSTOMER_VIEW_KEY = "teras_customer_view";
+
+function saveCustomerView(view) {
+  try {
+    sessionStorage.setItem(CUSTOMER_VIEW_KEY, view);
+  } catch {}
+}
+
+function getCustomerView() {
+  try {
+    return sessionStorage.getItem(CUSTOMER_VIEW_KEY) || "DASHBOARD";
+  } catch {
+    return "DASHBOARD";
+  }
+}
+
+function clearCustomerView() {
+  try {
+    sessionStorage.removeItem(CUSTOMER_VIEW_KEY);
+  } catch {}
+}
+
+function restoreCustomerView() {
+  const view = getCustomerView();
+  if (view === "STATUS") {
+    openCustomerMachineStatus();
+  } else if (view === "SERVICES") {
+    openCustomerServices();
+  } else if (view === "EVENT") {
+    openCustomerEvent();
+  } else {
+    saveCustomerView("DASHBOARD");
+  }
+}
+
 function showRole() {
   if ($("rootLanding")) {
     $("rootLanding").hidden = true;
@@ -463,6 +498,7 @@ function showRole() {
     showCustomerDashboard();
     refreshCustomerDashboardMachines();
     loadActiveEventForRole("CUSTOMER");
+    restoreCustomerView();
     return;
   }
 
@@ -1456,6 +1492,7 @@ function startCustomerMachineStatusTimer() {
 }
 
 async function openCustomerMachineStatus() {
+  saveCustomerView("STATUS");
   scrollCustomerTop();
   closeCustomerMachineDetail();
   if ($("customerDashboard")) $("customerDashboard").hidden = true;
@@ -1472,6 +1509,7 @@ async function openCustomerMachineStatus() {
 }
 
 function closeCustomerMachineStatus() {
+  saveCustomerView("DASHBOARD");
   closeCustomerMachineDetail();
   stopCustomerMachineStatusTimer();
   if ($("customerMachineStatusView")) $("customerMachineStatusView").hidden = true;
@@ -1479,6 +1517,7 @@ function closeCustomerMachineStatus() {
 }
 
 function openCustomerServices() {
+  saveCustomerView("SERVICES");
   scrollCustomerTop();
   closeCustomerMachineDetail();
   if ($("customerDashboard")) $("customerDashboard").hidden = true;
@@ -1491,6 +1530,7 @@ function openCustomerServices() {
 }
 
 function closeCustomerServices() {
+  saveCustomerView("DASHBOARD");
   if ($("customerServicesView")) $("customerServicesView").hidden = true;
   showCustomerDashboard();
 }
@@ -1578,6 +1618,7 @@ function renderCustomerEventInfo(data) {
 }
 
 function openCustomerEvent() {
+  saveCustomerView("EVENT");
   scrollCustomerTop();
   closeCustomerMachineDetail();
   if ($("customerDashboard")) $("customerDashboard").hidden = true;
@@ -1591,6 +1632,7 @@ function openCustomerEvent() {
 }
 
 function closeCustomerEvent() {
+  saveCustomerView("DASHBOARD");
   if ($("customerEventView")) $("customerEventView").hidden = true;
   revokeCustomerEventInfoImage();
   showCustomerDashboard();
@@ -1955,12 +1997,13 @@ if ($("customerMachineRefresh")) $("customerMachineRefresh").addEventListener("c
 
 $("customerLogout")?.addEventListener("click", () => {
   clearSession();
-  window.location.href = "/";
+  clearCustomerView();
+  window.location.href = LOGIN_ROUTES.CUSTOMER;
 });
 
 $("staffLogout")?.addEventListener("click", () => {
   clearSession();
-  window.location.href = "/";
+  window.location.href = LOGIN_ROUTES.STAFF;
 });
 
 let cameraStream = null;
@@ -3249,7 +3292,7 @@ $("downloadExport")?.addEventListener("click", async () => {
 
 $("ownerLogout")?.addEventListener("click", () => {
   clearSession();
-  window.location.href = "/";
+  window.location.href = LOGIN_ROUTES.OWNER;
 });
 
 
