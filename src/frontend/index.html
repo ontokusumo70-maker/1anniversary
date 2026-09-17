@@ -8,18 +8,18 @@
   <script>
     (function () {
       const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
-      if (pathname === "/owner") {
-        document.documentElement.dataset.initialRoute = "OWNER";
-      } else if (pathname === "/staff") {
-        document.documentElement.dataset.initialRoute = "STAFF";
-      } else if (pathname === "/customer") {
-        document.documentElement.dataset.initialRoute = "CUSTOMER";
-      } else if (pathname === "/owner/role owner") {
-        document.documentElement.dataset.initialRoute = "OWNER_ROLE";
-      } else if (pathname === "/staff/role staff") {
-        document.documentElement.dataset.initialRoute = "STAFF_ROLE";
-      } else if (pathname === "/customer/role customer") {
-        document.documentElement.dataset.initialRoute = "CUSTOMER_ROLE";
+      if (pathname === "/owner" || pathname.startsWith("/owner/")) {
+        document.documentElement.dataset.initialRoute =
+          pathname === "/owner" ? "OWNER" : "OWNER_ROLE";
+      } else if (pathname === "/staff" || pathname.startsWith("/staff/")) {
+        document.documentElement.dataset.initialRoute =
+          pathname === "/staff" ? "STAFF" : "STAFF_ROLE";
+      } else if (
+        pathname === "/customer" ||
+        pathname.startsWith("/customer/")
+      ) {
+        document.documentElement.dataset.initialRoute =
+          pathname === "/customer" ? "CUSTOMER" : "CUSTOMER_ROLE";
       } else {
         document.documentElement.dataset.initialRoute = "ROOT";
       }
