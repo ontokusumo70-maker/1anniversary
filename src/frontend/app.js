@@ -3716,8 +3716,15 @@ async function initialize() {
   const pathname = normalizePathname();
   const expectedRole = resolveRolePath(pathname);
 
-  // Root is the only route allowed to render the anniversary landing page.
+  // Root restores an existing authenticated role after hosting fallback/refresh.
   if (pathname === "/") {
+    if (restoreSession() && ["OWNER", "STAFF", "CUSTOMER"].includes(state.role)) {
+      await loadConfig();
+      showRole();
+      return;
+    }
+
+    clearSession();
     await loadConfig();
     showRootLanding();
     return;
