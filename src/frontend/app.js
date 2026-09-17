@@ -1440,7 +1440,7 @@ function openCustomerMachineDetail(machine) {
   const status = machine.status === "IN_USE" ? "Terpakai" : "Idle";
   const duration = Number(machine.durationMinutes || (machine.type === "DRYER" ? 50 : 32));
   const time = formatStaffMachineElapsed(machine);
-  $("customerMachineDetailMachineId").textContent = `${id} - ${type}`;
+  $("customerMachineDetailMachineId").textContent = id;
   $("customerMachineDetailType").textContent = type;
   $("customerMachineDetailStatus").textContent = status;
   $("customerMachineDetailDuration").textContent = `${duration} menit`;
