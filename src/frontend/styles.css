@@ -2631,3 +2631,17 @@ body[data-role="CUSTOMER_LOGIN"] .app-shell{
 @media(min-width:601px){
   .customer-machine-detail-sheet{border-radius:20px;margin-bottom:18px}
 }
+
+/* CUSTOMER STATUS MESIN — USE THE SAME FULL-SCREEN OUTER SHELL AS STAFF */
+body[data-role="CUSTOMER"]:has(#customerMachineStatusView:not([hidden])) .topbar{
+  display:none !important;
+}
+body[data-role="CUSTOMER"]:has(#customerMachineStatusView:not([hidden])) .app-shell{
+  width:100%;
+  max-width:none;
+  min-height:100svh;
+  margin:0;
+  padding:0;
+  background:transparent;
+  box-shadow:none;
+}
