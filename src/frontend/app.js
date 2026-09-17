@@ -419,17 +419,8 @@ function setRoleRoute(role) {
   window.scrollTo(0, 0);
 }
 
-function ensureCustomerRoleClean() {
-  if (document.documentElement.dataset.customerRoleRoute !== "1") return;
-  const rootLanding = $("rootLanding");
-  if (rootLanding) rootLanding.remove();
-}
-
 function showRootLanding() {
-  if (document.documentElement.dataset.customerRoleRoute === "1") {
-    ensureCustomerRoleClean();
-    return;
-  }
+  if ($("rootLanding")) $("rootLanding").hidden = false;
   if ($("ownerAuth")) $("ownerAuth").hidden = true;
   if ($("staffAuth")) $("staffAuth").hidden = true;
   if ($("auth")) $("auth").hidden = true;
@@ -3704,14 +3695,9 @@ function makeQrSvg(text) {
 }
 
 async function initialize() {
-  const pathname = normalizePathname();
-
-  if (pathname === ROLE_ROUTES.CUSTOMER) {
-    document.documentElement.dataset.customerRoleRoute = "1";
-    ensureCustomerRoleClean();
-  }
-
   await loadConfig();
+
+  const pathname = normalizePathname();
 
   if (pathname === "/") {
     showRootLanding();
