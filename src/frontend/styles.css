@@ -2629,5 +2629,8 @@ body[data-role="CUSTOMER_LOGIN"] .app-shell{
   .customer-machine-detail-sheet{border-radius:20px;margin-bottom:18px}
 }
 
-/* CUSTOMER CLEAN ONLY: hide global anniversary topbar for Customer role. */
-body[data-role="CUSTOMER"] .app-shell > .topbar{display:none!important;}
+
+/* CUSTOMER CLEAN ONLY: hide global anniversary shell on Customer route. */
+body[data-role="CUSTOMER"] .app-shell > .topbar,
+body[data-role="CUSTOMER"] #rootLanding,
+body[data-role="CUSTOMER"] .footer-mark{display:none!important;}
