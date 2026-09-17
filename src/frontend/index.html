@@ -8,12 +8,20 @@
   <script>
     (function () {
       const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
-      if (pathname === "/staff") {
-        document.documentElement.dataset.initialRoute = "STAFF";
-      } else if (pathname === "/owner") {
+      if (pathname === "/owner") {
         document.documentElement.dataset.initialRoute = "OWNER";
-      } else {
+      } else if (pathname === "/staff") {
+        document.documentElement.dataset.initialRoute = "STAFF";
+      } else if (pathname === "/customer") {
         document.documentElement.dataset.initialRoute = "CUSTOMER";
+      } else if (pathname === "/owner/role owner") {
+        document.documentElement.dataset.initialRoute = "OWNER_ROLE";
+      } else if (pathname === "/staff/role staff") {
+        document.documentElement.dataset.initialRoute = "STAFF_ROLE";
+      } else if (pathname === "/customer/role customer") {
+        document.documentElement.dataset.initialRoute = "CUSTOMER_ROLE";
+      } else {
+        document.documentElement.dataset.initialRoute = "ROOT";
       }
     })();
   </script>
@@ -32,6 +40,11 @@
     </div>
     <div class="anniversary-coin"><img src="/assets/coin/coin_1st_front.png" alt="1st anniversary coin"></div>
   </header>
+
+  <section id="rootLanding" class="root-landing-screen" hidden aria-label="Teras Laundry 1st Anniversary">
+    <img class="root-landing-mascot" src="/assets/mascot_angle.png" alt="" aria-hidden="true">
+    <img class="root-landing-brand" src="/assets/branding/branding.png" alt="Teras Laundry">
+  </section>
 
   <section id="ownerAuth" class="screen owner-login-screen" hidden>
     <div class="owner-login-card">
@@ -190,6 +203,24 @@
         </section>
 
         <button id="customerMachineRefresh" class="staff-machine-refresh" type="button"><span aria-hidden="true">⟳</span> Segarkan Status</button>
+
+        <div id="customerMachineDetailModal" class="customer-machine-detail-modal" hidden>
+          <div class="customer-machine-detail-backdrop" data-close-customer-machine-detail></div>
+          <section class="customer-machine-detail-sheet" role="dialog" aria-modal="true" aria-labelledby="customerMachineDetailTitle">
+            <div class="customer-machine-detail-handle" aria-hidden="true"></div>
+            <header class="customer-machine-detail-header">
+              <div class="customer-machine-detail-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="13" r="4.5"/><path d="M8 7h1M11 7h1"/></svg></div>
+              <div><h2 id="customerMachineDetailTitle">Status Mesin</h2><p id="customerMachineDetailMachineId">W1 - Washer</p></div>
+              <button id="customerMachineDetailClose" class="customer-machine-detail-close" type="button" aria-label="Tutup">×</button>
+            </header>
+            <div class="customer-machine-detail-details">
+              <div><span>Jenis Mesin</span><b id="customerMachineDetailType">Washer</b></div>
+              <div><span>Status</span><b id="customerMachineDetailStatus">Idle</b></div>
+              <div><span>Durasi Program</span><b id="customerMachineDetailDuration">32 menit</b></div>
+              <div><span>Waktu Operasi</span><b id="customerMachineDetailTime">00:00</b></div>
+            </div>
+          </section>
+        </div>
       </section>
 
       <section id="customerServicesView" class="staff-services-view" hidden>
