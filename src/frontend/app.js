@@ -430,7 +430,7 @@ function resolveRolePath(rawPath = window.location.pathname || "/") {
 function setRoleRoute(role) {
   const route = ROLE_ROUTES[role];
   if (!route) return;
-  document.documentElement.dataset.initialRoute = role;
+  document.documentElement.dataset.initialRoute = `${role}_ROLE`;
   if (normalizePathname() !== route) {
     window.history.replaceState({ role }, "", route);
   }
@@ -3716,15 +3716,8 @@ async function initialize() {
   const pathname = normalizePathname();
   const expectedRole = resolveRolePath(pathname);
 
-  // Root restores an existing authenticated role after hosting fallback/refresh.
+  // Root is the only route allowed to render the anniversary landing page.
   if (pathname === "/") {
-    if (restoreSession() && ["OWNER", "STAFF", "CUSTOMER"].includes(state.role)) {
-      await loadConfig();
-      showRole();
-      return;
-    }
-
-    clearSession();
     await loadConfig();
     showRootLanding();
     return;
