@@ -400,13 +400,31 @@ function renderStaffDashboardEvent(data) {
   period.textContent = formatDateRange(data.event.startsAt, data.event.endsAt);
 }
 
-function normalizePathname() {
-  const rawPath = window.location.pathname || "/";
-  let decodedPath = rawPath;
-  try {
-    decodedPath = decodeURIComponent(rawPath);
-  } catch {}
+function normalizePathname(rawPath = window.location.pathname || "/") {
+  let decodedPath = rawPath || "/";
+
+  for (let i = 0; i < 3; i += 1) {
+    try {
+      const nextPath = decodeURIComponent(decodedPath);
+      if (nextPath === decodedPath) break;
+      decodedPath = nextPath;
+    } catch {
+      break;
+    }
+  }
+
   return decodedPath.replace(/\/+$/, "") || "/";
+}
+
+function resolveRolePath(rawPath = window.location.pathname || "/") {
+  const pathname = normalizePathname(rawPath);
+  const segments = pathname.split("/").filter(Boolean);
+  const root = (segments[0] || "").toLowerCase();
+
+  if (root === "owner") return "OWNER";
+  if (root === "staff") return "STAFF";
+  if (root === "customer") return "CUSTOMER";
+  return null;
 }
 
 function setRoleRoute(role) {
@@ -3696,62 +3714,79 @@ function makeQrSvg(text) {
 
 async function initialize() {
   const pathname = normalizePathname();
+  const expectedRole = resolveRolePath(pathname);
 
-  // Resolve role URLs before the network config request. This prevents the
-  // default Customer screen from being used as a fallback during refresh.
-  if (pathname === LOGIN_ROUTES.OWNER) {
-    clearSession();
-    showOwnerLogin();
-    await loadConfig();
-    return;
-  }
-
-  if (pathname === LOGIN_ROUTES.STAFF) {
-    clearSession();
-    showStaffLogin();
-    await loadConfig();
-    return;
-  }
-
-  if (pathname === LOGIN_ROUTES.CUSTOMER) {
-    clearSession();
-    showCustomerAuth();
-    await loadConfig();
-    return;
-  }
-
+  // Root is the only route allowed to render the anniversary landing page.
   if (pathname === "/") {
     await loadConfig();
     showRootLanding();
     return;
   }
 
-  const roleRoute = Object.entries(ROLE_ROUTES).find(
-    ([, route]) => route === pathname,
-  ) || Object.entries(ROLE_ROUTES).find(
-    ([, route]) => pathname.startsWith(route.split("/role ")[0] + "/"),
-  );
+  // /owner and every /owner/* URL belong exclusively to Owner.
+  if (expectedRole === "OWNER") {
+    if (pathname === LOGIN_ROUTES.OWNER) {
+      clearSession();
+      showOwnerLogin();
+      await loadConfig();
+      return;
+    }
 
-  if (roleRoute) {
-    const [expectedRole] = roleRoute;
-    if (restoreSession() && state.role === expectedRole) {
+    if (restoreSession() && state.role === "OWNER") {
       await loadConfig();
       showRole();
       return;
     }
 
     clearSession();
-    if (expectedRole === "OWNER") {
-      showOwnerLogin();
-    } else if (expectedRole === "STAFF") {
-      showStaffLogin();
-    } else {
-      showCustomerAuth();
-    }
+    showOwnerLogin();
     await loadConfig();
     return;
   }
 
+  // /staff and every /staff/* URL belong exclusively to Staff.
+  if (expectedRole === "STAFF") {
+    if (pathname === LOGIN_ROUTES.STAFF) {
+      clearSession();
+      showStaffLogin();
+      await loadConfig();
+      return;
+    }
+
+    if (restoreSession() && state.role === "STAFF") {
+      await loadConfig();
+      showRole();
+      return;
+    }
+
+    clearSession();
+    showStaffLogin();
+    await loadConfig();
+    return;
+  }
+
+  // /customer and every /customer/* URL belong exclusively to Customer.
+  if (expectedRole === "CUSTOMER") {
+    if (pathname === LOGIN_ROUTES.CUSTOMER) {
+      clearSession();
+      showCustomerAuth();
+      await loadConfig();
+      return;
+    }
+
+    if (restoreSession() && state.role === "CUSTOMER") {
+      await loadConfig();
+      showRole();
+      return;
+    }
+
+    clearSession();
+    showCustomerAuth();
+    await loadConfig();
+    return;
+  }
+
+  // Unknown non-root paths never inherit the Customer or another role UI.
   await loadConfig();
   showRootLanding();
 }
