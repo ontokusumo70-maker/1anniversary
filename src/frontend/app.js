@@ -1,4 +1,4 @@
- const state = {
+const state = {
   token: null,
   role: null,
   userId: null,
@@ -403,28 +403,10 @@ function renderStaffDashboardEvent(data) {
 function normalizePathname() {
   const rawPath = window.location.pathname || "/";
   let decodedPath = rawPath;
-  for (let i = 0; i < 3; i++) {
-    try {
-      const nextPath = decodeURIComponent(decodedPath);
-      if (nextPath === decodedPath) break;
-      decodedPath = nextPath;
-    } catch {
-      break;
-    }
-  }
+  try {
+    decodedPath = decodeURIComponent(rawPath);
+  } catch {}
   return decodedPath.replace(/\/+$/, "") || "/";
-}
-
-function matchRoleRoute(pathname) {
-  const exactMatch = Object.entries(ROLE_ROUTES).find(
-    ([, route]) => route === pathname,
-  );
-  if (exactMatch) return exactMatch;
-
-  const prefixMatch = Object.entries(ROLE_ROUTES).find(
-    ([, route]) => pathname.startsWith(route.split("/role ")[0] + "/"),
-  );
-  return prefixMatch || null;
 }
 
 function setRoleRoute(role) {
@@ -3713,11 +3695,10 @@ function makeQrSvg(text) {
 }
 
 async function initialize() {
-  // Resolve the browser route BEFORE any network/config request.
-  // This prevents a slow/failed /config request from exposing the default
-  // Customer screen during refresh of Owner or Staff role URLs.
   const pathname = normalizePathname();
 
+  // Resolve role URLs before the network config request. This prevents the
+  // default Customer screen from being used as a fallback during refresh.
   if (pathname === LOGIN_ROUTES.OWNER) {
     clearSession();
     showOwnerLogin();
@@ -3739,31 +3720,22 @@ async function initialize() {
     return;
   }
 
-  const roleRoute = matchRoleRoute(pathname);
+  if (pathname === "/") {
+    await loadConfig();
+    showRootLanding();
+    return;
+  }
+
+  const roleRoute = Object.entries(ROLE_ROUTES).find(
+    ([, route]) => route === pathname,
+  ) || Object.entries(ROLE_ROUTES).find(
+    ([, route]) => pathname.startsWith(route.split("/role ")[0] + "/"),
+  );
 
   if (roleRoute) {
     const [expectedRole] = roleRoute;
-
-    // Decide the role immediately from the URL. Never fall through to the
-    // default Customer screen while configuration is loading.
-    const hasValidSession = restoreSession() && state.role === expectedRole;
-
-    if (!hasValidSession) {
-      clearSession();
-      if (expectedRole === "OWNER") {
-        showOwnerLogin();
-      } else if (expectedRole === "STAFF") {
-        showStaffLogin();
-      } else {
-        showCustomerAuth();
-      }
+    if (restoreSession() && state.role === expectedRole) {
       await loadConfig();
-      return;
-    }
-
-    // Authenticated role: load configuration first, then render that role.
-    await loadConfig();
-    if (state.role === expectedRole) {
       showRole();
       return;
     }
@@ -3776,15 +3748,12 @@ async function initialize() {
     } else {
       showCustomerAuth();
     }
+    await loadConfig();
     return;
   }
 
-  // Root/unknown paths no longer expose the Anniversary landing page.
-  // Route them to the normal Customer login entry point.
-  window.history.replaceState({}, "", LOGIN_ROUTES.CUSTOMER);
-  clearSession();
-  showCustomerAuth();
   await loadConfig();
+  showRootLanding();
 }
 
 initialize();
