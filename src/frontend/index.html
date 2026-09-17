@@ -19,7 +19,26 @@
         }
       }
       pathname = pathname.replace(/\/+$/, "") || "/";
-      if (pathname === "/owner" || pathname.startsWith("/owner/")) {
+
+      // Recover a valid persisted role before the first paint when hosting falls back to /.
+      let persistedRole = null;
+      if (pathname === "/") {
+        try {
+          const rawSession = localStorage.getItem("teras_laundry_auth_session");
+          if (rawSession) {
+            const saved = JSON.parse(rawSession);
+            const validRoles = ["OWNER", "STAFF", "CUSTOMER"];
+            const notExpired = !saved.expiresAt || Date.now() < new Date(saved.expiresAt).getTime();
+            if (saved && saved.token && validRoles.includes(saved.role) && notExpired) {
+              persistedRole = saved.role;
+            }
+          }
+        } catch {}
+      }
+
+      if (persistedRole) {
+        document.documentElement.dataset.initialRoute = persistedRole;
+      } else if (pathname === "/owner" || pathname.startsWith("/owner/")) {
         document.documentElement.dataset.initialRoute = "OWNER";
       } else if (pathname === "/staff" || pathname.startsWith("/staff/")) {
         document.documentElement.dataset.initialRoute = "STAFF";
