@@ -20,6 +20,7 @@
         document.documentElement.dataset.initialRoute = "STAFF_ROLE";
       } else if (pathname === "/customer/role customer") {
         document.documentElement.dataset.initialRoute = "CUSTOMER_ROLE";
+        document.documentElement.dataset.customerRoleRoute = "1";
       } else {
         document.documentElement.dataset.initialRoute = "ROOT";
       }
@@ -40,11 +41,6 @@
     </div>
     <div class="anniversary-coin"><img src="/assets/coin/coin_1st_front.png" alt="1st anniversary coin"></div>
   </header>
-
-  <section id="rootLanding" class="root-landing-screen" hidden aria-label="Teras Laundry 1st Anniversary">
-    <img class="root-landing-mascot" src="/assets/mascot/mascot_angle.png" alt="" aria-hidden="true">
-    <img class="root-landing-brand" src="/assets/branding/branding.png" alt="Teras Laundry">
-  </section>
 
   <section id="ownerAuth" class="screen owner-login-screen" hidden>
     <div class="owner-login-card">
