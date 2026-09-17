@@ -1319,6 +1319,8 @@ function scrollCustomerTop() {
   window.scrollTo(0, 0);
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
+  const tools = $("customerTools");
+  if (tools) tools.scrollTop = 0;
 }
 
 function openCustomerMachineDetail(machine) {
@@ -1417,6 +1419,7 @@ async function openCustomerMachineStatus() {
   await refreshCustomerDashboardMachines();
   renderCustomerMachineStatusList();
   startCustomerMachineStatusTimer();
+  requestAnimationFrame(scrollCustomerTop);
 }
 
 function closeCustomerMachineStatus() {
@@ -1435,6 +1438,7 @@ function openCustomerServices() {
   if ($("customerServicesView")) $("customerServicesView").hidden = false;
   if ($("customerEventView")) $("customerEventView").hidden = true;
   stopCustomerMachineStatusTimer();
+  requestAnimationFrame(scrollCustomerTop);
 }
 
 function closeCustomerServices() {
@@ -1452,6 +1456,7 @@ function revokeCustomerEventInfoImage() {
 function renderCustomerEventRewards(event) {
   const target = $("customerEventRewards");
   if (!target) return;
+
   const rewards = Array.isArray(event?.rewards) && event.rewards.length
     ? event.rewards
     : (event?.rewardType ? [{
@@ -1462,17 +1467,20 @@ function renderCustomerEventRewards(event) {
       }] : []);
 
   target.innerHTML = rewards.length ? rewards.map((reward) => {
-    const name = escapeHtml(reward.rewardType || reward.name || reward.title || "—");
-    const quantity = Number(reward.remaining ?? reward.rewardQuantity ?? reward.quantity ?? reward.stock ?? 0);
+    const name = escapeHtml(reward.rewardType || reward.name || "—");
+    const quantity = Number(reward.remaining ?? reward.rewardQuantity ?? reward.quantity ?? 0);
     return `<section class="staff-event-detail-card staff-event-reward-card">
       <span class="staff-event-detail-icon staff-event-gift-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M9 19h30v23H9z"/><path d="M24 19v23"/><path d="M7 12h34v8H7z"/><path d="M24 12c-1-6-5-9-9-8-4 1-4 6 0 8h9Z"/><path d="M24 12c1-6 5-9 9-8 4 1 4 6 0 8h-9Z"/></svg></span>
       <div class="staff-event-reward-copy">
         <div class="staff-event-reward-top"><h3>Reward</h3><span>Stok Tersedia</span></div>
         <p>${name}</p>
-        <strong>${Number.isFinite(quantity) ? quantity.toLocaleString("id-ID") : "—"}</strong>
+        <strong>${Number.isFinite(quantity) ? quantity.toLocaleString("id-ID") : "0"}</strong>
       </div>
     </section>`;
-  }).join("") : "";
+  }).join("") : `<section class="staff-event-detail-card staff-event-reward-card">
+    <span class="staff-event-detail-icon staff-event-gift-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M9 19h30v23H9z"/><path d="M24 19v23"/><path d="M7 12h34v8H7z"/><path d="M24 12c-1-6-5-9-9-8-4 1-4 6 0 8h9Z"/><path d="M24 12c1-6 5-9 9-8 4 1 4 6 0 8h-9Z"/></svg></span>
+    <div class="staff-event-reward-copy"><div class="staff-event-reward-top"><h3>Reward</h3><span>Stok Tersedia</span></div><p>—</p><strong>0</strong></div>
+  </section>`;
 }
 
 function renderCustomerEventInfo(data) {
@@ -1496,7 +1504,15 @@ function renderCustomerEventInfo(data) {
   if (title) { title.textContent = event.title || "Event Aktif"; title.classList.remove("empty-state"); }
   if (periodText) periodText.textContent = formatDateRange(event.startsAt, event.endsAt);
   if (description) description.textContent = event.description || "—";
-  if (terms) terms.textContent = event.terms || "—";
+  if (terms) {
+    const rewards = Array.isArray(event.rewards) && event.rewards.length
+      ? event.rewards
+      : (event.rewardType ? [event] : []);
+    const termsList = rewards.map((reward) => reward.rewardTerms || reward.terms).filter(Boolean);
+    terms.innerHTML = termsList.length > 1
+      ? `<ol>${termsList.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ol>`
+      : escapeHtml(termsList[0] || "—");
+  }
   renderCustomerEventRewards(event);
   if (image) {
     image.hidden = true;
@@ -1522,6 +1538,7 @@ function openCustomerEvent() {
   if ($("customerEventView")) $("customerEventView").hidden = false;
   stopCustomerMachineStatusTimer();
   renderCustomerEventInfo(customerActiveEventData);
+  requestAnimationFrame(scrollCustomerTop);
 }
 
 function closeCustomerEvent() {
