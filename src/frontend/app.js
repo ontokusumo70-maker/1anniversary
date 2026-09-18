@@ -2154,13 +2154,15 @@ if ($("customerMachineRefresh")) $("customerMachineRefresh").addEventListener("c
   renderCustomerMachineStatusMeta();
 });
 
-$("customerLogout")?.addEventListener("click", () => {
+$("customerLogout")?.addEventListener("click", async () => {
+  try { await api("/auth/logout", { method: "POST" }); } catch {}
   clearSession();
   clearCustomerView();
   window.location.href = LOGIN_ROUTES.CUSTOMER;
 });
 
-$("staffLogout")?.addEventListener("click", () => {
+$("staffLogout")?.addEventListener("click", async () => {
+  try { await api("/auth/logout", { method: "POST" }); } catch {}
   clearSession();
   window.location.href = LOGIN_ROUTES.STAFF;
 });
@@ -3274,8 +3276,23 @@ function renderCustomerTraceList(data) {
   $("ownerCustomerTotal") && ($("ownerCustomerTotal").textContent = `${total.toLocaleString("id-ID")} Customers`);
   const heading = $("ownerCustomerHeading");
   if (heading) heading.textContent = ownerCustomerScope === "active-event" ? "Customer Aktif" : "Customer Trace";
-  target.innerHTML = items.length ? `<div class="owner-customer-table-wrap"><table class="owner-customer-table"><thead><tr><th>#</th><th>Email ID</th><th>No. HP</th><th>Play</th><th>Reward</th><th>Status</th><th></th></tr></thead><tbody>${items.map((item, index) => `<tr data-customer-id="${escapeHtml(item.customerId)}"><td>${from + index}</td><td>${escapeHtml(item.email || "—")}</td><td>${escapeHtml(item.phone || item.phoneMasked || "—")}</td><td>${Number(item.totalPlay || 0)}</td><td>${Number(item.totalReward || 0)}</td><td><span class="owner-customer-status">Active</span></td><td><button type="button" class="owner-customer-open" aria-label="Buka detail customer">›</button></td></tr>`).join("")}</tbody></table></div>` : `<div class="owner-customer-empty">Belum ada customer terdaftar.</div>`;
-  target.querySelectorAll("[data-customer-id]").forEach((row) => row.addEventListener("click", () => openCustomerDetail(row.dataset.customerId)));
+  target.innerHTML = items.length ? `<div class="owner-customer-table-wrap"><table class="owner-customer-table"><thead><tr><th>#</th><th>Email ID</th><th>No. HP</th><th>Play</th><th>Reward</th><th>Status</th><th>Aksi</th><th></th></tr></thead><tbody>${items.map((item, index) => `<tr data-customer-id="${escapeHtml(item.customerId)}"><td>${from + index}</td><td>${escapeHtml(item.email || "—")}</td><td>${escapeHtml(item.phone || item.phoneMasked || "—")}</td><td>${Number(item.totalPlay || 0)}</td><td>${Number(item.totalReward || 0)}</td><td><span class="owner-customer-status ${item.status === "ACTIVE" ? "" : "inactive"}">${item.status === "ACTIVE" ? "Active" : "Inactive"}</span></td><td><button type="button" class="owner-customer-delete" data-delete-customer="${escapeHtml(item.customerId)}" aria-label="Hapus customer">${ownerIconSvg("trash")}</button></td><td><button type="button" class="owner-customer-open" aria-label="Buka detail customer">›</button></td></tr>`).join("")}</tbody></table></div>` : `<div class="owner-customer-empty">Belum ada customer terdaftar.</div>`;
+  target.querySelectorAll("[data-customer-id]").forEach((row) => row.addEventListener("click", (event) => {
+    if (event.target.closest("[data-delete-customer]")) return;
+    openCustomerDetail(row.dataset.customerId);
+  }));
+  target.querySelectorAll("[data-delete-customer]").forEach((button) => button.addEventListener("click", async (event) => {
+    event.stopPropagation();
+    const customerId = button.dataset.deleteCustomer;
+    if (!customerId || !window.confirm("Hapus customer ini beserta seluruh data customer?")) return;
+    try {
+      await api(`/owner/customers/${encodeURIComponent(customerId)}`, { method: "DELETE" });
+      if (ownerCustomerData.items?.length === 1 && ownerCustomerPage > 1) ownerCustomerPage -= 1;
+      await loadOwnerCustomers();
+    } catch (error) {
+      window.alert(error.message);
+    }
+  }));
   renderCustomerPagination(total, page, pageSize);
 }
 
@@ -3307,6 +3324,8 @@ async function loadOwnerCustomers() {
   try {
     const params = new URLSearchParams({ page: String(ownerCustomerPage), pageSize: "10" });
     if (ownerCustomerScope === "active-event") params.set("scope", "active-event");
+    const statusFilter = $("ownerCustomerStatusFilter")?.value || "all";
+    params.set("status", statusFilter);
     if (ownerCustomerSearch) params.set("search", ownerCustomerSearch);
     renderCustomerTraceList(await api(`/owner/customers?${params.toString()}`));
   } catch (error) {
@@ -3388,7 +3407,7 @@ function renderCustomerTrace(data) {
   const eventPeriod = event ? `${formatCustomerDate(event.event_starts_at)} – ${formatCustomerDate(event.event_ends_at)}` : "—";
 
   target.innerHTML = `<div class="owner-customer-detail-heading"><h1>Customer Detail</h1></div>
-    <div class="owner-customer-info-card"><div><span>Alamat Email</span><b>${escapeHtml(customer.email || "—")}</b></div><div><span>No. HP</span><b>${escapeHtml(customer.phone_masked || "—")}</b></div><div><span>Registrasi</span><b>${escapeHtml(formatCustomerDate(customer.created_at))}</b></div><div><span>Event</span><b>${escapeHtml(eventName)}</b></div><div><span>Periode Event</span><b>${escapeHtml(eventPeriod)}</b></div><div><span>Total Play</span><b>${totalPlay}</b></div><div><span>Total Reward</span><b>${totalReward}</b></div><div><span>Total Redeemed</span><b>${totalRedeemed}</b></div><div><span>Status</span><b><em class="owner-customer-status">Active</em></b></div></div>
+    <div class="owner-customer-info-card"><div><span>Alamat Email</span><b>${escapeHtml(customer.email || "—")}</b></div><div><span>No. HP</span><b>${escapeHtml(customer.phone || customer.phone_masked || "—")}</b></div><div><span>Registrasi</span><b>${escapeHtml(formatCustomerDate(customer.created_at))}</b></div><div><span>Event</span><b>${escapeHtml(eventName)}</b></div><div><span>Periode Event</span><b>${escapeHtml(eventPeriod)}</b></div><div><span>Total Play</span><b>${totalPlay}</b></div><div><span>Total Reward</span><b>${totalReward}</b></div><div><span>Total Redeemed</span><b>${totalRedeemed}</b></div><div><span>Status</span><b><em class="owner-customer-status ${customer.login_status === "ACTIVE" ? "" : "inactive"}">${customer.login_status === "ACTIVE" ? "Active" : "Inactive"}</em></b></div></div>
     <h2 class="owner-customer-journey-title">Customer Journey</h2>
     <div class="owner-customer-journey">${journey.map((item, index) => `<div class="owner-journey-item${item.active ? "" : " inactive"}"><span class="owner-journey-dot"></span><div><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.text)}</small></div><time>${escapeHtml(item.at ? formatCustomerTime(item.at) : "—")}</time></div>`).join("")}</div>`;
 }
@@ -3535,6 +3554,7 @@ $("deleteEventButton")?.addEventListener("click", deleteEvent);
 $("loadOwner")?.addEventListener("click", loadOwnerData);
 $("ownerCustomerSearchButton")?.addEventListener("click", () => { ownerCustomerSearch = ($("ownerCustomerSearch")?.value || "").trim(); ownerCustomerPage = 1; loadOwnerCustomers(); });
 $("ownerCustomerSearch")?.addEventListener("keydown", (event) => { if (event.key === "Enter") { ownerCustomerSearch = event.currentTarget.value.trim(); ownerCustomerPage = 1; loadOwnerCustomers(); } });
+$("ownerCustomerStatusFilter")?.addEventListener("change", () => { ownerCustomerPage = 1; loadOwnerCustomers(); });
 $("ownerCustomerDetailBack")?.addEventListener("click", () => { const list = $("ownerCustomerListView"); const detail = $("ownerCustomerDetailView"); if (list) list.hidden = false; if (detail) detail.hidden = true; ownerSelectedCustomerId = null; });
 
 $("downloadExport")?.addEventListener("click", async () => {
@@ -3562,7 +3582,8 @@ $("downloadExport")?.addEventListener("click", async () => {
   }
 });
 
-$("ownerLogout")?.addEventListener("click", () => {
+$("ownerLogout")?.addEventListener("click", async () => {
+  try { await api("/auth/logout", { method: "POST" }); } catch {}
   clearSession();
   window.location.href = LOGIN_ROUTES.OWNER;
 });
