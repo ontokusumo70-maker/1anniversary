@@ -1567,7 +1567,9 @@ function openCustomerServices() {
 function closeCustomerServices() {
   saveCustomerView("DASHBOARD");
   if ($("customerServicesView")) $("customerServicesView").hidden = true;
+  if ($("customerTools")) $("customerTools").hidden = true;
   showCustomerDashboard();
+  scrollCustomerTop();
 }
 
 function revokeCustomerEventInfoImage() {
@@ -1652,7 +1654,7 @@ function renderCustomerEventInfo(data) {
   }
 }
 
-function openCustomerEvent() {
+async function openCustomerEvent() {
   saveCustomerView("EVENT");
   scrollCustomerTop();
   closeCustomerMachineDetail();
@@ -1662,6 +1664,7 @@ function openCustomerEvent() {
   if ($("customerServicesView")) $("customerServicesView").hidden = true;
   if ($("customerEventView")) $("customerEventView").hidden = false;
   stopCustomerMachineStatusTimer();
+  await loadActiveEventForRole("CUSTOMER");
   renderCustomerEventInfo(customerActiveEventData);
   requestAnimationFrame(scrollCustomerTop);
 }
@@ -1669,8 +1672,10 @@ function openCustomerEvent() {
 function closeCustomerEvent() {
   saveCustomerView("DASHBOARD");
   if ($("customerEventView")) $("customerEventView").hidden = true;
+  if ($("customerTools")) $("customerTools").hidden = true;
   revokeCustomerEventInfoImage();
   showCustomerDashboard();
+  scrollCustomerTop();
 }
 
 let staffEventInfoImageObjectUrl = null;
