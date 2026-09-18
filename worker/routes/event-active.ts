@@ -44,9 +44,12 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
   if (request.method === "GET" && url.pathname === "/event/active") {
     await cleanupInactiveEventImages(env, nowIso);
     const row = await env.DB.prepare(`
-      SELECT e.event_id, e.title, e.starts_at, e.ends_at, e.description,
+      SELECT e.event_id, e.title, e.starts_at, e.ends_at, e.reward_type,
+             e.reward_quantity, e.description,
+             rp.quota_total, rp.quota_used, rp.terms,
              CASE WHEN i.event_id IS NULL THEN 0 ELSE 1 END AS has_image
       FROM events e
+      LEFT JOIN reward_pool rp ON rp.reward_type = e.reward_type
       LEFT JOIN event_images i ON i.event_id = e.event_id
       WHERE e.active = 1 AND e.starts_at <= ? AND e.ends_at > ?
       ORDER BY e.starts_at DESC, e.event_id DESC
@@ -56,7 +59,12 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
       title: string;
       starts_at: string;
       ends_at: string;
+      reward_type: string;
+      reward_quantity: number;
       description: string;
+      quota_total: number | null;
+      quota_used: number | null;
+      terms: string | null;
       has_image: number;
     }>();
 
@@ -71,6 +79,12 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
         startsAt: row.starts_at,
         endsAt: row.ends_at,
         description: row.description || "",
+        rewards: [{
+          rewardType: row.reward_type,
+          rewardQuantity: Number(row.reward_quantity),
+          remaining: Math.max(0, Number(row.quota_total ?? 0) - Number(row.quota_used ?? 0)),
+          terms: row.terms || "—",
+        }],
         imageUrl: Number(row.has_image) === 1 ? "/event/active/image" : null,
       },
     });
