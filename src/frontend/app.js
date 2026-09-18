@@ -1392,10 +1392,10 @@ async function claim() {
     $("token").textContent =
       data.tokenRef;
 
-    $("qr").innerHTML =
-      makeQrSvg(
-        data.tokenRef,
-      );
+    if ($("qr")) {
+      $("qr").hidden = true;
+      $("qr").innerHTML = "";
+    }
 
     $("claimButton")?.remove();
   } catch (error) {
@@ -3274,7 +3274,7 @@ function renderCustomerTraceList(data) {
   $("ownerCustomerTotal") && ($("ownerCustomerTotal").textContent = `${total.toLocaleString("id-ID")} Customers`);
   const heading = $("ownerCustomerHeading");
   if (heading) heading.textContent = ownerCustomerScope === "active-event" ? "Customer Aktif" : "Customer Trace";
-  target.innerHTML = items.length ? `<div class="owner-customer-table-wrap"><table class="owner-customer-table"><thead><tr><th>#</th><th>Email ID</th><th>No. HP</th><th>Play</th><th>Reward</th><th>Status</th><th></th></tr></thead><tbody>${items.map((item, index) => `<tr data-customer-id="${escapeHtml(item.customerId)}"><td>${from + index}</td><td>${escapeHtml(item.email || "—")}</td><td>${escapeHtml(item.phoneMasked || "—")}</td><td>${Number(item.totalPlay || 0)}</td><td>${Number(item.totalReward || 0)}</td><td><span class="owner-customer-status">Active</span></td><td><button type="button" class="owner-customer-open" aria-label="Buka detail customer">›</button></td></tr>`).join("")}</tbody></table></div>` : `<div class="owner-customer-empty">Belum ada customer terdaftar.</div>`;
+  target.innerHTML = items.length ? `<div class="owner-customer-table-wrap"><table class="owner-customer-table"><thead><tr><th>#</th><th>Email ID</th><th>No. HP</th><th>Play</th><th>Reward</th><th>Status</th><th></th></tr></thead><tbody>${items.map((item, index) => `<tr data-customer-id="${escapeHtml(item.customerId)}"><td>${from + index}</td><td>${escapeHtml(item.email || "—")}</td><td>${escapeHtml(item.phone || item.phoneMasked || "—")}</td><td>${Number(item.totalPlay || 0)}</td><td>${Number(item.totalReward || 0)}</td><td><span class="owner-customer-status">Active</span></td><td><button type="button" class="owner-customer-open" aria-label="Buka detail customer">›</button></td></tr>`).join("")}</tbody></table></div>` : `<div class="owner-customer-empty">Belum ada customer terdaftar.</div>`;
   target.querySelectorAll("[data-customer-id]").forEach((row) => row.addEventListener("click", () => openCustomerDetail(row.dataset.customerId)));
   renderCustomerPagination(total, page, pageSize);
 }
@@ -3345,7 +3345,6 @@ function renderCustomerTrace(data) {
   const hasTransaction = transactions.length > 0;
   const hasPlay = plays.length > 0;
   const hasReward = rewards.length > 0;
-  const hasQr = rewards.some((row) => row.token_ref);
   const hasRedeem = rewards.some((row) => row.redeemed_at);
   const hasClaimed = rewards.some((row) => row.claimed_at);
 
@@ -3369,12 +3368,6 @@ function renderCustomerTrace(data) {
       at: hasReward ? latestReward.created_at : null,
     },
     {
-      title: "QR Reference",
-      active: hasQr,
-      text: hasQr ? String(rewards.find((row) => row.token_ref)?.token_ref || "—") : "Belum ada aktivitas",
-      at: hasQr ? (rewards.find((row) => row.token_ref)?.created_at || null) : null,
-    },
-    {
       title: "Redeem",
       active: hasRedeem,
       text: hasRedeem ? "Reward redeemed" : "Belum ada aktivitas",
@@ -3394,7 +3387,7 @@ function renderCustomerTrace(data) {
   const eventName = event?.event_title || "—";
   const eventPeriod = event ? `${formatCustomerDate(event.event_starts_at)} – ${formatCustomerDate(event.event_ends_at)}` : "—";
 
-  target.innerHTML = `<div class="owner-customer-detail-heading"><h1>Customer Detail</h1><p>${escapeHtml(customer.customer_id || "—")}</p></div>
+  target.innerHTML = `<div class="owner-customer-detail-heading"><h1>Customer Detail</h1></div>
     <div class="owner-customer-info-card"><div><span>Alamat Email</span><b>${escapeHtml(customer.email || "—")}</b></div><div><span>No. HP</span><b>${escapeHtml(customer.phone_masked || "—")}</b></div><div><span>Registrasi</span><b>${escapeHtml(formatCustomerDate(customer.created_at))}</b></div><div><span>Event</span><b>${escapeHtml(eventName)}</b></div><div><span>Periode Event</span><b>${escapeHtml(eventPeriod)}</b></div><div><span>Total Play</span><b>${totalPlay}</b></div><div><span>Total Reward</span><b>${totalReward}</b></div><div><span>Total Redeemed</span><b>${totalRedeemed}</b></div><div><span>Status</span><b><em class="owner-customer-status">Active</em></b></div></div>
     <h2 class="owner-customer-journey-title">Customer Journey</h2>
     <div class="owner-customer-journey">${journey.map((item, index) => `<div class="owner-journey-item${item.active ? "" : " inactive"}"><span class="owner-journey-dot"></span><div><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.text)}</small></div><time>${escapeHtml(item.at ? formatCustomerTime(item.at) : "—")}</time></div>`).join("")}</div>`;
