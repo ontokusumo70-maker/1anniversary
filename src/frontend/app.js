@@ -2695,9 +2695,47 @@ function renderOwnerMachines() {
       ? Math.max(0, Math.floor((ownerRealtimeNow() - Date.parse(machine.startedAt)) / 1000))
       : 0;
     const time = formatDuration(elapsedSeconds);
-    return `<div class="owner-machine-row"><span class="machine-row-icon">${ownerIconSvg(icon)}</span><span class="machine-row-id">${type === "Washer" ? "W" : "D"}${escapeHtml(machine.machineNumber)}</span><span class="machine-row-type">${type}</span><span class="machine-row-status ${inUse ? "busy" : "idle"}">${inUse ? "Terpakai" : "Idle"}</span><span class="machine-row-time">${time}</span></div>`;
+    return `<button type="button" class="owner-machine-row ${inUse ? "is-busy" : "is-idle"}" data-owner-machine-id="${escapeHtml(machine.machineId)}"><span class="machine-row-icon">${ownerIconSvg(icon)}</span><span class="machine-row-id">${type === "Washer" ? "W" : "D"}${escapeHtml(machine.machineNumber)}</span><span class="machine-row-type">${type}</span><span class="machine-row-status ${inUse ? "busy" : "idle"}">${inUse ? "Terpakai" : "Idle"}</span><span class="machine-row-time">${time}</span><span class="machine-row-arrow">›</span></button>`;
   }).join("") || `<div class="owner-machine-row-empty">Tidak ada mesin.</div>`;
+  target.querySelectorAll("[data-owner-machine-id]").forEach((row) => {
+    row.onclick = () => {
+      const machine = machines.find((item) => String(item.machineId) === String(row.dataset.ownerMachineId));
+      openOwnerMachineDetail(machine);
+    };
+  });
   mountOwnerIcons();
+}
+
+function openOwnerMachineDetail(machine) {
+  if (!machine) return;
+  const modal = $("ownerMachineDetailModal");
+  if (!modal) return;
+  const id = `${machine.type === "WASHER" ? "W" : "D"}${machine.machineNumber}`;
+  const type = machine.type === "WASHER" ? "Washer" : "Dryer";
+  const status = machine.status === "IN_USE" ? "Terpakai" : "Idle";
+  const duration = Number(machine.durationMinutes || (machine.type === "DRYER" ? 50 : 32));
+  const expectedEnd = machine.status === "IN_USE" && machine.expectedEndAt
+    ? new Intl.DateTimeFormat("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+        timeZone: "Asia/Jakarta",
+      }).format(new Date(machine.expectedEndAt))
+    : "—";
+  $("ownerMachineDetailTitle").textContent = id;
+  $("ownerMachineDetailMachineId").textContent = `${id} - ${type}`;
+  $("ownerMachineDetailType").textContent = type;
+  $("ownerMachineDetailStatus").textContent = status;
+  $("ownerMachineDetailDuration").textContent = `${duration} menit`;
+  $("ownerMachineDetailTime").textContent = expectedEnd;
+  modal.hidden = false;
+  document.body.classList.add("owner-machine-detail-open");
+}
+
+function closeOwnerMachineDetail() {
+  const modal = $("ownerMachineDetailModal");
+  if (modal) modal.hidden = true;
+  document.body.classList.remove("owner-machine-detail-open");
 }
 
 function getActiveRewardPools() {
@@ -3435,6 +3473,9 @@ for (const button of document.querySelectorAll("#machineFilters [data-machine-fi
     renderOwnerMachines();
   });
 }
+
+$("ownerMachineDetailClose")?.addEventListener("click", closeOwnerMachineDetail);
+$("ownerMachineDetailModal")?.querySelector("[data-close-owner-machine-detail]")?.addEventListener("click", closeOwnerMachineDetail);
 
 for (const button of document.querySelectorAll("#rewardFilters [data-reward-filter]")) {
   button.addEventListener("click", () => { ownerRewardFilter = button.dataset.rewardFilter; document.querySelectorAll("#rewardFilters button").forEach((item) => item.classList.toggle("active", item.dataset.rewardFilter === ownerRewardFilter)); renderOwnerRewardList(); });
