@@ -2547,6 +2547,39 @@ body[data-role="CUSTOMER"]:has(#customer:not([hidden])) .app-shell{
   .customer-machine-detail-sheet{border-radius:20px;margin-bottom:18px}
 }
 
+/* CUSTOMER SERVICES — SAME FULL-SCREEN OUTER SHELL AS STATUS MESIN */
+body[data-role="CUSTOMER"]:has(#customerServicesView:not([hidden])) .topbar{
+  display:none !important;
+}
+body[data-role="CUSTOMER"]:has(#customerServicesView:not([hidden])) .app-shell{
+  width:100%;
+  max-width:none;
+  min-height:100svh;
+  margin:0;
+  padding:0;
+  background:transparent;
+  box-shadow:none;
+}
+body[data-role="CUSTOMER"]:has(#customerServicesView:not([hidden])) #customerTools{
+  position:fixed;
+  inset:0;
+  z-index:50;
+  width:100%;
+  min-height:100svh;
+  margin:0;
+  padding:0;
+  background:#fff;
+  overflow:auto;
+  overscroll-behavior:contain;
+}
+body[data-role="CUSTOMER"]:has(#customerServicesView:not([hidden])) #customerServicesView{
+  position:relative;
+  z-index:1;
+  width:100%;
+  min-height:100svh;
+  box-sizing:border-box;
+  pointer-events:auto;
+}
 /* CUSTOMER STATUS MESIN — USE THE SAME FULL-SCREEN OUTER SHELL AS STAFF */
 body[data-role="CUSTOMER"]:has(#customerMachineStatusView:not([hidden])) .topbar{
   display:none !important;
