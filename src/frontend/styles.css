@@ -2729,7 +2729,8 @@ body[data-role="CUSTOMER"] .screen-customer.customer-dashboard-screen:not([hidde
 
   .screen-customer.customer-dashboard-screen .staff-dashboard-update{
     font-size:10px;
-    transform: translateX(-20px);
+    position:relative;
+    left:-20px;
   }
 
   .screen-customer.customer-dashboard-screen .staff-logout{
