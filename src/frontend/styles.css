@@ -2855,7 +2855,7 @@ body[data-role="CUSTOMER"] .screen-customer.customer-dashboard-screen:not([hidde
   }
 
   .screen-customer.customer-dashboard-screen .customer-dashboard-brand{
-    top:46px;
+    top:56px;
     height:104px;
     overflow:visible;
   }
