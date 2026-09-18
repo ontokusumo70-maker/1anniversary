@@ -2471,20 +2471,38 @@ html[data-initial-route="OWNER"] .app-shell{
 .screen-customer.customer-dashboard-screen:has(#customerEventView:not([hidden])) .customer-tools{display:block;}
 .screen-customer.customer-dashboard-screen .customer-tools[hidden]{display:none!important;}
 
-/* CUSTOMER DASHBOARD POSITION + SUMMARY ALIGNMENT — OWNER APPROVED FIX */
+/* CUSTOMER DASHBOARD POSITION + SUMMARY ALIGNMENT — V15 */
 @media(max-width:600px){
+  /* Match the locked Staff grid exactly; prevent label/number wrapping. */
   .screen-customer.customer-dashboard-screen .staff-machine-summary-copy > div{
-    grid-template-columns:12px max-content minmax(14px,1fr);
+    height:18px;
+    display:grid;
+    grid-template-columns:12px 1fr auto;
     align-items:center;
     gap:4px;
+    color:#737b80;
+    font-size:12px;
+    line-height:1;
   }
+
   .screen-customer.customer-dashboard-screen .staff-machine-summary-copy > div b{
+    min-width:0;
     white-space:nowrap;
+    font-weight:800;
   }
+
   .screen-customer.customer-dashboard-screen .staff-machine-summary-copy > div em{
-    min-width:14px;
+    min-width:18px;
+    white-space:nowrap;
+    color:#111827;
+    font-style:normal;
+    font-weight:800;
     text-align:right;
     font-variant-numeric:tabular-nums;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-machine-summary-copy > strong{
+    white-space:nowrap;
   }
 }
 
