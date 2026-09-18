@@ -393,7 +393,17 @@ async function handleOwnerCustomers(request: Request, env: Env): Promise<Respons
   const search = (url.searchParams.get("search") || "").trim().slice(0, 128);
   const scope = (url.searchParams.get("scope") || "").trim().toLowerCase();
   const activeEventScope = scope === "active-event";
+  const statusFilter = (url.searchParams.get("status") || "all").trim().toLowerCase();
   const nowIso = new Date().toISOString();
+  const activeSessionExists = `EXISTS (
+    SELECT 1
+    FROM auth_sessions s_customer
+    WHERE s_customer.user_id = c.customer_id
+      AND s_customer.role = 'CUSTOMER'
+      AND s_customer.session_id NOT LIKE 'otp_%'
+      AND s_customer.revoked_at IS NULL
+      AND s_customer.expires_at > ?
+  )`;
   const pageRaw = Number(url.searchParams.get("page") || 1);
   const pageSizeRaw = Number(url.searchParams.get("pageSize") || 10);
   const page = Number.isInteger(pageRaw) && pageRaw > 0 ? Math.min(pageRaw, 100000) : 1;
@@ -416,9 +426,16 @@ async function handleOwnerCustomers(request: Request, env: Env): Promise<Respons
     )`);
     whereParams.push(nowIso, nowIso);
   }
+  if (statusFilter === "active") {
+    whereClauses.push(activeSessionExists);
+    whereParams.push(nowIso);
+  } else if (statusFilter === "inactive") {
+    whereClauses.push(`NOT ${activeSessionExists}`);
+    whereParams.push(nowIso);
+  }
   if (search) {
-    whereClauses.push(`(c.email LIKE ? ESCAPE '\\' OR c.phone_masked LIKE ? ESCAPE '\\' OR c.customer_id LIKE ? ESCAPE '\\')`);
-    whereParams.push(pattern, pattern, pattern);
+    whereClauses.push(`(c.email LIKE ? ESCAPE '\\' OR c.phone LIKE ? ESCAPE '\\' OR c.phone_masked LIKE ? ESCAPE '\\' OR c.customer_id LIKE ? ESCAPE '\\')`);
+    whereParams.push(pattern, pattern, pattern, pattern);
   }
   const where = whereClauses.length ? `WHERE ${whereClauses.join(" AND ")}` : "";
   const params = [...whereParams, pageSize, offset];
@@ -428,11 +445,12 @@ async function handleOwnerCustomers(request: Request, env: Env): Promise<Respons
       (SELECT COUNT(*) FROM plays p WHERE p.customer_id = c.customer_id) AS total_play,
       (SELECT COUNT(*) FROM rewards r WHERE r.customer_id = c.customer_id) AS total_reward,
       (SELECT COUNT(*) FROM rewards r WHERE r.customer_id = c.customer_id AND r.redeemed_at IS NOT NULL) AS total_redeemed,
+      CASE WHEN ${activeSessionExists} THEN 'ACTIVE' ELSE 'INACTIVE' END AS login_status,
       COUNT(*) OVER () AS total_count
     FROM customers c ${where}
     ORDER BY c.created_at DESC, c.customer_id ASC
     LIMIT ? OFFSET ?
-  `).bind(...params).all();
+  `).bind(...[nowIso, ...whereParams, pageSize, offset]).all();
 
   const rows = (result.results ?? []) as Array<Record<string, unknown>>;
   const total = Number(rows[0]?.total_count ?? 0);
@@ -440,8 +458,42 @@ async function handleOwnerCustomers(request: Request, env: Env): Promise<Respons
     customerId: String(row.customer_id ?? ""), email: String(row.email ?? ""),
     phone: String(row.phone ?? ""), phoneMasked: String(row.phone_masked ?? ""), createdAt: String(row.created_at ?? ""),
     totalPlay: Number(row.total_play ?? 0), totalReward: Number(row.total_reward ?? 0),
-    totalRedeemed: Number(row.total_redeemed ?? 0), status: "ACTIVE",
+    totalRedeemed: Number(row.total_redeemed ?? 0), status: String(row.login_status ?? "INACTIVE"),
   })) });
+}
+
+async function handleOwnerCustomerDelete(request: Request, env: Env, customerId: string): Promise<Response> {
+  const owner = await requireOwner(request, env);
+  if (!owner) return errorResponse("UNAUTHORIZED", "Owner authentication is required.", 401);
+  const id = customerId.trim();
+  if (!id || id.length > 128) return errorResponse("INVALID_REQUEST", "Customer ID is required.", 400);
+
+  const customer = await env.DB.prepare(`
+    SELECT customer_id, email
+    FROM customers
+    WHERE customer_id = ?
+    LIMIT 1
+  `).bind(id).first<{ customer_id: string; email: string }>();
+  if (!customer) return errorResponse("CUSTOMER_NOT_FOUND", "Customer was not found.", 404);
+
+  await env.DB.batch([
+    env.DB.prepare(`DELETE FROM rewards WHERE customer_id = ?`).bind(id),
+    env.DB.prepare(`DELETE FROM sessions WHERE play_id IN (SELECT play_id FROM plays WHERE customer_id = ?)`).bind(id),
+    env.DB.prepare(`DELETE FROM plays WHERE customer_id = ?`).bind(id),
+    env.DB.prepare(`DELETE FROM transactions WHERE customer_id = ?`).bind(id),
+    env.DB.prepare(`DELETE FROM auth_sessions WHERE user_id = ? AND role = 'CUSTOMER'`).bind(id),
+    env.DB.prepare(`DELETE FROM customers WHERE customer_id = ?`).bind(id),
+  ]);
+
+  await writeAuditSafe(env, {
+    entityType: "CUSTOMER",
+    entityId: id,
+    action: "DELETE",
+    actor: owner.userId,
+    result: "SUCCESS",
+  });
+
+  return json({ ok: true, customerId: id });
 }
 
 async function handleCustomerTrace(request: Request, env: Env, customerId: string): Promise<Response> {
@@ -451,9 +503,17 @@ async function handleCustomerTrace(request: Request, env: Env, customerId: strin
   if (!id || id.length > 128) return errorResponse("INVALID_REQUEST", "Customer ID is required.", 400);
 
   const customer = await env.DB.prepare(`
-    SELECT customer_id, name, phone, phone_masked, email, created_at
+    SELECT customer_id, name, phone, phone_masked, email, created_at,
+      CASE WHEN EXISTS (
+        SELECT 1 FROM auth_sessions s_customer
+        WHERE s_customer.user_id = customers.customer_id
+          AND s_customer.role = 'CUSTOMER'
+          AND s_customer.session_id NOT LIKE 'otp_%'
+          AND s_customer.revoked_at IS NULL
+          AND s_customer.expires_at > ?
+      ) THEN 'ACTIVE' ELSE 'INACTIVE' END AS login_status
     FROM customers WHERE customer_id = ? LIMIT 1
-  `).bind(id).first<{ customer_id: string; name: string; phone: string | null; phone_masked: string; email: string; created_at: string }>();
+  `).bind(new Date().toISOString(), id).first<{ customer_id: string; name: string; phone: string | null; phone_masked: string; email: string; created_at: string; login_status: string }>();
   if (!customer) return errorResponse("CUSTOMER_NOT_FOUND", "Customer was not found.", 404);
 
   const [transactions, plays, rewards] = await env.DB.batch([
@@ -813,6 +873,10 @@ export async function handleOwnerRequest(request: Request, env: Env): Promise<Re
   const url = new URL(request.url);
   if (url.pathname === "/owner/export" && request.method === "GET") return handleOwnerExport(request, env);
   if (url.pathname === "/owner/overview" && request.method === "GET") return handleOwnerOverview(request, env);
+  const customerDeleteMatch = url.pathname.match(/^\/owner\/customers\/([^/]+)$/);
+  if (customerDeleteMatch && request.method === "DELETE") {
+    return handleOwnerCustomerDelete(request, env, decodeURIComponent(customerDeleteMatch[1]));
+  }
   if (url.pathname === "/owner/customers" && request.method === "GET") return handleOwnerCustomers(request, env);
   if (url.pathname === "/owner/audit" && request.method === "GET") return handleAudit(request, env);
   if (url.pathname === "/owner/reward-pool" || url.pathname.startsWith("/owner/reward-pool/")) return handleRewardPool(request, env);
