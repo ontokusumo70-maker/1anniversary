@@ -232,9 +232,10 @@ function renderRoleActiveEvent(role, data) {
   }
 }
 
-async function loadActiveEventForRole(role) {
+async function loadActiveEventForRole(role, eventId = "") {
   try {
-    const data = await api("/event/active");
+    const path = eventId ? `/event/active?eventId=${encodeURIComponent(eventId)}` : "/event/active";
+    const data = await api(path);
     if (role === "STAFF") {
       staffActiveEventData = data;
       renderRoleActiveEvent(role, data);
@@ -579,6 +580,11 @@ function clearCustomerView() {
 }
 
 function restoreCustomerView() {
+  const sharedEventId = (new URLSearchParams(window.location.search).get("event") || "").trim();
+  if (sharedEventId) {
+    openCustomerEvent(sharedEventId);
+    return;
+  }
   const view = getCustomerView();
   if (view === "STATUS") {
     openCustomerMachineStatus();
@@ -1724,7 +1730,9 @@ function renderCustomerEventInfo(data) {
   const description = $("customerEventInfoDescription");
   const terms = $("customerEventInfoTerms");
   revokeCustomerEventInfoImage();
+  const status = $("customerEventInfoStatus");
   if (!data?.active || !data.event) {
+    if (status) status.textContent = "EVENT TIDAK TERSEDIA";
     if (image) image.hidden = true;
     if (title) { title.textContent = "Belum ada event"; title.classList.add("empty-state"); }
     if (periodText) periodText.textContent = "—";
@@ -1734,6 +1742,7 @@ function renderCustomerEventInfo(data) {
     return;
   }
   const event = data.event;
+  if (status) status.textContent = event.status === "UPCOMING" ? "EVENT AKAN DATANG" : "EVENT AKTIF";
   if (title) { title.textContent = event.title || "Event Aktif"; title.classList.remove("empty-state"); }
   if (periodText) periodText.textContent = formatDateRange(event.startsAt, event.endsAt);
   if (description) description.textContent = event.description || "—";
@@ -1761,7 +1770,7 @@ function renderCustomerEventInfo(data) {
   }
 }
 
-async function openCustomerEvent() {
+async function openCustomerEvent(sharedEventId = "") {
   saveCustomerView("EVENT");
   scrollCustomerTop();
   closeCustomerMachineDetail();
@@ -1771,13 +1780,16 @@ async function openCustomerEvent() {
   if ($("customerServicesView")) $("customerServicesView").hidden = true;
   if ($("customerEventView")) $("customerEventView").hidden = false;
   stopCustomerMachineStatusTimer();
-  await loadActiveEventForRole("CUSTOMER");
+  await loadActiveEventForRole("CUSTOMER", sharedEventId);
   renderCustomerEventInfo(customerActiveEventData);
   requestAnimationFrame(scrollCustomerTop);
 }
 
 function closeCustomerEvent() {
   saveCustomerView("DASHBOARD");
+  const cleanUrl = new URL(window.location.href);
+  cleanUrl.searchParams.delete("event");
+  window.history.replaceState({ role: "CUSTOMER" }, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
   if ($("customerEventView")) $("customerEventView").hidden = true;
   if ($("customerTools")) $("customerTools").hidden = true;
   revokeCustomerEventInfoImage();
@@ -2400,7 +2412,9 @@ function ownerIconSvg(name) {
     user: `<svg ${common}><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-4 3-6 7-6s6.2 2 7 6"/></svg>`,
     gift: `<svg ${common}><rect x="4" y="9" width="16" height="11" rx="1"/><path d="M12 9v11M3 9h18M6 9a2.5 2.5 0 1 1 2.5-2.5C8.5 8 12 9 12 9s3.5-1 3.5-2.5A2.5 2.5 0 1 1 18 9"/></svg>`,
     percent: `<svg ${common}><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h.01M15 15h.01M8 16l8-8"/></svg>`,
-    trash: `<svg ${common}><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg>`
+    trash: `<svg ${common}><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg>`,
+    link: `<svg ${common}><path d="M10 13.5 8.5 15a3.5 3.5 0 0 1-5-5l2-2a3.5 3.5 0 0 1 5 0"/><path d="M14 10.5 15.5 9a3.5 3.5 0 0 1 5 5l-2 2a3.5 3.5 0 0 1-5 0"/><path d="m9 15 6-6"/></svg>`,
+    share: `<svg ${common}><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.4M8.2 13.2l7.6 4.4"/></svg>`
   };
   return icons[name] || '';
 }
@@ -2970,8 +2984,46 @@ function openEventDetail(eventId) {
     <div><span>Jumlah Reward</span><b>${escapeHtml(rewards.map((reward) => Number(reward.rewardQuantity || 0).toLocaleString("id-ID")).join(", "))}</b></div>
     <div><span>Deskripsi</span><b>${escapeHtml(event.description || "—")}</b></div>
     <div><span>Status</span><b><em class="locked-status ${category === "ACTIVE" ? "active" : "inactive"}">${eventStatusLabel(category)}</em></b></div>
+  </div>
+  <div class="event-share-actions">
+    <button type="button" class="owner-outline-button" id="copyEventLinkButton">${ownerIconSvg("link")} Copy Link</button>
+    <button type="button" class="owner-green-button" id="shareEventButton">${ownerIconSvg("share")} Share</button>
   </div>`;
+  const shareUrl = "https://1anniversary.pages.dev/customer";
+  $("copyEventLinkButton")?.addEventListener("click", () => copyOwnerEventLink(shareUrl));
+  $("shareEventButton")?.addEventListener("click", () => shareOwnerEvent(shareUrl, event.title));
   msg("eventDetailMsg", "");
+}
+
+async function copyOwnerEventLink(url) {
+  try {
+    await navigator.clipboard.writeText(url);
+    msg("eventDetailMsg", "Link event berhasil disalin.");
+  } catch {
+    const input = document.createElement("input");
+    input.value = url;
+    input.setAttribute("readonly", "");
+    input.style.position = "fixed";
+    input.style.opacity = "0";
+    document.body.appendChild(input);
+    input.select();
+    const copied = document.execCommand("copy");
+    input.remove();
+    msg("eventDetailMsg", copied ? "Link event berhasil disalin." : "Link event gagal disalin.");
+  }
+}
+
+async function shareOwnerEvent(url, title) {
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: title || "Event Teras Laundry", text: "Lihat informasi event Teras Laundry.", url });
+      msg("eventDetailMsg", "Link event siap dibagikan.");
+      return;
+    }
+    await copyOwnerEventLink(url);
+  } catch (error) {
+    if (error?.name !== "AbortError") msg("eventDetailMsg", "Share dibatalkan atau tidak tersedia.");
+  }
 }
 
 function closeEventViews() {
