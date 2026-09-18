@@ -424,7 +424,7 @@ async function handleOwnerCustomers(request: Request, env: Env): Promise<Respons
   const params = [...whereParams, pageSize, offset];
 
   const result = await env.DB.prepare(`
-    SELECT c.customer_id, c.email, c.phone_masked, c.created_at,
+    SELECT c.customer_id, c.email, c.phone, c.phone_masked, c.created_at,
       (SELECT COUNT(*) FROM plays p WHERE p.customer_id = c.customer_id) AS total_play,
       (SELECT COUNT(*) FROM rewards r WHERE r.customer_id = c.customer_id) AS total_reward,
       (SELECT COUNT(*) FROM rewards r WHERE r.customer_id = c.customer_id AND r.redeemed_at IS NOT NULL) AS total_redeemed,
@@ -438,7 +438,7 @@ async function handleOwnerCustomers(request: Request, env: Env): Promise<Respons
   const total = Number(rows[0]?.total_count ?? 0);
   return json({ ok: true, total, page, pageSize, items: rows.map((row) => ({
     customerId: String(row.customer_id ?? ""), email: String(row.email ?? ""),
-    phoneMasked: String(row.phone_masked ?? ""), createdAt: String(row.created_at ?? ""),
+    phone: String(row.phone ?? ""), phoneMasked: String(row.phone_masked ?? ""), createdAt: String(row.created_at ?? ""),
     totalPlay: Number(row.total_play ?? 0), totalReward: Number(row.total_reward ?? 0),
     totalRedeemed: Number(row.total_redeemed ?? 0), status: "ACTIVE",
   })) });
@@ -451,9 +451,9 @@ async function handleCustomerTrace(request: Request, env: Env, customerId: strin
   if (!id || id.length > 128) return errorResponse("INVALID_REQUEST", "Customer ID is required.", 400);
 
   const customer = await env.DB.prepare(`
-    SELECT customer_id, name, phone_masked, email, created_at
+    SELECT customer_id, name, phone, phone_masked, email, created_at
     FROM customers WHERE customer_id = ? LIMIT 1
-  `).bind(id).first<{ customer_id: string; name: string; phone_masked: string; email: string; created_at: string }>();
+  `).bind(id).first<{ customer_id: string; name: string; phone: string | null; phone_masked: string; email: string; created_at: string }>();
   if (!customer) return errorResponse("CUSTOMER_NOT_FOUND", "Customer was not found.", 404);
 
   const [transactions, plays, rewards] = await env.DB.batch([
