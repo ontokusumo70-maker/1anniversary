@@ -2443,6 +2443,10 @@ const DEFAULT_SERVICE_SETTINGS = {
   facebook: "https://www.facebook.com/share/1BuDpWuX5J/?mibextid=wwXIfr",
   selfStart: "07:00", selfEnd: "21:00", dropStart: "07:00", dropEnd: "23:00",
   coinLabel: "1 Koin", coinPrice: "Rp 10.000,- / 7 Kg", dropLabel: "Drop-off +", dropPrice: "Rp 10.000,-",
+  services: [
+    { label: "1 Koin", price: "Rp 10.000,- / 7 Kg" },
+    { label: "Drop-off +", price: "Rp 10.000,-" },
+  ],
   facilitiesMain: ["Washer 5 unit","Dryer 5 unit","Koin untuk pengoperasian mesin","Laundry Bag","Detergent Cair","Parfum/pewangi pakaian","Meja lipat pakaian"],
   facilitiesSupport: ["Area Parkir","Ruang tunggu smoking/non-smoking","Free WIFI"],
   facilitiesFnb: ["Aneka Minuman","Aneka Cemilan","Es Batu Kristal Rp 1.500,-/ Kg"],
@@ -2475,10 +2479,10 @@ function renderServiceDisplay() {
   });
   setServiceText("serviceDisplaySelfHours", `${serviceValue("selfStart")} - ${serviceValue("selfEnd")} WIB`);
   setServiceText("serviceDisplayDropHours", `${serviceValue("dropStart")} - ${serviceValue("dropEnd")} WIB`);
-  setServiceText("serviceDisplayCoinLabel", serviceValue("coinLabel"));
-  setServiceText("serviceDisplayCoinPrice", serviceValue("coinPrice"));
-  setServiceText("serviceDisplayDropLabel", serviceValue("dropLabel"));
-  setServiceText("serviceDisplayDropPrice", serviceValue("dropPrice"));
+  const tariffs = Array.isArray(serviceValue("services")) ? serviceValue("services") : [];
+  document.querySelectorAll("[data-service-tariffs]").forEach((node) => {
+    node.innerHTML = tariffs.map((item) => `<p><span>${escapeHtml(item.label)}</span><b>${escapeHtml(item.price)}</b></p>`).join("");
+  });
   const lists = [["facilitiesMain","facilitiesMain"],["facilitiesSupport","facilitiesSupport"],["facilitiesFnb","facilitiesFnb"]];
   lists.forEach(([field,key]) => {
     document.querySelectorAll(`[data-service-field="${field}"]`).forEach((node) => {
@@ -2509,10 +2513,33 @@ function serviceLines(value) {
   return String(value || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
 }
 
+function renderOwnerServiceTariffRows(items = []) {
+  const target = $("ownerServiceTariffRows");
+  if (!target) return;
+  const rows = Array.isArray(items) && items.length ? items : [{ label: "", price: "" }];
+  target.innerHTML = rows.slice(0, 10).map((item, index) => `
+    <div class="owner-service-tariff-row" data-service-tariff-row>
+      <label>Nama Layanan ${index + 1}<input type="text" maxlength="60" data-service-tariff-label value="${escapeHtml(item?.label || "")}"></label>
+      <label>Tarif Layanan ${index + 1}<input type="text" maxlength="80" data-service-tariff-price value="${escapeHtml(item?.price || "")}"></label>
+      <button type="button" class="owner-service-remove-tariff" data-remove-service-tariff aria-label="Hapus layanan ${index + 1}" ${rows.length <= 1 ? "disabled" : ""}>×</button>
+    </div>`).join("");
+}
+
+function collectOwnerServiceTariffs() {
+  return Array.from(document.querySelectorAll("[data-service-tariff-row]")).map((row) => ({
+    label: row.querySelector("[data-service-tariff-label]")?.value.trim() || "",
+    price: row.querySelector("[data-service-tariff-price]")?.value.trim() || "",
+  })).filter((item) => item.label || item.price).slice(0, 10);
+}
+
 function fillServiceSettingsForm(data = serviceSettingsData) {
   const settings = data?.settings || DEFAULT_SERVICE_SETTINGS;
-  const ids = ["description","address1","address2","phone","mapUrl","instagram","tiktok","facebook","selfStart","selfEnd","dropStart","dropEnd","coinLabel","coinPrice","dropLabel","dropPrice"];
+  const ids = ["description","address1","address2","phone","mapUrl","instagram","tiktok","facebook","selfStart","selfEnd","dropStart","dropEnd"];
   ids.forEach((key) => { const node = $(`service${key[0].toUpperCase()}${key.slice(1)}`); if (node) node.value = settings[key] ?? ""; });
+  renderOwnerServiceTariffRows(Array.isArray(settings.services) ? settings.services : [
+    { label: settings.coinLabel || "", price: settings.coinPrice || "" },
+    { label: settings.dropLabel || "", price: settings.dropPrice || "" },
+  ]);
   $("serviceFacilitiesMain").value = (settings.facilitiesMain || []).join("\n");
   $("serviceFacilitiesSupport").value = (settings.facilitiesSupport || []).join("\n");
   $("serviceFacilitiesFnb").value = (settings.facilitiesFnb || []).join("\n");
@@ -2533,7 +2560,9 @@ function collectServiceSettingsForm() {
     description: get("serviceDescription"), address1: get("serviceAddress1"), address2: get("serviceAddress2"), phone: get("servicePhone"),
     mapUrl: get("serviceMapUrl"), instagram: get("serviceInstagram"), tiktok: get("serviceTiktok"), facebook: get("serviceFacebook"),
     selfStart: get("serviceSelfStart"), selfEnd: get("serviceSelfEnd"), dropStart: get("serviceDropStart"), dropEnd: get("serviceDropEnd"),
-    coinLabel: get("serviceCoinLabel"), coinPrice: get("serviceCoinPrice"), dropLabel: get("serviceDropLabel"), dropPrice: get("serviceDropPrice"),
+    services: collectOwnerServiceTariffs(),
+    coinLabel: collectOwnerServiceTariffs()[0]?.label || "", coinPrice: collectOwnerServiceTariffs()[0]?.price || "",
+    dropLabel: collectOwnerServiceTariffs()[1]?.label || "", dropPrice: collectOwnerServiceTariffs()[1]?.price || "",
     facilitiesMain: serviceLines($("serviceFacilitiesMain")?.value),
     facilitiesSupport: serviceLines($("serviceFacilitiesSupport")?.value),
     facilitiesFnb: serviceLines($("serviceFacilitiesFnb")?.value),
@@ -3734,6 +3763,21 @@ $("downloadExport")?.addEventListener("click", async () => {
 
 $("ownerServiceSettingsForm")?.addEventListener("submit", saveOwnerServiceSettings);
 $("serviceSettingsReset")?.addEventListener("click", resetOwnerServiceSettings);
+$("ownerServiceAddTariff")?.addEventListener("click", () => {
+  const rows = collectOwnerServiceTariffs();
+  if (rows.length >= 10) return;
+  renderOwnerServiceTariffRows([...rows, { label: "", price: "" }]);
+});
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-remove-service-tariff]");
+  if (!button) return;
+  const rows = collectOwnerServiceTariffs();
+  if (rows.length <= 1) return;
+  const index = Array.from(document.querySelectorAll("[data-remove-service-tariff]")).indexOf(button);
+  if (index < 0) return;
+  rows.splice(index, 1);
+  renderOwnerServiceTariffRows(rows);
+});
 $("servicePhoto")?.addEventListener("change", () => {
   const file = $("servicePhoto")?.files?.[0];
   if (!file) return;
