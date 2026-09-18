@@ -622,10 +622,6 @@ function showRole() {
   }
 
   if (state.role === "CUSTOMER") {
-    const customerPath = normalizePathname();
-    if (customerPath !== LOGIN_ROUTES.CUSTOMER && customerPath !== ROLE_ROUTES.CUSTOMER) {
-      setRoleRoute("CUSTOMER");
-    }
     $("customer").hidden = false;
     showCustomerDashboard();
     refreshCustomerDashboardMachines();
