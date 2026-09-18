@@ -775,6 +775,24 @@
         <div><span class="status-dot busy"></span><b>Terpakai</b><small>Mesin sedang digunakan</small></div>
         <p><span class="owner-inline-icon" data-owner-icon="clock"></span> Real time mesin beroperasi (hh:mm)</p>
       </div>
+
+      <div id="ownerMachineDetailModal" class="owner-machine-detail-modal" hidden>
+        <div class="owner-machine-detail-backdrop" data-close-owner-machine-detail></div>
+        <section class="owner-machine-detail-sheet" role="dialog" aria-modal="true" aria-labelledby="ownerMachineDetailTitle">
+          <div class="owner-machine-detail-handle" aria-hidden="true"></div>
+          <header class="owner-machine-detail-header">
+            <div class="owner-machine-detail-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="13" r="4.5"/><path d="M8 7h1M11 7h1"/></svg></div>
+            <div><h2 id="ownerMachineDetailTitle">Status Mesin</h2><p id="ownerMachineDetailMachineId">W1 - Washer</p></div>
+            <button id="ownerMachineDetailClose" class="owner-machine-detail-close" type="button" aria-label="Tutup">×</button>
+          </header>
+          <div class="owner-machine-detail-details">
+            <div><span>Jenis Mesin</span><b id="ownerMachineDetailType">Washer</b></div>
+            <div><span>Status</span><b id="ownerMachineDetailStatus">Idle</b></div>
+            <div><span>Durasi Program</span><b id="ownerMachineDetailDuration">32 menit</b></div>
+            <div><span>Estimasi Selesai</span><b id="ownerMachineDetailTime">—</b></div>
+          </div>
+        </section>
+      </div>
     </div>
 
     <div id="ownerViewEvents" class="owner-view" hidden>
