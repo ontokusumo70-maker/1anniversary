@@ -305,15 +305,17 @@ async function customerAccess(
         customer_id,
         phone_hash,
         phone_masked,
+        phone,
         name,
         email,
         created_at
       )
-      VALUES (?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `).bind(
       userId,
       phoneHash,
       maskPhone(phone),
+      phone,
       "",
       email,
       new Date().toISOString(),
@@ -321,9 +323,9 @@ async function customerAccess(
   } else {
     await env.DB.prepare(`
       UPDATE customers
-      SET phone_masked = ?, email = ?
+      SET phone_masked = ?, phone = ?, email = ?
       WHERE customer_id = ?
-    `).bind(maskPhone(phone), email, userId).run();
+    `).bind(maskPhone(phone), phone, email, userId).run();
   }
 
   const session = await createAndPersistAuthSession(env, {
