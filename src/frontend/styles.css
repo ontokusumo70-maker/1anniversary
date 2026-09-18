@@ -3011,3 +3011,127 @@ body[data-role="OWNER"] .event-add-reward span{font-size:18px;line-height:1}
 @media(max-width:600px){
   body[data-role="OWNER"] .event-reward-row{grid-template-columns:minmax(0,1.65fr) minmax(92px,.9fr) 24px;gap:6px;padding:7px}
 }
+
+
+/* OWNER STATUS MESIN — VISUAL MATCH CUSTOMER + DETAIL POPUP */
+body[data-role="OWNER"] .owner-machine-row{
+  width:100%;
+  display:grid;
+  grid-template-columns:34px 34px minmax(0,1fr) 72px 68px 18px;
+  align-items:center;
+  gap:6px;
+  min-height:49px;
+  padding:7px 10px;
+  border:0;
+  border-bottom:1px solid #e9eeec;
+  border-radius:0;
+  background:#fff;
+  color:#26332e;
+  text-align:left;
+  box-shadow:none;
+  cursor:pointer;
+}
+body[data-role="OWNER"] .owner-machine-row:last-child{border-bottom:0}
+body[data-role="OWNER"] .owner-machine-row .machine-row-icon{
+  display:grid;
+  place-items:center;
+  width:28px;
+  height:32px;
+  color:#1c5f51;
+}
+body[data-role="OWNER"] .owner-machine-row .machine-row-icon svg{
+  width:28px;
+  height:32px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.45;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+body[data-role="OWNER"] .owner-machine-row .machine-row-id{
+  font-size:11px;
+  color:#173d34;
+  font-weight:800;
+}
+body[data-role="OWNER"] .owner-machine-row .machine-row-type{
+  min-width:0;
+  font-size:10px;
+  color:#6d7773;
+  font-weight:700;
+  white-space:nowrap;
+}
+body[data-role="OWNER"] .owner-machine-row .machine-row-status{
+  justify-self:start;
+  min-width:70px;
+  padding:7px 8px;
+  border-radius:7px;
+  text-align:center;
+  font-size:10px;
+  line-height:1.1;
+  font-weight:800;
+  white-space:nowrap;
+}
+body[data-role="OWNER"] .owner-machine-row .machine-row-status.idle{background:#def5e9;color:#159466}
+body[data-role="OWNER"] .owner-machine-row .machine-row-status.busy{background:#ffe9aa;color:#181818}
+body[data-role="OWNER"] .owner-machine-row .machine-row-time{
+  font-size:10px;
+  color:#68716d;
+  text-align:right;
+  font-weight:700;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+body[data-role="OWNER"] .owner-machine-row .machine-row-arrow{
+  font-size:28px;
+  line-height:1;
+  color:#66716c;
+  text-align:right;
+  font-weight:300;
+}
+.owner-machine-detail-modal{
+  position:fixed;
+  z-index:1000;
+  inset:0;
+  display:grid;
+  align-items:end;
+}
+.owner-machine-detail-modal[hidden]{display:none!important}
+.owner-machine-detail-backdrop{position:absolute;inset:0;background:rgba(13,35,25,.34)}
+.owner-machine-detail-sheet{
+  position:relative;
+  z-index:1;
+  width:min(100%,520px);
+  margin:0 auto;
+  padding:9px 16px 18px;
+  border-radius:20px 20px 0 0;
+  background:#fff;
+  box-shadow:0 -10px 30px rgba(16,88,52,.16);
+}
+.owner-machine-detail-handle{width:42px;height:4px;margin:0 auto 10px;border-radius:999px;background:#d7dfdb}
+.owner-machine-detail-header{display:grid;grid-template-columns:42px minmax(0,1fr) 34px;align-items:center;gap:10px}
+.owner-machine-detail-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:11px;background:#e5f8ee;color:#0b8f61}
+.owner-machine-detail-icon svg{width:27px;height:27px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.owner-machine-detail-header h2{margin:0;font-size:19px;line-height:1.1;color:#101820}
+.owner-machine-detail-header p{margin:4px 0 0;font-size:12px;color:#74817b}
+.owner-machine-detail-close{width:42px;height:42px;border:0;border-radius:50%;background:#f0f5f2;color:#50615a;font-size:31px;line-height:1;cursor:pointer}
+.owner-machine-detail-details{display:grid;gap:0;margin-top:14px;border:1px solid #e1e9e5;border-radius:12px;overflow:hidden;background:#fff}
+.owner-machine-detail-details>div{display:grid;grid-template-columns:1fr auto;align-items:center;min-height:50px;padding:8px 14px;border-bottom:1px solid #edf1ef}
+.owner-machine-detail-details>div:last-child{border-bottom:0}
+.owner-machine-detail-details span{font-size:12px;color:#74817b}
+.owner-machine-detail-details b{font-size:12px;color:#173d34;font-weight:800;text-align:right}
+body.owner-machine-detail-open{overflow:hidden}
+@media(max-width:600px){
+  body[data-role="OWNER"] .owner-machine-row{grid-template-columns:29px 28px minmax(0,1fr) 70px 62px 14px;min-height:41px;height:41px;padding:4px 8px;gap:5px}
+  body[data-role="OWNER"] .owner-machine-row .machine-row-icon{width:27px;height:31px}
+  body[data-role="OWNER"] .owner-machine-row .machine-row-icon svg{width:27px;height:31px}
+  body[data-role="OWNER"] .owner-machine-row .machine-row-id{font-size:11px}
+  body[data-role="OWNER"] .owner-machine-row .machine-row-type{font-size:10px}
+  body[data-role="OWNER"] .owner-machine-row .machine-row-status{min-width:70px;font-size:10px;padding:7px 6px}
+  body[data-role="OWNER"] .owner-machine-row .machine-row-time{font-size:10px}
+  body[data-role="OWNER"] .owner-machine-row .machine-row-arrow{font-size:25px}
+}
+@media(max-width:380px){
+  body[data-role="OWNER"] .owner-machine-row{grid-template-columns:28px 27px minmax(0,1fr) 68px 58px 14px;gap:4px;padding-left:7px;padding-right:7px}
+  body[data-role="OWNER"] .owner-machine-row .machine-row-status{min-width:66px}
+  body[data-role="OWNER"] .owner-machine-row .machine-row-time{font-size:9px}
+}
