@@ -629,6 +629,7 @@ function showRole() {
 
   if (state.role === "CUSTOMER") {
     $("customer").hidden = false;
+    loadServiceSettings();
     showCustomerDashboard();
     refreshCustomerDashboardMachines();
     loadActiveEventForRole("CUSTOMER");
@@ -637,6 +638,7 @@ function showRole() {
   }
 
   if (state.role === "STAFF") {
+    loadServiceSettings();
     setRoleRoute("STAFF");
     document.documentElement.style.setProperty("--game-bg", `url("${assetBasePath}background/game/game-bg.PNG")`);
     $("staff").hidden = false;
@@ -2078,7 +2080,7 @@ const STAFF_LAUNDRY_MAP_URL = "https://maps.app.goo.gl/3KfFnHuLeZRsBnYG6?g_st=ic
 const staffServicesLocationIcon = document.querySelector("#staffServicesView .staff-services-info-address .staff-services-icon-box");
 if (staffServicesLocationIcon) {
   staffServicesLocationIcon.addEventListener("click", () => {
-    window.location.href = STAFF_LAUNDRY_MAP_URL;
+    window.location.href = serviceValue("mapUrl");
   });
 }
 
@@ -2416,7 +2418,8 @@ function ownerIconSvg(name) {
     percent: `<svg ${common}><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h.01M15 15h.01M8 16l8-8"/></svg>`,
     trash: `<svg ${common}><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg>`,
     link: `<svg ${common}><path d="M10 13.5 8.5 15a3.5 3.5 0 0 1-5-5l2-2a3.5 3.5 0 0 1 5 0"/><path d="M14 10.5 15.5 9a3.5 3.5 0 0 1 5 5l-2 2a3.5 3.5 0 0 1-5 0"/><path d="m9 15 6-6"/></svg>`,
-    share: `<svg ${common}><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.4M8.2 13.2l7.6 4.4"/></svg>`
+    share: `<svg ${common}><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.4M8.2 13.2l7.6 4.4"/></svg>`,
+    settings: `<svg ${common}><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.4 1a8 8 0 0 0-1.7-1L14.5 3h-5L9 6a8 8 0 0 0-1.7 1l-2.4-1-2 3.5L5 11a7 7 0 0 0 0 2l-2 1.5 2 3.5 2.4-1a8 8 0 0 0 1.7 1l.5 3h5l.5-3a8 8 0 0 0 1.7-1l2.4 1 2-3.5-2-1.5c.1-.3.1-.7.1-1Z"/></svg>`
   };
   return icons[name] || '';
 }
@@ -2428,6 +2431,151 @@ function mountOwnerIcons() {
   });
 }
 
+
+const DEFAULT_SERVICE_SETTINGS = {
+  description: "Semua kenyamanan untuk pengalaman laundry terbaik",
+  address1: "Jl. Gegerkalong Hilir No.27",
+  address2: "Ciwaruga-Bandung",
+  phone: "085117624377",
+  mapUrl: "https://maps.app.goo.gl/3KfFnHuLeZRsBnYG6?g_st=ic",
+  instagram: "https://www.instagram.com/teraslaundrycoin.ciwaruga?stkn=MWVzYTN1dHptaHp6bQ==",
+  tiktok: "https://www.tiktok.com/@teraslaundrycoinciwaruga?_r=1&_t=ZS-99mUOH4ItNN",
+  facebook: "https://www.facebook.com/share/1BuDpWuX5J/?mibextid=wwXIfr",
+  selfStart: "07:00", selfEnd: "21:00", dropStart: "07:00", dropEnd: "23:00",
+  coinLabel: "1 Koin", coinPrice: "Rp 10.000,- / 7 Kg", dropLabel: "Drop-off +", dropPrice: "Rp 10.000,-",
+  facilitiesMain: ["Washer 5 unit","Dryer 5 unit","Koin untuk pengoperasian mesin","Laundry Bag","Detergent Cair","Parfum/pewangi pakaian","Meja lipat pakaian"],
+  facilitiesSupport: ["Area Parkir","Ruang tunggu smoking/non-smoking","Free WIFI"],
+  facilitiesFnb: ["Aneka Minuman","Aneka Cemilan","Es Batu Kristal Rp 1.500,-/ Kg"],
+};
+
+let serviceSettingsData = null;
+let serviceSettingsSnapshot = null;
+
+function serviceValue(key) {
+  return serviceSettingsData?.settings?.[key] ?? DEFAULT_SERVICE_SETTINGS[key] ?? "";
+}
+
+function setServiceText(id, value) {
+  const nodes = document.querySelectorAll(`[data-service-field="${id}"]`);
+  nodes.forEach((node) => { node.textContent = String(value ?? ""); });
+}
+
+function renderServiceDisplay() {
+  setServiceText("serviceDisplayDescription", serviceValue("description"));
+  setServiceText("serviceDisplayAddress1", serviceValue("address1"));
+  setServiceText("serviceDisplayAddress2", serviceValue("address2"));
+  const phone = String(serviceValue("phone"));
+  document.querySelectorAll('[data-service-field="phone"]').forEach((node) => {
+    node.textContent = phone;
+    node.href = `https://wa.me/${phone.replace(/\D/g, "").replace(/^0/, "62")}`;
+  });
+  const socials = [["instagram","instagram"],["tiktok","tiktok"],["facebook","facebook"]];
+  socials.forEach(([field,key]) => {
+    document.querySelectorAll(`[data-service-field="${field}"]`).forEach((node) => { node.href = serviceValue(key); });
+  });
+  setServiceText("serviceDisplaySelfHours", `${serviceValue("selfStart")} - ${serviceValue("selfEnd")} WIB`);
+  setServiceText("serviceDisplayDropHours", `${serviceValue("dropStart")} - ${serviceValue("dropEnd")} WIB`);
+  setServiceText("serviceDisplayCoinLabel", serviceValue("coinLabel"));
+  setServiceText("serviceDisplayCoinPrice", serviceValue("coinPrice"));
+  setServiceText("serviceDisplayDropLabel", serviceValue("dropLabel"));
+  setServiceText("serviceDisplayDropPrice", serviceValue("dropPrice"));
+  const lists = [["facilitiesMain","facilitiesMain"],["facilitiesSupport","facilitiesSupport"],["facilitiesFnb","facilitiesFnb"]];
+  lists.forEach(([field,key]) => {
+    document.querySelectorAll(`[data-service-field="${field}"]`).forEach((node) => {
+      node.innerHTML = (Array.isArray(serviceValue(key)) ? serviceValue(key) : []).map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+    });
+  });
+  document.querySelectorAll("[data-service-photo]").forEach((node) => {
+    node.src = serviceSettingsData?.photoUrl || "/assets/background/laundry/Laundry-area.jpg";
+  });
+}
+
+async function loadServiceSettings() {
+  try {
+    const response = await fetch(`${apiBase}/service-settings`, { cache: "no-store" });
+    const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.message || data.error || `HTTP ${response.status}`);
+    serviceSettingsData = data;
+    renderServiceDisplay();
+    return data;
+  } catch {
+    serviceSettingsData = { settings: DEFAULT_SERVICE_SETTINGS, photoUrl: "/assets/background/laundry/Laundry-area.jpg" };
+    renderServiceDisplay();
+    return serviceSettingsData;
+  }
+}
+
+function serviceLines(value) {
+  return String(value || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+}
+
+function fillServiceSettingsForm(data = serviceSettingsData) {
+  const settings = data?.settings || DEFAULT_SERVICE_SETTINGS;
+  const ids = ["description","address1","address2","phone","mapUrl","instagram","tiktok","facebook","selfStart","selfEnd","dropStart","dropEnd","coinLabel","coinPrice","dropLabel","dropPrice"];
+  ids.forEach((key) => { const node = $(`service${key[0].toUpperCase()}${key.slice(1)}`); if (node) node.value = settings[key] ?? ""; });
+  $("serviceFacilitiesMain").value = (settings.facilitiesMain || []).join("\n");
+  $("serviceFacilitiesSupport").value = (settings.facilitiesSupport || []).join("\n");
+  $("serviceFacilitiesFnb").value = (settings.facilitiesFnb || []).join("\n");
+  $("servicePhotoRemove").checked = false;
+  $("servicePhoto").value = "";
+  $("servicePhotoPreview").src = data?.photoUrl || "/assets/background/laundry/Laundry-area.jpg";
+}
+
+async function loadOwnerServiceSettings() {
+  const data = await loadServiceSettings();
+  serviceSettingsSnapshot = JSON.parse(JSON.stringify(data));
+  fillServiceSettingsForm(data);
+}
+
+function collectServiceSettingsForm() {
+  const get = (id) => ($(id)?.value || "").trim();
+  return {
+    description: get("serviceDescription"), address1: get("serviceAddress1"), address2: get("serviceAddress2"), phone: get("servicePhone"),
+    mapUrl: get("serviceMapUrl"), instagram: get("serviceInstagram"), tiktok: get("serviceTiktok"), facebook: get("serviceFacebook"),
+    selfStart: get("serviceSelfStart"), selfEnd: get("serviceSelfEnd"), dropStart: get("serviceDropStart"), dropEnd: get("serviceDropEnd"),
+    coinLabel: get("serviceCoinLabel"), coinPrice: get("serviceCoinPrice"), dropLabel: get("serviceDropLabel"), dropPrice: get("serviceDropPrice"),
+    facilitiesMain: serviceLines($("serviceFacilitiesMain")?.value),
+    facilitiesSupport: serviceLines($("serviceFacilitiesSupport")?.value),
+    facilitiesFnb: serviceLines($("serviceFacilitiesFnb")?.value),
+  };
+}
+
+async function saveOwnerServiceSettings(event) {
+  event.preventDefault();
+  const button = $("serviceSettingsSave");
+  try {
+    const file = $("servicePhoto")?.files?.[0];
+    if (file && file.size > 1048576) throw new Error("Foto maksimal 1 MB.");
+    if (file && !/^image\/(jpeg|png|webp)$/i.test(file.type)) throw new Error("Foto harus JPG, PNG, atau WebP.");
+    const form = new FormData();
+    form.set("settings", JSON.stringify(collectServiceSettingsForm()));
+    form.set("removePhoto", $("servicePhotoRemove")?.checked ? "1" : "0");
+    if (file) form.set("photo", file, file.name);
+    const response = await fetch(`${apiBase}/owner/service-settings`, {
+      method: "PUT",
+      headers: state.token ? { Authorization: `Bearer ${state.token}` } : {},
+      body: form,
+      cache: "no-store",
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.message || data.error || `HTTP ${response.status}`);
+    serviceSettingsData = data;
+    serviceSettingsSnapshot = JSON.parse(JSON.stringify(data));
+    fillServiceSettingsForm(data);
+    renderServiceDisplay();
+    msg("serviceSettingsMsg", "Pengaturan Layanan berhasil disimpan.");
+  } catch (error) {
+    msg("serviceSettingsMsg", error.message);
+  }
+}
+
+function resetOwnerServiceSettings() {
+  if (!serviceSettingsSnapshot) return;
+  serviceSettingsData = JSON.parse(JSON.stringify(serviceSettingsSnapshot));
+  fillServiceSettingsForm(serviceSettingsData);
+  msg("serviceSettingsMsg", "Perubahan dibatalkan.");
+}
+
 function ownerViews() {
   return {
     overview: $("ownerViewOverview"),
@@ -2435,6 +2583,7 @@ function ownerViews() {
     events: $("ownerViewEvents"),
     "reward-pool": $("ownerViewRewardPool"),
     "customer-trace": $("ownerViewCustomerTrace"),
+    "service-settings": $("ownerViewServiceSettings"),
     "csv-export": $("ownerViewCsvExport"),
   };
 }
@@ -2460,6 +2609,7 @@ function setOwnerView(view) {
   if (view === "events") return loadOwnerEvents();
   if (view === "reward-pool") return loadOwnerRewardPool();
   if (view === "customer-trace") return loadOwnerCustomers();
+  if (view === "service-settings") return loadOwnerServiceSettings();
   return Promise.resolve();
 }
 
@@ -3579,6 +3729,28 @@ $("downloadExport")?.addEventListener("click", async () => {
     msg("csvExportMsg", "CSV berhasil dibuat.");
   } catch (error) {
     msg("csvExportMsg", error.message);
+  }
+});
+
+$("ownerServiceSettingsForm")?.addEventListener("submit", saveOwnerServiceSettings);
+$("serviceSettingsReset")?.addEventListener("click", resetOwnerServiceSettings);
+$("servicePhoto")?.addEventListener("change", () => {
+  const file = $("servicePhoto")?.files?.[0];
+  if (!file) return;
+  if (file.size > 1048576 || !/^image\/(jpeg|png|webp)$/i.test(file.type)) {
+    $("servicePhoto").value = "";
+    msg("serviceSettingsMsg", "Foto harus JPG, PNG, atau WebP dan maksimal 1 MB.");
+    return;
+  }
+  $("servicePhotoRemove").checked = false;
+  $("servicePhotoPreview").src = URL.createObjectURL(file);
+});
+$("servicePhotoRemove")?.addEventListener("change", () => {
+  if ($("servicePhotoRemove").checked) {
+    $("servicePhoto").value = "";
+    $("servicePhotoPreview").src = "/assets/background/laundry/Laundry-area.jpg";
+  } else if (serviceSettingsData?.photoUrl) {
+    $("servicePhotoPreview").src = serviceSettingsData.photoUrl;
   }
 });
 
