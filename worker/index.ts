@@ -20,10 +20,6 @@ export interface Env {
   OWNER_PHONE_1?: string;
   OWNER_PHONE_2?: string;
 
-  GMAIL_CLIENT_ID?: string;
-  GMAIL_CLIENT_SECRET?: string;
-  GMAIL_REFRESH_TOKEN?: string;
-  GMAIL_SENDER_EMAIL?: string;
 
   R2?: R2Bucket;
 }
