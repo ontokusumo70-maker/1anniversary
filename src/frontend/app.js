@@ -2,9 +2,11 @@ const state = {
   token: null,
   role: null,
   userId: null,
+  challengeId: null,
   playId: null,
   sessionId: null,
   rewardId: null,
+  authMode: "CUSTOMER",
 };
 
 const SESSION_KEY = "teras_laundry_auth_session";
@@ -435,105 +437,6 @@ function setRoleRoute(role) {
   window.scrollTo(0, 0);
 }
 
-const CUSTOMER_IDENTITY_KEY = "teras_customer_identity";
-
-function saveCustomerIdentity(identity) {
-  try {
-    localStorage.setItem(CUSTOMER_IDENTITY_KEY, JSON.stringify(identity));
-  } catch {}
-}
-
-function loadCustomerIdentity() {
-  try {
-    const raw = localStorage.getItem(CUSTOMER_IDENTITY_KEY);
-    if (!raw) return null;
-    const value = JSON.parse(raw);
-    if (!value?.phone || !value?.email) return null;
-    return value;
-  } catch {
-    return null;
-  }
-}
-
-function clearCustomerIdentity() {
-  try { localStorage.removeItem(CUSTOMER_IDENTITY_KEY); } catch {}
-}
-
-function openCustomerIdentityPopup() {
-  const modal = $("customerIdentityModal");
-  if (!modal || !modal.hidden) return;
-  const identity = loadCustomerIdentity();
-  if ($("customerIdentityPhone")) $("customerIdentityPhone").value = identity?.phone || "";
-  if ($("customerIdentityEmail")) $("customerIdentityEmail").value = identity?.email || "";
-  if ($("customerIdentityMsg")) $("customerIdentityMsg").textContent = "";
-  modal.hidden = false;
-}
-
-function closeCustomerIdentityPopup() {
-  const modal = $("customerIdentityModal");
-  if (modal) modal.hidden = true;
-}
-
-async function createCustomerGuestSession() {
-  const data = await api("/auth/customer-access", { method: "POST" });
-  if (data.role !== "CUSTOMER" || !data.token) throw new Error("Customer session tidak valid.");
-  state.token = data.token;
-  state.role = data.role;
-  state.userId = data.userId;
-  state.expiresAt = data.expiresAt || null;
-  saveSession();
-  return data;
-}
-
-async function restoreCustomerIdentitySession(identity) {
-  const data = await api("/auth/customer-access", {
-    method: "POST",
-    body: JSON.stringify({ phone: identity.phone, email: identity.email }),
-  });
-  if (data.role !== "CUSTOMER" || !data.token || data.guest) {
-    throw new Error("Customer session tidak valid.");
-  }
-  state.token = data.token;
-  state.role = data.role;
-  state.userId = data.userId;
-  state.expiresAt = data.expiresAt || null;
-  saveSession();
-  return data;
-}
-
-async function submitCustomerIdentity() {
-  const phone = $("customerIdentityPhone")?.value.trim() || "";
-  const email = $("customerIdentityEmail")?.value.trim() || "";
-  const button = $("customerIdentitySubmit");
-
-  if (!phone || !email) return;
-  if (button) button.disabled = true;
-
-  try {
-    const data = await api("/auth/customer-access", {
-      method: "POST",
-      body: JSON.stringify({ phone, email }),
-    });
-
-    if (data.role !== "CUSTOMER" || !data.token || data.guest) {
-      throw new Error("Customer session tidak valid.");
-    }
-
-    state.token = data.token;
-    state.role = data.role;
-    state.userId = data.userId;
-    state.expiresAt = data.expiresAt || null;
-    saveSession();
-    saveCustomerIdentity({ phone, email, userId: data.userId });
-    closeCustomerIdentityPopup();
-  } catch (error) {
-    const message = $("customerIdentityMsg");
-    if (message) message.textContent = error.message || "Data tidak dapat diproses.";
-  } finally {
-    if (button) button.disabled = false;
-  }
-}
-
 function showRootLanding() {
   if ($("rootLanding")) $("rootLanding").hidden = false;
   if ($("ownerAuth")) $("ownerAuth").hidden = true;
@@ -619,9 +522,6 @@ function showRole() {
     refreshCustomerDashboardMachines();
     loadActiveEventForRole("CUSTOMER");
     restoreCustomerView();
-    if (state.userId?.startsWith("guest_")) {
-      openCustomerIdentityPopup();
-    }
     return;
   }
 
@@ -760,6 +660,276 @@ async function loginStaffStandalone() {
   }
 }
 
+function showCustomerAuth(clearMessage = true) {
+  document.body.dataset.role = "CUSTOMER_LOGIN";
+  document.documentElement.style.setProperty(
+    "--customer-bg",
+    `url("${assetBasePath}background/customer/customer-bg.PNG")`,
+  );
+
+  if ($("ownerAuth")) {
+    $("ownerAuth").hidden = true;
+  }
+  if ($("staffAuth")) {
+    $("staffAuth").hidden = true;
+  }
+  state.authMode = "CUSTOMER";
+
+  if ($("emailLabel")) {
+    $("emailLabel").hidden = false;
+  }
+
+  if ($("requestOtp")) {
+    $("requestOtp").hidden = false;
+  }
+
+  if ($("otpInfo")) {
+    $("otpInfo").hidden = false;
+  }
+
+  if ($("staffLogin")) {
+    $("staffLogin").hidden = true;
+  }
+
+  if ($("otpBox")) {
+    $("otpBox").hidden = true;
+  }
+
+  if (clearMessage) {
+    msg("authMsg", "");
+  }
+}
+
+function showStaffOwnerAuth(clearMessage = true) {
+  state.authMode = "STAFF_OWNER";
+
+  if ($("emailLabel")) {
+    $("emailLabel").hidden = true;
+  }
+
+  if ($("requestOtp")) {
+    $("requestOtp").hidden = true;
+  }
+
+  if ($("otpInfo")) {
+    $("otpInfo").hidden = true;
+  }
+
+  if ($("staffLogin")) {
+    $("staffLogin").hidden = false;
+    $("staffLogin").textContent = "Login";
+  }
+
+  if ($("otpBox")) {
+    $("otpBox").hidden = true;
+  }
+
+  if (clearMessage) {
+    msg("authMsg", "");
+  }
+}
+
+let authModeRequest = 0;
+let authModeTimer = null;
+
+async function detectAuthMode() {
+  const phone = $("phone")?.value.trim() || "";
+  const requestId = ++authModeRequest;
+
+  if (authModeTimer) {
+    clearTimeout(authModeTimer);
+    authModeTimer = null;
+  }
+
+  if (phone.replace(/\D/g, "").length < 8) {
+    showCustomerAuth(false);
+    return;
+  }
+
+  authModeTimer = setTimeout(async () => {
+    try {
+      const data = await api(
+        "/auth/mode",
+        {
+          method: "POST",
+          body: JSON.stringify({ phone }),
+        },
+      );
+
+      if (requestId !== authModeRequest) {
+        return;
+      }
+
+      if (data.mode === "STAFF_OWNER") {
+        showStaffOwnerAuth(false);
+      } else {
+        showCustomerAuth(false);
+      }
+    } catch {
+      if (requestId !== authModeRequest) {
+        return;
+      }
+
+      showCustomerAuth(false);
+    }
+  }, 250);
+}
+
+async function requestCustomerOtp() {
+  try {
+    const phone =
+      $("phone").value.trim();
+
+    const email =
+      $("email").value.trim();
+
+    if (!phone) {
+      msg(
+        "authMsg",
+        "Nomor WhatsApp wajib diisi.",
+      );
+      return;
+    }
+
+    if (!email) {
+      msg(
+        "authMsg",
+        "Email wajib diisi.",
+      );
+      return;
+    }
+
+    const data =
+      await api(
+        "/auth/request-otp",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            phone,
+            email,
+          }),
+        },
+      );
+
+    state.challengeId =
+      data.challengeId;
+
+    $("otpBox").hidden = false;
+    $("otp")?.focus();
+
+    msg(
+      "authMsg",
+      "OTP terkirim ke email. Berlaku 5 menit.",
+    );
+  } catch (error) {
+    msg(
+      "authMsg",
+      error.message,
+    );
+  }
+}
+
+async function verifyCustomerOtp() {
+  try {
+    const phone =
+      $("phone").value.trim();
+
+    const email =
+      $("email").value.trim();
+
+    const otp =
+      $("otp").value.trim();
+
+    if (!state.challengeId) {
+      msg(
+        "authMsg",
+        "Silakan minta OTP terlebih dahulu.",
+      );
+      return;
+    }
+
+    const data =
+      await api(
+        "/auth/verify-otp",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            phone,
+            email,
+            challengeId:
+              state.challengeId,
+            otp,
+          }),
+        },
+      );
+
+    if (data.role !== "CUSTOMER") {
+      throw new Error("Akses Customer tidak valid.");
+    }
+
+    state.token = data.token;
+    state.role = data.role;
+    state.userId = data.userId;
+    state.expiresAt =
+      data.expiresAt || null;
+
+    saveSession();
+
+    msg("authMsg", "");
+
+    showRole();
+  } catch (error) {
+    msg(
+      "authMsg",
+      error.message,
+    );
+  }
+}
+
+async function loginStaffOwner() {
+  try {
+    const phone =
+      $("phone").value.trim();
+
+    if (!phone) {
+      msg(
+        "authMsg",
+        "Nomor Staff / Owner wajib diisi.",
+      );
+      return;
+    }
+
+    const data =
+      await api(
+        "/auth/login",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            phone,
+          }),
+        },
+      );
+
+    state.token = data.token;
+    state.role = data.role;
+    state.userId = data.userId;
+    state.expiresAt =
+      data.expiresAt || null;
+
+    saveSession();
+
+    msg("authMsg", "");
+
+    showRole();
+    return;
+  } catch (error) {
+    msg(
+      "authMsg",
+      error.message,
+    );
+  }
+}
+
 if ($("ownerLogin")) {
   $("ownerLogin").onclick = loginOwner;
 }
@@ -782,6 +952,28 @@ if ($("staffPhone")) {
       loginStaffStandalone();
     }
   });
+}
+
+if ($("phone")) {
+  $("phone").addEventListener(
+    "input",
+    detectAuthMode,
+  );
+}
+
+if ($("requestOtp")) {
+  $("requestOtp").onclick =
+    requestCustomerOtp;
+}
+
+if ($("verifyOtp")) {
+  $("verifyOtp").onclick =
+    verifyCustomerOtp;
+}
+
+if ($("staffLogin")) {
+  $("staffLogin").onclick =
+    loginStaffOwner;
 }
 
 let raf = 0;
@@ -1247,13 +1439,15 @@ function openCustomerMachineDetail(machine) {
   const type = staffMachineTypeLabel(machine);
   const status = machine.status === "IN_USE" ? "Terpakai" : "Idle";
   const duration = Number(machine.durationMinutes || (machine.type === "DRYER" ? 50 : 32));
-  const time = formatStaffMachineElapsed(machine);
+  const expectedEnd = machine.status === "IN_USE" && machine.expectedEndAt
+    ? formatStaffWibDateTime(new Date(machine.expectedEndAt)).time
+    : "—";
   $("customerMachineDetailTitle").textContent = id;
   $("customerMachineDetailMachineId").textContent = "";
   $("customerMachineDetailType").textContent = type;
   $("customerMachineDetailStatus").textContent = status;
   $("customerMachineDetailDuration").textContent = `${duration} menit`;
-  $("customerMachineDetailTime").textContent = time;
+  $("customerMachineDetailTime").textContent = expectedEnd;
   modal.hidden = false;
   document.body.classList.add("customer-machine-detail-open");
   scrollCustomerTop();
@@ -1838,7 +2032,6 @@ if ($("customerMachineRefresh")) $("customerMachineRefresh").addEventListener("c
 
 $("customerLogout")?.addEventListener("click", () => {
   clearSession();
-  clearCustomerIdentity();
   clearCustomerView();
   window.location.href = LOGIN_ROUTES.CUSTOMER;
 });
@@ -1846,14 +2039,6 @@ $("customerLogout")?.addEventListener("click", () => {
 $("staffLogout")?.addEventListener("click", () => {
   clearSession();
   window.location.href = LOGIN_ROUTES.STAFF;
-});
-
-$("customerIdentitySubmit")?.addEventListener("click", submitCustomerIdentity);
-$("customerIdentityPhone")?.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") submitCustomerIdentity();
-});
-$("customerIdentityEmail")?.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") submitCustomerIdentity();
 });
 
 let cameraStream = null;
@@ -3594,29 +3779,22 @@ async function initialize() {
 
   // /customer and every /customer/* URL belong exclusively to Customer.
   if (expectedRole === "CUSTOMER") {
-    await loadConfig();
+    if (pathname === LOGIN_ROUTES.CUSTOMER) {
+      clearSession();
+      showCustomerAuth();
+      await loadConfig();
+      return;
+    }
 
     if (restoreSession() && state.role === "CUSTOMER") {
+      await loadConfig();
       showRole();
       return;
     }
 
     clearSession();
-    const identity = loadCustomerIdentity();
-
-    try {
-      if (identity) {
-        await restoreCustomerIdentitySession(identity);
-      } else {
-        await createCustomerGuestSession();
-      }
-      showRole();
-    } catch {
-      clearSession();
-      clearCustomerIdentity();
-      await createCustomerGuestSession();
-      showRole();
-    }
+    showCustomerAuth();
+    await loadConfig();
     return;
   }
 
