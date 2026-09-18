@@ -790,6 +790,9 @@ body[data-role="OWNER"] .locked-detail-events section{display:grid;gap:3px;paddi
 body[data-role="OWNER"] .locked-detail-events section>b{color:#27332d;font-size:7.5px}
 body[data-role="OWNER"] .locked-detail-events section>small{display:flex;align-items:flex-start;gap:3px;color:#65736d;font-size:7px;line-height:1.25}
 body[data-role="OWNER"] .locked-detail-events svg{width:11px;height:11px;flex:none;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+body[data-role="OWNER"] .event-share-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}
+body[data-role="OWNER"] .event-share-actions button{display:flex;align-items:center;justify-content:center;gap:5px;height:34px;min-height:34px;padding:0 9px;border-radius:7px;font-size:9px;font-weight:800;box-shadow:none}
+body[data-role="OWNER"] .event-share-actions button svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 body[data-role="OWNER"] .locked-delete-row{display:flex;justify-content:flex-end;margin-top:8px}
 body[data-role="OWNER"] .locked-delete-row .danger-button{height:32px;min-height:32px;padding:0 10px;border:1px solid #e4a19b;border-radius:7px;background:#fff;color:#c44a42;font-size:8px;font-weight:800;box-shadow:none}
 
