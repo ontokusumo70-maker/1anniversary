@@ -2596,6 +2596,157 @@ body[data-role="CUSTOMER"]:has(#customerMachineStatusView:not([hidden])) .app-sh
 }
 
 /* CUSTOMER STATUS SUMMARY — EXACT STAFF MOBILE VALUES */
+/* CUSTOMER DASHBOARD — LANDSCAPE COMPACT
+   Uses the locked Staff dashboard geometry as the reference.
+   Portrait rules above remain unchanged. */
+@media (orientation:landscape) and (min-width:601px){
+  .screen-customer.customer-dashboard-screen .staff-dashboard{
+    width:100%;
+    max-width:1100px;
+    min-height:100svh;
+    margin:0 auto;
+    padding:150px 30px 24px;
+    box-sizing:border-box;
+    background-position:center top;
+    background-size:cover;
+  }
+
+  .screen-customer.customer-dashboard-screen .customer-dashboard-brand{
+    top:18px;
+    height:92px;
+  }
+
+  .screen-customer.customer-dashboard-screen .customer-dashboard-brand img{
+    width:82px;
+    height:82px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-dashboard-topline{
+    height:32px;
+    gap:24px;
+    padding:0 4px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-dashboard-update{
+    font-size:16px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-logout{
+    gap:8px;
+    margin-right:0;
+    font-size:16px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-logout-icon,
+  .screen-customer.customer-dashboard-screen .staff-logout-icon svg{
+    width:28px;
+    height:28px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-status-card{
+    height:190px;
+    padding:14px 18px;
+    border-radius:20px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-section-heading{
+    height:30px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-section-heading h2{
+    font-size:14px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-section-chevron,
+  .screen-customer.customer-dashboard-screen .staff-services-chevron{
+    font-size:38px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-machine-summary-grid{
+    gap:10px;
+    margin-top:10px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-machine-summary{
+    height:126px;
+    gap:18px;
+    padding:0 18px;
+    border-radius:14px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-machine-icon{
+    width:58px;
+    height:58px;
+    flex-basis:58px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-machine-icon svg{
+    width:54px;
+    height:54px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-machine-summary-copy > strong{
+    margin-bottom:7px;
+    font-size:17px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-machine-summary-copy > div{
+    height:26px;
+    grid-template-columns:18px 1fr auto;
+    gap:6px;
+    font-size:16px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-status-dot{
+    width:18px;
+    height:18px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-services-card{
+    height:82px;
+    gap:22px;
+    margin:12px 0 14px;
+    padding:0 18px;
+    border-radius:20px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-services-icon{
+    width:60px;
+    height:60px;
+    flex-basis:60px;
+    border-radius:15px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-services-icon svg{
+    width:38px;
+    height:38px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-services-card strong{
+    font-size:16px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-services-chevron{
+    width:38px;
+    height:38px;
+    font-size:34px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-event-card{
+    height:120px;
+    padding:14px 18px;
+    border-radius:20px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-event-content{
+    height:56px;
+    margin-top:9px;
+    padding:0 18px;
+    border-radius:14px;
+    font-size:16px;
+  }
+}
+
 @media(max-width:600px){
   .screen-customer.customer-dashboard-screen .staff-dashboard{
     padding-top:166px;
