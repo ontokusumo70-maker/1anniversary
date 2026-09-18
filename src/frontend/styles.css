@@ -2430,126 +2430,18 @@ html[data-initial-route="OWNER"] .app-shell{
   box-shadow:none;
 }
 
-/* CUSTOMER LOGIN — LOCKED PRODUCTION */
-.customer-login-screen{
-  z-index:30;
-  position:fixed;
-  inset:0;
-  width:100%;
-  height:100svh;
-  min-height:100svh;
-  margin:0;
-  padding:0;
-  overflow:hidden;
-  background-color:#e8f7df;
-  background-position:center center;
-  background-repeat:no-repeat;
-  background-size:cover;
-}
-.customer-login-screen[hidden]{display:none !important}
-.customer-login-bg{
-  position:absolute;
-  z-index:0;
-  inset:0;
-  display:block;
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  object-position:center center;
-  pointer-events:none;
-  user-select:none;
-}
-body:has(#auth:not([hidden])) .topbar,
-body:has(#auth:not([hidden])) .footer-mark,
-body[data-role="CUSTOMER_LOGIN"] .topbar,
-body[data-role="CUSTOMER_LOGIN"] .footer-mark{display:none !important}
-body:has(#auth:not([hidden])),
-body[data-role="CUSTOMER_LOGIN"]{
-  min-height:100svh;
-  margin:0;
-  overflow:hidden;
-  background-color:#e8f7df;
-  background-position:center center;
-  background-repeat:no-repeat;
-  background-size:cover;
-}
-body[data-role="CUSTOMER_LOGIN"] #rootLanding{
-  display:none !important;
-}
-body:has(#auth:not([hidden])) .app-shell,
-body[data-role="CUSTOMER_LOGIN"] .app-shell{
-  width:100%;
-  max-width:none;
-  min-height:100svh;
-  margin:0;
-  padding:0;
-  background-color:#e8f7df;
-  background-position:center center;
-  background-repeat:no-repeat;
-  background-size:cover;
-  box-shadow:none;
-}
-.customer-login-brand{
-  position:absolute;
-  z-index:4;
-  top:6.5%;
-  left:50%;
-  width:min(72%,620px);
-  transform:translateX(-50%);
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-  pointer-events:none;
-}
-.customer-login-brand-logo{
-  display:block;
-  width:min(23vw,110px);
-  height:auto;
-  max-height:110px;
-  object-fit:contain;
-}
-.customer-login-address{
-  margin:7px 0 0;
-  font-size:12px;
-  line-height:1.35;
-  color:#5d7569;
-  font-weight:500;
-  white-space:nowrap;
-}
-.customer-login-card{
-  position:absolute;
-  z-index:3;
-  top:26%;
-  left:50%;
-  width:min(72%,620px);
-  transform:translateX(-50%);
-  padding:17px 18px 6px;
-  border:1px solid rgba(151,204,172,.48);
-  border-radius:22px;
-  background:rgba(255,255,255,.96);
-  box-shadow:0 12px 28px rgba(12,74,45,.12);
-}
-.customer-login-actions{margin-top:0}
-.customer-login-actions .helper{margin:3px 0 0}
-.customer-otp-box{margin-top:10px;padding-top:12px}
-.customer-otp-note{font-size:11px;line-height:1.4;color:#668073;margin:0 0 8px;text-align:center}
-.customer-login-msg{margin:0;text-align:center;min-height:0}.customer-login-msg:empty{display:none}
-@media(max-width:600px){
-  .customer-login-brand{top:6.5%;width:72%}
-  .customer-login-brand-logo{width:min(23vw,110px);max-height:110px}
-  .customer-login-address{font-size:12px;white-space:nowrap}
-  .customer-login-card{top:26%;width:72%;padding:16px 14px 6px;border-radius:20px}
-  .customer-login-card label{margin:8px 0}
-  .customer-login-card input{margin-top:5px;padding:10px 12px}
-  .customer-login-card button{padding:10px 12px}
-}
-@media(max-width:380px){
-  .customer-login-card{top:26%;width:74%;padding:15px 13px 6px}
-  .customer-login-brand-logo{width:96px;max-height:96px}
-}
-
+/* CUSTOMER IDENTITY — COMPACT */
+.customer-identity-modal{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:18px;}
+.customer-identity-modal[hidden]{display:none!important}
+.customer-identity-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.22)}
+.customer-identity-card{position:relative;z-index:1;width:min(300px,86vw);padding:16px;border-radius:12px;background:#fff;box-shadow:0 10px 28px rgba(0,0,0,.18)}
+.customer-identity-card label{display:block;margin:0 0 9px;font-size:13px;line-height:1.2}
+.customer-identity-card input{display:block;width:100%;box-sizing:border-box;margin-top:4px;padding:9px 10px;border:1px solid #d4d4d4;border-radius:7px;background:#fff;font:inherit;font-size:13px;outline:none}
+.customer-identity-card input:focus{border-color:#999}
+.customer-identity-card button{width:100%;margin-top:3px;padding:9px 10px;font-size:13px}
+.customer-identity-card button:disabled{opacity:.65;cursor:wait}
+.customer-identity-card .msg{margin:6px 0 0;text-align:center;font-size:11px;min-height:0}
+.customer-identity-card .msg:empty{display:none}
 
 /* CUSTOMER DASHBOARD — SAME AS STAFF, CUSTOMER BACKGROUND ONLY */
 .screen-customer.customer-dashboard-screen{position:relative;min-height:100svh;overflow:hidden;background:#e8f7df !important;}
