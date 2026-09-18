@@ -876,6 +876,9 @@ body[data-role="OWNER"] .owner-nav-icon{width:27px;height:25px}
 /* CUSTOMER TRACE — APPROVED LIST + DETAIL */
 .owner-customer-heading{margin-bottom:12px}
 .owner-customer-heading p{margin-top:4px;font-size:14px;color:#74827c;font-weight:500}
+.owner-customer-total-row{display:flex;align-items:center;gap:9px;margin-top:4px}
+.owner-customer-total-row p{margin:0}
+.owner-customer-total-row select{height:32px;min-width:88px;padding:0 10px;border:1px solid #d8e3dd;border-radius:7px;background:#fff;color:#34473f;font-size:12px;font-weight:700}
 .owner-customer-search{display:grid;grid-template-columns:minmax(0,1fr) 108px;gap:8px;align-items:center;margin:0 0 12px}
 .owner-customer-search label{position:relative;margin:0;display:block}
 .owner-customer-search input{width:100%;height:48px;padding:0 14px 0 42px;border:1px solid #d8e3dd;border-radius:10px;background:#fff;font-size:14px;color:#26352f;box-sizing:border-box}
@@ -893,9 +896,14 @@ body[data-role="OWNER"] .owner-nav-icon{width:27px;height:25px}
 .owner-customer-table th:nth-child(3),.owner-customer-table td:nth-child(3){width:18%}
 .owner-customer-table th:nth-child(4),.owner-customer-table td:nth-child(4),.owner-customer-table th:nth-child(5),.owner-customer-table td:nth-child(5){width:8%;text-align:center}
 .owner-customer-table th:nth-child(6),.owner-customer-table td:nth-child(6){width:13%;text-align:center}
-.owner-customer-table th:nth-child(7),.owner-customer-table td:nth-child(7){width:32px;text-align:center}
+.owner-customer-table th:nth-child(7),.owner-customer-table td:nth-child(7){width:42px;text-align:center}
+.owner-customer-table th:nth-child(8),.owner-customer-table td:nth-child(8){width:32px;text-align:center}
 .owner-customer-open{border:0;background:transparent;color:#1b735a;font-size:25px;line-height:1;padding:0;cursor:pointer}
+.owner-customer-delete{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:0;border-radius:7px;background:transparent;color:#c24b4b;cursor:pointer;padding:0}
+.owner-customer-delete svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.owner-customer-delete:hover{background:#fff0f0}
 .owner-customer-status{display:inline-block;padding:5px 12px;border-radius:7px;background:#dcf4e8;color:#1a805d;font-style:normal;font-weight:700}
+.owner-customer-status.inactive{background:#edf0ef;color:#75817c}
 .owner-customer-pagination-summary{margin:16px 0 8px;font-size:13px;color:#5e6d66}
 .owner-customer-pagination{display:flex;justify-content:flex-start;align-items:center;gap:7px}
 .owner-customer-pagination button{min-width:38px;height:38px;padding:0 10px;border:1px solid #e0e8e4;border-radius:8px;background:#fff;color:#34453e;font-size:13px;cursor:pointer}
