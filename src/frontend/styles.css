@@ -2408,7 +2408,12 @@ html[data-initial-route="STAFF"] #staffAuth,
 html[data-initial-route="OWNER"] #ownerAuth{
   display:block !important;
 }
-html[data-initial-route="CUSTOMER"] #auth{
+html[data-initial-route="CUSTOMER"] #auth,
+html[data-initial-route="CUSTOMER"] .topbar,
+html[data-initial-route="CUSTOMER"] .footer-mark{
+  display:none !important;
+}
+html[data-initial-route="CUSTOMER"] #customer{
   display:block !important;
 }
 
