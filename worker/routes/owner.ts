@@ -1,6 +1,7 @@
 import type { Env } from "../index";
 import { requireSession } from "../auth/session-guard";
 import { writeAuditSafe } from "../audit/logger";
+import { releaseExpiredMachines } from "./machines";
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -185,11 +186,7 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
 
   await cleanupInactiveEventImages(env, nowIso);
 
-  const releaseExpired = env.DB.prepare(`
-    UPDATE machines
-    SET status = 'IDLE', started_at = NULL, expected_end_at = NULL, activated_by = NULL
-    WHERE status = 'IN_USE' AND expected_end_at IS NOT NULL AND expected_end_at <= ?
-  `).bind(nowIso);
+  await releaseExpiredMachines(env, nowIso);
 
   const metrics = env.DB.prepare(`
     SELECT
@@ -248,14 +245,22 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
     ORDER BY CASE WHEN machine_type = 'WASHER' THEN 1 ELSE 2 END, machine_number ASC
   `);
 
-  const operations = ["daily", "weekly", "monthly", "yearly"].map(() =>
-    env.DB.prepare(`
+  const operationRanges = {
+    daily: { start: dayStart, end: addOwnerDays(dayStart, 1) },
+    weekly: { start: weekStart, end: addOwnerDays(weekStart, 7) },
+    monthly: { start: monthStart, end: new Date(Date.UTC(year, month + 1, 1) - wibOffset) },
+    yearly: { start: yearStart, end: new Date(Date.UTC(year + 1, 0, 1) - wibOffset) },
+  };
+
+  const operations = ["daily", "weekly", "monthly", "yearly"].map((period) => {
+    const range = operationRanges[period as keyof typeof operationRanges];
+    return env.DB.prepare(`
       SELECT machine_type, COALESCE(SUM(duration_seconds),0) AS total_seconds
       FROM machine_operations
       WHERE started_at >= ? AND started_at < ?
       GROUP BY machine_type
-    `).bind(currentStartIso, currentEndIso),
-  );
+    `).bind(range.start.toISOString(), range.end.toISOString());
+  });
 
   const events = env.DB.prepare(`
     SELECT event_id, title, starts_at, ends_at, reward_type, reward_quantity, active
@@ -264,9 +269,8 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
     LIMIT 50
   `);
 
-  const [released, metricResult, rewardResult, poolResult, machineResult, daily, weekly, monthly, yearly, eventResult] =
+  const [metricResult, rewardResult, poolResult, machineResult, daily, weekly, monthly, yearly, eventResult] =
     await env.DB.batch([
-      releaseExpired,
       metrics,
       rewardStatus,
       pools,
@@ -370,10 +374,10 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
       yearly: mapOperations(yearly),
     },
     operationRanges: {
-      daily: { from: requestedFrom, to: requestedTo },
-      weekly: { from: requestedFrom, to: requestedTo },
-      monthly: { from: requestedFrom, to: requestedTo },
-      yearly: { from: requestedFrom, to: requestedTo },
+      daily: { from: formatOwnerDateOnly(operationRanges.daily.start), to: formatOwnerDateOnly(new Date(operationRanges.daily.end.getTime() - 86400000)) },
+      weekly: { from: formatOwnerDateOnly(operationRanges.weekly.start), to: formatOwnerDateOnly(new Date(operationRanges.weekly.end.getTime() - 86400000)) },
+      monthly: { from: formatOwnerDateOnly(operationRanges.monthly.start), to: formatOwnerDateOnly(new Date(operationRanges.monthly.end.getTime() - 86400000)) },
+      yearly: { from: formatOwnerDateOnly(operationRanges.yearly.start), to: formatOwnerDateOnly(new Date(operationRanges.yearly.end.getTime() - 86400000)) },
     },
     activeEvents: eventOut.filter((event) =>
       event.status === "ACTIVE"
