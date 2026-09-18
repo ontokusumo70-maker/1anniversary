@@ -308,8 +308,10 @@
               </span>
               <div>
                 <strong>Tarif Layanan</strong>
-                <p><span id="serviceDisplayCoinLabel" data-service-field="coinLabel">1 Koin</span><b id="serviceDisplayCoinPrice" data-service-field="coinPrice">Rp 10.000,- / 7 Kg</b></p>
-                <p><span id="serviceDisplayDropLabel" data-service-field="dropLabel">Drop-off +</span><b id="serviceDisplayDropPrice" data-service-field="dropPrice">Rp 10.000,-</b></p>
+                <div id="serviceDisplayTariffsCustomer" data-service-tariffs>
+                  <p><span>1 Koin</span><b>Rp 10.000,- / 7 Kg</b></p>
+                  <p><span>Drop-off +</span><b>Rp 10.000,-</b></p>
+                </div>
               </div>
             </div>
           </div>
@@ -564,8 +566,10 @@
               </span>
               <div>
                 <strong>Tarif Layanan</strong>
-                <p><span data-service-field="coinLabel">1 Koin</span><b data-service-field="coinPrice">Rp 10.000,- / 7 Kg</b></p>
-                <p><span data-service-field="dropLabel">Drop-off +</span><b data-service-field="dropPrice">Rp 10.000,-</b></p>
+                <div data-service-tariffs>
+                  <p><span>1 Koin</span><b>Rp 10.000,- / 7 Kg</b></p>
+                  <p><span>Drop-off +</span><b>Rp 10.000,-</b></p>
+                </div>
               </div>
             </div>
           </div>
@@ -951,12 +955,8 @@
         </section>
         <section class="owner-settings-card">
           <h2>Tarif Layanan</h2>
-          <div class="owner-settings-grid-2">
-            <label>Nama layanan 1<input id="serviceCoinLabel" maxlength="60" type="text"></label>
-            <label>Tarif layanan 1<input id="serviceCoinPrice" maxlength="80" type="text"></label>
-            <label>Nama layanan 2<input id="serviceDropLabel" maxlength="60" type="text"></label>
-            <label>Tarif layanan 2<input id="serviceDropPrice" maxlength="80" type="text"></label>
-          </div>
+          <div id="ownerServiceTariffRows" class="owner-service-tariff-rows"></div>
+          <button id="ownerServiceAddTariff" class="owner-service-add-button" type="button">+ Tambah Layanan &amp; Tarif</button>
         </section>
         <section class="owner-settings-card">
           <h2>Sosial Media</h2>
