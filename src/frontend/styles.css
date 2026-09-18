@@ -2846,6 +2846,7 @@ body[data-role="CUSTOMER"] .screen-customer.customer-dashboard-screen:not([hidde
   .screen-customer.customer-dashboard-screen .staff-dashboard{
     padding-top:166px;
     top:-40px;
+    overflow:visible;
   }
 
   .screen-customer.customer-dashboard-screen .customer-dashboard-brand{
