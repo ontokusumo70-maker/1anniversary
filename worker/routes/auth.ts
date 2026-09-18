@@ -13,7 +13,7 @@ import {
   loadOtpChallenge,
   persistOtpChallenge,
 } from "../auth/otp-store";
-import { createAndPersistAuthSession } from "../auth/auth-session";
+import { createAndPersistAuthSession, hashAuthSessionToken, revokeAuthSession } from "../auth/auth-session";
 import { sendOtpEmail } from "../auth/gmail";
 import { writeAuditSafe } from "../audit/logger";
 
@@ -786,11 +786,47 @@ async function loginStaffOwner(
   );
 }
 
+async function logoutRequest(request: Request, env: AuthEnv): Promise<Response> {
+  const authorization = request.headers.get("Authorization") || "";
+  const match = authorization.trim().match(/^Bearer\\s+([A-Za-z0-9_-]{20,256})$/i);
+  if (!match) return json({ ok: true }, 200);
+
+  const tokenHash = await hashAuthSessionToken(match[1]);
+  const session = await env.DB.prepare(`
+    SELECT session_id, user_id, role
+    FROM auth_sessions
+    WHERE token_hash = ?
+      AND revoked_at IS NULL
+      AND expires_at > ?
+    LIMIT 1
+  `).bind(tokenHash, new Date().toISOString()).first<{ session_id: string; user_id: string; role: UserRole }>();
+
+  if (!session) return json({ ok: true }, 200);
+
+  await revokeAuthSession(env.DB, session.session_id);
+  await writeAuditSafe(env, {
+    entityType: "SESSION",
+    entityId: session.session_id,
+    action: "REVOKE",
+    actor: session.user_id,
+    result: "SUCCESS",
+  });
+
+  return json({ ok: true }, 200);
+}
+
 export async function handleAuthRequest(
   request: Request,
   env: AuthEnv,
 ): Promise<Response> {
   const url = new URL(request.url);
+
+  if (
+    request.method === "POST" &&
+    url.pathname === "/auth/logout"
+  ) {
+    return logoutRequest(request, env);
+  }
 
   if (
     request.method === "POST" &&
