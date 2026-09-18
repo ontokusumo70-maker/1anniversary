@@ -9,14 +9,3 @@ export interface AuthSession {
   expiresAt: string;
 }
 
-export interface OtpChallenge {
-  challengeId: string;
-  phoneHash: string;
-  emailHash?: string;
-  role: UserRole;
-  otpHash: string;
-  createdAt: string;
-  expiresAt: string;
-  attempts: number;
-  consumed: boolean;
-}
