@@ -2486,7 +2486,7 @@ body[data-role="CUSTOMER"]:has(#customer:not([hidden])) .app-shell{
 @media(max-width:600px){
   .screen-customer.customer-dashboard-screen .staff-dashboard{
     padding-top:166px;
-    transform:translateY(-50px);
+    transform:translateY(20px);
   }
 }
 .screen-customer.customer-dashboard-screen .customer-tools{padding:0;background:#fff;}
