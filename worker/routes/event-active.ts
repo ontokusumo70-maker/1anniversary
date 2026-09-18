@@ -70,6 +70,26 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
 
     if (!row) return json({ ok: true, active: false });
 
+    const rewardRows = await env.DB.prepare(`
+      SELECT er.reward_type, er.reward_quantity, rp.quota_total, rp.quota_used, rp.terms
+      FROM event_rewards er
+      LEFT JOIN reward_pool rp ON rp.reward_type = er.reward_type
+      WHERE er.event_id = ?
+      ORDER BY er.position ASC
+    `).bind(row.event_id).all();
+    const rewards = (rewardRows.results ?? []).map((reward) => ({
+      rewardType: String((reward as any).reward_type),
+      rewardQuantity: Number((reward as any).reward_quantity),
+      remaining: Math.max(0, Number((reward as any).quota_total ?? 0) - Number((reward as any).quota_used ?? 0)),
+      terms: String((reward as any).terms || "—"),
+    }));
+    if (!rewards.length) rewards.push({
+      rewardType: row.reward_type,
+      rewardQuantity: Number(row.reward_quantity),
+      remaining: Math.max(0, Number(row.quota_total ?? 0) - Number(row.quota_used ?? 0)),
+      terms: row.terms || "—",
+    });
+
     return json({
       ok: true,
       active: true,
@@ -79,12 +99,7 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
         startsAt: row.starts_at,
         endsAt: row.ends_at,
         description: row.description || "",
-        rewards: [{
-          rewardType: row.reward_type,
-          rewardQuantity: Number(row.reward_quantity),
-          remaining: Math.max(0, Number(row.quota_total ?? 0) - Number(row.quota_used ?? 0)),
-          terms: row.terms || "—",
-        }],
+        rewards,
         imageUrl: Number(row.has_image) === 1 ? "/event/active/image" : null,
       },
     });
