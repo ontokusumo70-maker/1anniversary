@@ -803,16 +803,20 @@
         <button type="button" class="owner-back locked-form-back" id="cancelEventTop"><span class="owner-back-arrow">←</span> Kembali ke daftar event</button>
         <h3 id="eventFormTitle">Buat Event</h3>
         <p class="locked-form-subtitle">Buat event baru</p>
-        <label>Nama Event <span class="required-mark">*</span><input id="eventTitle" placeholder="Masukkan nama event"></label>
-        <div class="locked-field-title">Periode Event <span class="required-mark">*</span></div>
+        <label>Nama Event<input id="eventTitle" placeholder="Masukkan nama event"></label>
+        <div class="locked-field-title">Periode Event</div>
         <div class="locked-date-grid">
           <label><span>Tanggal Mulai</span><div class="locked-date-input"><span class="locked-date-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 3.5v4M16 3.5v4M4 9h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><input id="eventStartsAt" type="date" aria-label="Tanggal Mulai"></div></label>
           <label><span>Tanggal Selesai</span><div class="locked-date-input"><span class="locked-date-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 3.5v4M16 3.5v4M4 9h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><input id="eventEndsAt" type="date" aria-label="Tanggal Selesai"></div></label>
         </div>
-        <label>Pilih Reward <span class="required-mark">*</span><select id="eventRewardType"></select></label>
-        <label>Jumlah Reward <span class="required-mark">*</span><input id="eventRewardQuantity" type="number" min="1" placeholder="Masukkan jumlah reward"><small id="eventRewardStock" class="locked-field-note"></small></label>
+        <section class="event-reward-section">
+          <div class="event-reward-heading">Reward Event</div>
+          <p class="event-reward-subtitle">Tambahkan satu atau lebih reward untuk event ini</p>
+          <div id="eventRewardList" class="event-reward-list"></div>
+          <button id="addEventRewardButton" class="event-add-reward" type="button"><span>＋</span> Tambah Reward</button>
+        </section>
         <div id="eventImageField" class="locked-image-field">
-          <div class="locked-field-title">Image Event <span class="locked-required">*</span></div>
+          <div class="locked-field-title">Image Event</div>
           <div class="locked-image-grid">
             <label class="locked-image-upload-card" for="eventImage">
               <input id="eventImage" type="file" accept="image/jpeg,image/webp" aria-label="Image Event">
@@ -844,7 +848,7 @@
           </div>
           <p id="eventImageMsg" class="msg status-msg"></p>
         </div>
-        <label>Deskripsi <span class="locked-optional">(Opsional)</span><textarea id="eventDescription" maxlength="200" placeholder="Tuliskan deskripsi event (opsional)"></textarea><span class="locked-counter" id="eventDescriptionCount">0/200</span></label>
+        <label>Deskripsi <span class="locked-optional">(Opsional)</span><textarea id="eventDescription" maxlength="500" placeholder="Tuliskan deskripsi event (opsional)"></textarea><span class="locked-counter" id="eventDescriptionCount">0/500</span></label>
         <label id="eventStatusField" hidden>Status <span class="required-mark">*</span><select id="eventStatus"><option value="ACTIVE">Aktif</option><option value="INACTIVE">Nonaktif</option></select></label>
         <div class="locked-form-actions"><button id="cancelEventButton" class="secondary-button" type="button">Batal</button><button id="saveEventButton" class="primary-button" type="button">Simpan Event</button></div>
         <p id="eventFormMsg" class="msg status-msg"></p>
