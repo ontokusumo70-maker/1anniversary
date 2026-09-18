@@ -342,10 +342,27 @@ function renderCustomerDashboardMachineSummary(machines) {
 async function refreshCustomerDashboardMachines() {
   try {
     const data = await api("/machines");
-    customerMachineData = Array.isArray(data.machines) ? data.machines : [];
-    renderCustomerDashboardMachineSummary(customerMachineData);
+    if (Array.isArray(data.machines) && data.machines.length) {
+      customerMachineData = data.machines;
+      renderCustomerDashboardMachineSummary(customerMachineData);
+      return;
+    }
+    throw new Error("EMPTY_MACHINE_DATA");
   } catch {
-    renderCustomerDashboardMachineSummary([]);
+    try {
+      const identity = loadCustomerIdentity();
+      if (identity) {
+        await restoreCustomerIdentitySession(identity);
+      } else {
+        await createCustomerGuestSession();
+      }
+      const retry = await api("/machines");
+      customerMachineData = Array.isArray(retry.machines) ? retry.machines : [];
+      renderCustomerDashboardMachineSummary(customerMachineData);
+      return;
+    } catch {
+      renderCustomerDashboardMachineSummary(customerMachineData);
+    }
   }
 }
 
