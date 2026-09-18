@@ -853,7 +853,7 @@ body[data-role="OWNER"] .locked-form-actions .primary-button{border:1px solid #0
 }
 
 /* OWNER NAV SIZE LOCK — 5 BUSINESS MENUS */
-body[data-role="OWNER"] .owner-tabbar{grid-template-columns:repeat(5,1fr)}
+body[data-role="OWNER"] .owner-tabbar{grid-template-columns:repeat(6,1fr)}
 body[data-role="OWNER"] .owner-tabbar button{font-size:8px;gap:5px}
 body[data-role="OWNER"] .owner-nav-icon{width:27px;height:25px}
 @media(max-width:600px){
@@ -989,7 +989,7 @@ body[data-role="OWNER"] .owner-nav-icon{width:27px;height:25px}
   body[data-role="OWNER"] .owner-brand-copy{font-size:9px}
   body[data-role="OWNER"] .owner-brand-copy strong{font-size:11px}
   body[data-role="OWNER"] .owner-account{padding-top:7px}
-  body[data-role="OWNER"] .owner-tabbar{grid-template-columns:repeat(5,minmax(0,1fr));padding:7px 0 6px;gap:4px}
+  body[data-role="OWNER"] .owner-tabbar{grid-template-columns:repeat(6,1fr);padding:7px 0 6px;gap:4px}
   body[data-role="OWNER"] .owner-tabbar button{font-size:10px;gap:5px;padding-bottom:7px}
   body[data-role="OWNER"] .owner-nav-icon{width:28px;height:26px}
   body[data-role="OWNER"] .owner-view{padding:0 6px}
@@ -3143,3 +3143,25 @@ body.owner-machine-detail-open{overflow:hidden}
   body[data-role="OWNER"] .owner-machine-row .machine-row-status{min-width:66px}
   body[data-role="OWNER"] .owner-machine-row .machine-row-time{font-size:9px}
 }
+
+
+/* Owner: Pengaturan Layanan & Fasilitas */
+body[data-role="OWNER"] .owner-service-settings-form{display:grid;gap:9px;padding-bottom:18px}
+body[data-role="OWNER"] .owner-settings-card{padding:12px;border:1px solid #e5ebe8;border-radius:11px;background:#fff;box-shadow:0 2px 7px rgba(25,72,51,.04)}
+body[data-role="OWNER"] .owner-settings-card h2{margin:0 0 9px;color:#174d3c;font-size:14px;line-height:1.15;font-weight:800}
+body[data-role="OWNER"] .owner-settings-card label{display:grid;gap:4px;margin-top:8px;color:#5f6d68;font-size:9px;font-weight:700}
+body[data-role="OWNER"] .owner-settings-card label:first-of-type{margin-top:0}
+body[data-role="OWNER"] .owner-settings-card input,
+body[data-role="OWNER"] .owner-settings-card textarea{width:100%;box-sizing:border-box;border:1px solid #dfe7e3;border-radius:8px;background:#fbfcfc;color:#1d2925;font:inherit;font-size:10px;font-weight:600;padding:8px 9px;outline:none}
+body[data-role="OWNER"] .owner-settings-card textarea{resize:vertical;line-height:1.35}
+body[data-role="OWNER"] .owner-settings-card input:focus,
+body[data-role="OWNER"] .owner-settings-card textarea:focus{border-color:#18a372;box-shadow:0 0 0 2px rgba(24,163,114,.08)}
+body[data-role="OWNER"] .owner-settings-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+body[data-role="OWNER"] .owner-settings-help{display:block;margin-top:2px;color:#8a9691;font-size:8px;font-weight:500}
+body[data-role="OWNER"] .owner-settings-check{display:flex!important;grid-template-columns:auto 1fr!important;align-items:center;gap:6px!important;font-size:9px!important;font-weight:600!important}
+body[data-role="OWNER"] .owner-settings-check input{width:15px!important;height:15px;padding:0}
+body[data-role="OWNER"] .owner-service-photo-row{display:grid;grid-template-columns:130px 1fr;gap:10px;align-items:start}
+body[data-role="OWNER"] .owner-service-photo-preview{width:130px;height:88px;object-fit:cover;border-radius:9px;border:1px solid #e2e9e5;background:#f3f7f5}
+body[data-role="OWNER"] .owner-settings-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:1px}
+body[data-role="OWNER"] .owner-settings-actions button{height:36px;min-height:36px;font-size:9px}
+body[data-role="OWNER"] #serviceSettingsMsg{margin:0;text-align:center;font-size:9px}
