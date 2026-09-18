@@ -43,7 +43,26 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
 
   if (request.method === "GET" && url.pathname === "/event/active") {
     await cleanupInactiveEventImages(env, nowIso);
-    const row = await env.DB.prepare(`
+    const requestedEventId = (url.searchParams.get("eventId") || "").trim();
+    const row = requestedEventId
+      ? await env.DB.prepare(`
+      SELECT e.event_id, e.title, e.starts_at, e.ends_at, e.reward_type,
+             e.reward_quantity, e.description,
+             rp.quota_total, rp.quota_used, rp.terms,
+             CASE WHEN i.event_id IS NULL THEN 0 ELSE 1 END AS has_image
+      FROM events e
+      LEFT JOIN reward_pool rp ON rp.reward_type = e.reward_type
+      LEFT JOIN event_images i ON i.event_id = e.event_id
+      WHERE e.event_id = ?
+        AND e.active = 1
+        AND e.ends_at > ?
+      LIMIT 1
+    `).bind(requestedEventId, nowIso).first<{
+          event_id: string; title: string; starts_at: string; ends_at: string; reward_type: string;
+          reward_quantity: number; description: string; quota_total: number | null;
+          quota_used: number | null; terms: string | null; has_image: number;
+        }>()
+      : await env.DB.prepare(`
       SELECT e.event_id, e.title, e.starts_at, e.ends_at, e.reward_type,
              e.reward_quantity, e.description,
              rp.quota_total, rp.quota_used, rp.terms,
@@ -100,14 +119,24 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
         endsAt: row.ends_at,
         description: row.description || "",
         rewards,
-        imageUrl: Number(row.has_image) === 1 ? "/event/active/image" : null,
+        status: Date.parse(row.starts_at) > Date.parse(nowIso) ? "UPCOMING" : "ACTIVE",
+        imageUrl: Number(row.has_image) === 1 && Date.parse(row.starts_at) <= Date.parse(nowIso) ? `/event/active/image${requestedEventId ? `?eventId=${encodeURIComponent(row.event_id)}` : ""}` : null,
       },
     });
   }
 
   if (request.method === "GET" && url.pathname === "/event/active/image") {
     await cleanupInactiveEventImages(env, nowIso);
-    const row = await env.DB.prepare(`
+    const requestedEventId = (url.searchParams.get("eventId") || "").trim();
+    const row = requestedEventId
+      ? await env.DB.prepare(`
+      SELECT i.mime_type, i.image_blob
+      FROM event_images i
+      INNER JOIN events e ON e.event_id = i.event_id
+      WHERE e.event_id = ? AND e.active = 1 AND e.starts_at <= ? AND e.ends_at > ?
+      LIMIT 1
+    `).bind(requestedEventId, nowIso, nowIso).first<{ mime_type: string; image_blob: ArrayBuffer }>()
+      : await env.DB.prepare(`
       SELECT i.mime_type, i.image_blob
       FROM event_images i
       INNER JOIN events e ON e.event_id = i.event_id
