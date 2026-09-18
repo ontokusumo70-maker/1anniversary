@@ -2547,6 +2547,40 @@ body[data-role="CUSTOMER"]:has(#customer:not([hidden])) .app-shell{
   .customer-machine-detail-sheet{border-radius:20px;margin-bottom:18px}
 }
 
+/* CUSTOMER EVENT — FULL-SCREEN SHELL */
+body[data-role="CUSTOMER"]:has(#customerEventView:not([hidden])) .topbar{
+  display:none !important;
+}
+body[data-role="CUSTOMER"]:has(#customerEventView:not([hidden])) .app-shell{
+  width:100%;
+  max-width:none;
+  min-height:100svh;
+  margin:0;
+  padding:0;
+  background:transparent;
+  box-shadow:none;
+}
+body[data-role="CUSTOMER"]:has(#customerEventView:not([hidden])) #customerTools{
+  position:fixed;
+  inset:0;
+  z-index:50;
+  width:100%;
+  min-height:100svh;
+  margin:0;
+  padding:0;
+  background:#fff;
+  overflow:auto;
+  overscroll-behavior:contain;
+}
+body[data-role="CUSTOMER"]:has(#customerEventView:not([hidden])) #customerEventView{
+  position:relative;
+  z-index:1;
+  width:100%;
+  min-height:100svh;
+  box-sizing:border-box;
+  pointer-events:auto;
+}
+
 /* CUSTOMER SERVICES — SAME FULL-SCREEN OUTER SHELL AS STATUS MESIN */
 body[data-role="CUSTOMER"]:has(#customerServicesView:not([hidden])) .topbar{
   display:none !important;
@@ -2783,6 +2817,7 @@ body[data-role="CUSTOMER"]:has(#customerMachineStatusView:not([hidden])) .app-sh
 @media(max-width:600px){
   .screen-customer.customer-dashboard-screen .staff-dashboard{
     padding-top:166px;
+    top:-40px;
   }
 
   .screen-customer.customer-dashboard-screen .customer-dashboard-brand{
