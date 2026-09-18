@@ -129,27 +129,95 @@ function machineResponse(
   };
 }
 
+export async function releaseExpiredMachines(
+  env: Env,
+  nowIso = new Date().toISOString(),
+): Promise<void> {
+  const expired =
+    await env.DB
+      .prepare(
+        `
+        SELECT
+          machine_id,
+          machine_type,
+          machine_number,
+          started_at,
+          expected_end_at,
+          activated_by
+        FROM machines
+        WHERE status = 'IN_USE'
+          AND started_at IS NOT NULL
+          AND expected_end_at IS NOT NULL
+          AND expected_end_at <= ?
+        `,
+      )
+      .bind(nowIso)
+      .all<Pick<MachineRow, 'machine_id' | 'machine_type' | 'machine_number' | 'started_at' | 'expected_end_at' | 'activated_by'>>();
+
+  for (const machine of expired.results ?? []) {
+    const startedAt = machine.started_at;
+    const endedAt = machine.expected_end_at;
+    if (!startedAt || !endedAt || !machine.activated_by) continue;
+
+    const operationId =
+      `machine_op_${machine.machine_id}_${Date.parse(endedAt)}`;
+    const durationSeconds = Math.max(0, Math.round((Date.parse(endedAt) - Date.parse(startedAt)) / 1000));
+
+    await env.DB
+      .prepare(
+        `
+        INSERT OR IGNORE INTO machine_operations (
+          operation_id,
+          machine_id,
+          machine_type,
+          machine_number,
+          started_at,
+          ended_at,
+          duration_seconds,
+          activated_by,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+      )
+      .bind(
+        operationId,
+        machine.machine_id,
+        machine.machine_type,
+        machine.machine_number,
+        startedAt,
+        endedAt,
+        durationSeconds,
+        machine.activated_by,
+        endedAt,
+      )
+      .run();
+
+    await env.DB
+      .prepare(
+        `
+        UPDATE machines
+        SET status = 'IDLE',
+            started_at = NULL,
+            expected_end_at = NULL,
+            activated_by = NULL
+        WHERE machine_id = ?
+          AND status = 'IN_USE'
+          AND expected_end_at = ?
+        `,
+      )
+      .bind(machine.machine_id, endedAt)
+      .run();
+  }
+}
+
 async function getMachines(
   env: Env,
 ): Promise<MachineRow[]> {
   const nowIso = new Date().toISOString();
 
-  // Automatically release completed machines before reading status.
-  await env.DB
-    .prepare(
-      `
-      UPDATE machines
-      SET status = 'IDLE',
-          started_at = NULL,
-          expected_end_at = NULL,
-          activated_by = NULL
-      WHERE status = 'IN_USE'
-        AND expected_end_at IS NOT NULL
-        AND expected_end_at <= ?
-      `,
-    )
-    .bind(nowIso)
-    .run();
+  // Automatically finalize completed machines before reading status.
+  await releaseExpiredMachines(env, nowIso);
 
   const result =
     await env.DB
@@ -252,6 +320,8 @@ export async function handleStaffActivateMachine(
       401,
     );
   }
+
+  await releaseExpiredMachines(env);
 
   const normalizedMachineId =
     machineId.trim().toUpperCase();
@@ -365,50 +435,6 @@ export async function handleStaffActivateMachine(
       409,
     );
   }
-
-  /*
-   * Historical operation.
-   *
-   * ended_at memakai expected_end_at karena baseline
-   * mendefinisikan machine_operations sebagai historical
-   * operating records.
-   */
-
-  const operationId =
-    `machine_op_${crypto.randomUUID()}`;
-
-  await env.DB
-    .prepare(
-      `
-      INSERT INTO machine_operations (
-        operation_id,
-        machine_id,
-        machine_type,
-        machine_number,
-        started_at,
-        ended_at,
-        duration_seconds,
-        activated_by,
-        created_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-    )
-    .bind(
-      operationId,
-      machine.machine_id,
-      machine.machine_type,
-      machine.machine_number,
-      startedAtIso,
-      expectedEndIso,
-      durationMinutes(
-        machine.machine_type,
-      ) *
-        60,
-      staffSession.userId,
-      startedAtIso,
-    )
-    .run();
 
   await writeAuditSafe(
     env,
