@@ -751,6 +751,10 @@ const DEFAULT_SERVICE_SETTINGS = {
   coinPrice: "Rp 10.000,- / 7 Kg",
   dropLabel: "Drop-off +",
   dropPrice: "Rp 10.000,-",
+  services: [
+    { label: "1 Koin", price: "Rp 10.000,- / 7 Kg" },
+    { label: "Drop-off +", price: "Rp 10.000,-" },
+  ],
   facilitiesMain: ["Washer 5 unit","Dryer 5 unit","Koin untuk pengoperasian mesin","Laundry Bag","Detergent Cair","Parfum/pewangi pakaian","Meja lipat pakaian"],
   facilitiesSupport: ["Area Parkir","Ruang tunggu smoking/non-smoking","Free WIFI"],
   facilitiesFnb: ["Aneka Minuman","Aneka Cemilan","Es Batu Kristal Rp 1.500,-/ Kg"],
@@ -775,6 +779,18 @@ function normalizeServiceSettings(value: unknown) {
     const values = raw.map((item) => String(item ?? "").trim().slice(0, 160)).filter(Boolean);
     return (values.length ? values : fallback).slice(0, maxItems);
   };
+  const legacyServices = [
+    { label: text("coinLabel", DEFAULT_SERVICE_SETTINGS.coinLabel, 60), price: text("coinPrice", DEFAULT_SERVICE_SETTINGS.coinPrice, 80) },
+    { label: text("dropLabel", DEFAULT_SERVICE_SETTINGS.dropLabel, 60), price: text("dropPrice", DEFAULT_SERVICE_SETTINGS.dropPrice, 80) },
+  ];
+  const rawServices = Array.isArray(source.services) ? source.services : [];
+  const services = rawServices.map((item) => {
+    const row = item && typeof item === "object" ? item as Record<string, unknown> : {};
+    return {
+      label: typeof row.label === "string" ? row.label.trim().slice(0, 60) : "",
+      price: typeof row.price === "string" ? row.price.trim().slice(0, 80) : "",
+    };
+  }).filter((item) => item.label || item.price).slice(0, 10);
   return {
     description: text("description", DEFAULT_SERVICE_SETTINGS.description, 200),
     address1: text("address1", DEFAULT_SERVICE_SETTINGS.address1, 120),
@@ -788,10 +804,11 @@ function normalizeServiceSettings(value: unknown) {
     selfEnd: time("selfEnd", DEFAULT_SERVICE_SETTINGS.selfEnd),
     dropStart: time("dropStart", DEFAULT_SERVICE_SETTINGS.dropStart),
     dropEnd: time("dropEnd", DEFAULT_SERVICE_SETTINGS.dropEnd),
-    coinLabel: text("coinLabel", DEFAULT_SERVICE_SETTINGS.coinLabel, 60),
-    coinPrice: text("coinPrice", DEFAULT_SERVICE_SETTINGS.coinPrice, 80),
-    dropLabel: text("dropLabel", DEFAULT_SERVICE_SETTINGS.dropLabel, 60),
-    dropPrice: text("dropPrice", DEFAULT_SERVICE_SETTINGS.dropPrice, 80),
+    coinLabel: legacyServices[0].label,
+    coinPrice: legacyServices[0].price,
+    dropLabel: legacyServices[1].label,
+    dropPrice: legacyServices[1].price,
+    services: services.length ? services : legacyServices,
     facilitiesMain: list("facilitiesMain", DEFAULT_SERVICE_SETTINGS.facilitiesMain, 20),
     facilitiesSupport: list("facilitiesSupport", DEFAULT_SERVICE_SETTINGS.facilitiesSupport, 20),
     facilitiesFnb: list("facilitiesFnb", DEFAULT_SERVICE_SETTINGS.facilitiesFnb, 20),
