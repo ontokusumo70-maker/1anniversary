@@ -2443,12 +2443,17 @@ html[data-initial-route="OWNER"] .app-shell{
 .customer-identity-card .msg{margin:5px 0 0;text-align:center;font-size:10px;min-height:0}
 .customer-identity-card .msg:empty{display:none}
 
-/* CUSTOMER DASHBOARD — SAME AS STAFF, CUSTOMER BACKGROUND ONLY */
+/* CUSTOMER DASHBOARD — SAME OUTER WIDTH AS LOCKED STAFF */
 .screen-customer.customer-dashboard-screen{position:relative;min-height:100svh;overflow:hidden;background:#e8f7df !important;animation:none !important;}
 .screen-customer.customer-dashboard-screen .customer-dashboard-bg{position:fixed;z-index:0;inset:0;width:100%;height:100%;object-fit:cover;object-position:center center;pointer-events:none;user-select:none;}
 .screen-customer.customer-dashboard-screen .customer-dashboard-content{position:relative;z-index:1;}
 .screen-customer.customer-dashboard-screen .staff-dashboard{background:transparent !important;}
-@media(max-width:600px){.screen-customer.customer-dashboard-screen .staff-dashboard{padding-top:38px;}}
+body[data-role="CUSTOMER"]:has(#customer:not([hidden])) .app-shell{
+  width:100%;
+  max-width:none;
+  padding:0;
+}
+@media(max-width:600px){.screen-customer.customer-dashboard-screen .staff-dashboard{padding-top:166px;}}
 .screen-customer.customer-dashboard-screen .customer-tools{padding:0;background:#fff;}
 #customerTools.customer-tools{
   position:fixed;
@@ -2680,34 +2685,7 @@ body[data-role="CUSTOMER"]:has(#customerMachineStatusView:not([hidden])) .app-sh
     line-height:1.1;
   }
 
-  .screen-customer.customer-dashboard-screen .staff-machine-summary-copy > div{
-    height:18px;
-    grid-template-columns:12px minmax(0,1fr) 22px;
-    gap:4px;
-    font-size:12px;
-    line-height:18px;
-    overflow:hidden;
-  }
-
-  .screen-customer.customer-dashboard-screen .staff-machine-summary-copy b{
-    min-width:0;
-    overflow:hidden;
-    white-space:nowrap;
-    font-weight:800;
-  }
-
-  .screen-customer.customer-dashboard-screen .staff-machine-summary-copy em{
-    width:22px;
-    min-width:22px;
-    color:#111827;
-    font-style:normal;
-    font-weight:800;
-    text-align:right;
-    white-space:nowrap;
-    font-variant-numeric:tabular-nums;
-    justify-self:end;
-  }
-
+  /* Inherit the locked Staff machine-summary typography and grid exactly. */
   .screen-customer.customer-dashboard-screen .staff-status-dot{
     width:12px;
     height:12px;
