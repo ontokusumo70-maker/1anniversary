@@ -733,6 +733,157 @@ async function handleEvents(request: Request, env: Env): Promise<Response> {
 }
 
 
+
+const DEFAULT_SERVICE_SETTINGS = {
+  description: "Semua kenyamanan untuk pengalaman laundry terbaik",
+  address1: "Jl. Gegerkalong Hilir No.27",
+  address2: "Ciwaruga-Bandung",
+  phone: "085117624377",
+  mapUrl: "https://maps.app.goo.gl/3KfFnHuLeZRsBnYG6?g_st=ic",
+  instagram: "https://www.instagram.com/teraslaundrycoin.ciwaruga?stkn=MWVzYTN1dHptaHp6bQ==",
+  tiktok: "https://www.tiktok.com/@teraslaundrycoinciwaruga?_r=1&_t=ZS-99mUOH4ItNN",
+  facebook: "https://www.facebook.com/share/1BuDpWuX5J/?mibextid=wwXIfr",
+  selfStart: "07:00",
+  selfEnd: "21:00",
+  dropStart: "07:00",
+  dropEnd: "23:00",
+  coinLabel: "1 Koin",
+  coinPrice: "Rp 10.000,- / 7 Kg",
+  dropLabel: "Drop-off +",
+  dropPrice: "Rp 10.000,-",
+  facilitiesMain: ["Washer 5 unit","Dryer 5 unit","Koin untuk pengoperasian mesin","Laundry Bag","Detergent Cair","Parfum/pewangi pakaian","Meja lipat pakaian"],
+  facilitiesSupport: ["Area Parkir","Ruang tunggu smoking/non-smoking","Free WIFI"],
+  facilitiesFnb: ["Aneka Minuman","Aneka Cemilan","Es Batu Kristal Rp 1.500,-/ Kg"],
+};
+
+function normalizeServiceSettings(value: unknown) {
+  const source = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  const text = (key: string, fallback: string, max: number) => {
+    const v = typeof source[key] === "string" ? source[key].trim() : "";
+    return v.slice(0, max) || fallback;
+  };
+  const url = (key: string, fallback: string) => {
+    const v = typeof source[key] === "string" ? source[key].trim() : "";
+    return /^https?:\/\//i.test(v) ? v.slice(0, 500) : fallback;
+  };
+  const time = (key: string, fallback: string) => {
+    const v = typeof source[key] === "string" ? source[key].trim() : "";
+    return /^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? v : fallback;
+  };
+  const list = (key: string, fallback: string[], maxItems: number) => {
+    const raw = Array.isArray(source[key]) ? source[key] : [];
+    const values = raw.map((item) => String(item ?? "").trim().slice(0, 160)).filter(Boolean);
+    return (values.length ? values : fallback).slice(0, maxItems);
+  };
+  return {
+    description: text("description", DEFAULT_SERVICE_SETTINGS.description, 200),
+    address1: text("address1", DEFAULT_SERVICE_SETTINGS.address1, 120),
+    address2: text("address2", DEFAULT_SERVICE_SETTINGS.address2, 120),
+    phone: text("phone", DEFAULT_SERVICE_SETTINGS.phone, 30),
+    mapUrl: url("mapUrl", DEFAULT_SERVICE_SETTINGS.mapUrl),
+    instagram: url("instagram", DEFAULT_SERVICE_SETTINGS.instagram),
+    tiktok: url("tiktok", DEFAULT_SERVICE_SETTINGS.tiktok),
+    facebook: url("facebook", DEFAULT_SERVICE_SETTINGS.facebook),
+    selfStart: time("selfStart", DEFAULT_SERVICE_SETTINGS.selfStart),
+    selfEnd: time("selfEnd", DEFAULT_SERVICE_SETTINGS.selfEnd),
+    dropStart: time("dropStart", DEFAULT_SERVICE_SETTINGS.dropStart),
+    dropEnd: time("dropEnd", DEFAULT_SERVICE_SETTINGS.dropEnd),
+    coinLabel: text("coinLabel", DEFAULT_SERVICE_SETTINGS.coinLabel, 60),
+    coinPrice: text("coinPrice", DEFAULT_SERVICE_SETTINGS.coinPrice, 80),
+    dropLabel: text("dropLabel", DEFAULT_SERVICE_SETTINGS.dropLabel, 60),
+    dropPrice: text("dropPrice", DEFAULT_SERVICE_SETTINGS.dropPrice, 80),
+    facilitiesMain: list("facilitiesMain", DEFAULT_SERVICE_SETTINGS.facilitiesMain, 20),
+    facilitiesSupport: list("facilitiesSupport", DEFAULT_SERVICE_SETTINGS.facilitiesSupport, 20),
+    facilitiesFnb: list("facilitiesFnb", DEFAULT_SERVICE_SETTINGS.facilitiesFnb, 20),
+  };
+}
+
+async function readServiceSettings(env: Env) {
+  const row = await env.DB.prepare(`
+    SELECT data_json, photo_mime, updated_at, updated_by
+    FROM service_settings WHERE id = 1 LIMIT 1
+  `).first<{ data_json: string; photo_mime: string | null; updated_at: string; updated_by: string | null }>();
+  let settings = DEFAULT_SERVICE_SETTINGS;
+  if (row?.data_json) {
+    try {
+      settings = normalizeServiceSettings(JSON.parse(row.data_json));
+    } catch {}
+  }
+  return {
+    settings,
+    photoUrl: row?.photo_mime ? `/service-settings/image?v=${encodeURIComponent(row.updated_at || "1")}` : "/assets/background/laundry/Laundry-area.jpg",
+    updatedAt: row?.updated_at || null,
+    updatedBy: row?.updated_by || null,
+  };
+}
+
+async function handlePublicServiceSettings(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  if (url.pathname === "/service-settings" && request.method === "GET") {
+    return json({ ok: true, ...(await readServiceSettings(env)) });
+  }
+  if (url.pathname === "/service-settings/image" && request.method === "GET") {
+    const row = await env.DB.prepare(`SELECT photo_mime, photo_blob FROM service_settings WHERE id = 1 LIMIT 1`)
+      .first<{ photo_mime: string | null; photo_blob: ArrayBuffer | null }>();
+    if (!row?.photo_blob || !row.photo_mime) return new Response("", { status: 404 });
+    return new Response(row.photo_blob, {
+      status: 200,
+      headers: { "Content-Type": row.photo_mime, "Cache-Control": "no-store" },
+    });
+  }
+  return errorResponse("NOT_FOUND", "Service settings endpoint not found.", 404);
+}
+
+async function handleOwnerServiceSettings(request: Request, env: Env): Promise<Response> {
+  const owner = await requireOwner(request, env);
+  if (!owner) return errorResponse("UNAUTHORIZED", "Owner authentication is required.", 401);
+
+  if (request.method === "GET") return json({ ok: true, ...(await readServiceSettings(env)) });
+  if (request.method !== "PUT") return errorResponse("METHOD_NOT_ALLOWED", "Method tidak didukung.", 405);
+
+  const form = await request.formData();
+  let rawSettings = form.get("settings");
+  if (typeof rawSettings !== "string") return errorResponse("INVALID_REQUEST", "Data pengaturan tidak ditemukan.", 400);
+
+  let parsed: unknown;
+  try { parsed = JSON.parse(rawSettings); } catch { return errorResponse("INVALID_REQUEST", "Data pengaturan tidak valid.", 400); }
+  const settings = normalizeServiceSettings(parsed);
+  const removePhoto = form.get("removePhoto") === "1";
+  const photo = form.get("photo");
+  const hasPhoto = photo instanceof File && photo.size > 0;
+
+  if (hasPhoto) {
+    if (!/^image\/(jpeg|png|webp)$/i.test(photo.type)) return errorResponse("INVALID_IMAGE_TYPE", "Foto harus JPG, PNG, atau WebP.", 400);
+    if (photo.size > 1048576) return errorResponse("IMAGE_TOO_LARGE", "Foto maksimal 1 MB.", 400);
+  }
+
+  const current = await env.DB.prepare(`SELECT photo_mime, photo_blob FROM service_settings WHERE id = 1 LIMIT 1`)
+    .first<{ photo_mime: string | null; photo_blob: ArrayBuffer | null }>();
+  let photoMime = current?.photo_mime ?? null;
+  let photoBlob = current?.photo_blob ?? null;
+  if (removePhoto) {
+    photoMime = null;
+    photoBlob = null;
+  } else if (hasPhoto) {
+    photoMime = photo.type;
+    photoBlob = await photo.arrayBuffer();
+  }
+
+  const updatedAt = new Date().toISOString();
+  await env.DB.prepare(`
+    INSERT INTO service_settings (id, data_json, photo_mime, photo_blob, updated_at, updated_by)
+    VALUES (1, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      data_json = excluded.data_json,
+      photo_mime = excluded.photo_mime,
+      photo_blob = excluded.photo_blob,
+      updated_at = excluded.updated_at,
+      updated_by = excluded.updated_by
+  `).bind(JSON.stringify(settings), photoMime, photoBlob, updatedAt, owner.userId).run();
+
+  return json({ ok: true, ...(await readServiceSettings(env)) });
+}
+
 function csvEscapeOwner(value: unknown): string {
   const text = value === null || value === undefined ? "" : String(value);
   return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
@@ -871,6 +1022,12 @@ async function handleOwnerExport(request: Request, env: Env): Promise<Response> 
 
 export async function handleOwnerRequest(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
+  if (url.pathname === "/service-settings" || url.pathname === "/service-settings/image") {
+    return handlePublicServiceSettings(request, env);
+  }
+  if (url.pathname === "/owner/service-settings" && (request.method === "GET" || request.method === "PUT")) {
+    return handleOwnerServiceSettings(request, env);
+  }
   if (url.pathname === "/owner/export" && request.method === "GET") return handleOwnerExport(request, env);
   if (url.pathname === "/owner/overview" && request.method === "GET") return handleOwnerOverview(request, env);
   const customerDeleteMatch = url.pathname.match(/^\/owner\/customers\/([^/]+)$/);
