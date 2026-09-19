@@ -2886,15 +2886,15 @@ function renderOwnerRewardList(items = ownerData?.rewardPool || []) {
   const totalBudget = items.reduce((sum, item) => sum + Number(item.budgetTotal || 0), 0);
   $("rewardBudgetTotal") && ($("rewardBudgetTotal").textContent = `Rp ${totalBudget.toLocaleString("id-ID")}`);
   target.innerHTML = rows.length ? rows.map((item) => {
-    const event = (item.events || [])[0];
-    const activeEvent = (item.events || []).find((row) => row.active && eventCategory(row) === "ACTIVE");
+    const events = Array.isArray(item.events) ? item.events : [];
+    const activeEvent = events.find((row) => row.active && eventCategory(row) === "ACTIVE");
     return `<article class="locked-reward-card">
       <button class="locked-reward-card-main" type="button" data-open-reward="${escapeHtml(item.rewardType)}">
         <span class="locked-card-main">
           <span class="locked-card-title-row"><b>${escapeHtml(item.rewardType)}</b><em class="locked-status ${item.active ? "active" : "inactive"}">${item.active ? "Aktif" : "Nonaktif"}</em></span>
           <span class="locked-stock-row"><span>${ownerIconSvg("gift")} Total Stok: <b>${Number(item.quotaTotal).toLocaleString("id-ID")}</b></span><span>Sisa: <b>${Number(item.remaining).toLocaleString("id-ID")}</b></span><span>Digunakan: <b>${Number(item.quotaUsed).toLocaleString("id-ID")}</b></span></span>
           <span class="locked-used-label">Digunakan di Event:</span>
-          ${event ? `<span class="locked-event-reference"><span class="locked-reference-icon">${ownerIconSvg("calendar")}</span><span><b>${escapeHtml(event.title)}</b><small>${escapeHtml(formatOwnerShortDate(event.startsAt))} – ${escapeHtml(formatOwnerShortDate(event.endsAt))}</small></span></span>` : `<span class="locked-no-event">Belum digunakan pada event</span>`}
+          ${events.length ? events.map((event) => `<span class="locked-event-reference"><span class="locked-reference-icon">${ownerIconSvg("calendar")}</span><span><b>${escapeHtml(event.title)}</b><small>${escapeHtml(formatOwnerShortDate(event.startsAt))} – ${escapeHtml(formatOwnerShortDate(event.endsAt))}</small><small>Jumlah: ${Number(event.rewardQuantity || 0).toLocaleString("id-ID")}</small></span></span>`).join("") : `<span class="locked-no-event">Belum digunakan pada event</span>`}
         </span>
         <span class="locked-card-arrow">›</span>
       </button>
@@ -2935,11 +2935,11 @@ function resetRewardForm() {
   $("ownerRewardType").disabled = false;
   $("ownerRewardType").value = "";
   $("rewardDescription").value = "";
-  $("rewardDescriptionCount").textContent = "0/200";
+  $("rewardDescriptionCount").textContent = "0/500";
   $("rewardQuota").value = "";
   $("rewardBudget").value = "";
   $("rewardTerms").value = "";
-  $("rewardTermsCount").textContent = "0/200";
+  $("rewardTermsCount").textContent = "0/500";
   $("rewardActive").value = "ACTIVE";
 }
 
@@ -2954,11 +2954,11 @@ function openRewardForm(rewardType = null) {
   $("ownerRewardType").disabled = Boolean(rewardType);
   $("ownerRewardType").value = rewardType || "";
   $("rewardDescription").value = item?.description || "";
-  $("rewardDescriptionCount").textContent = `${($( "rewardDescription").value || "").length}/200`;
+  $("rewardDescriptionCount").textContent = `${($( "rewardDescription").value || "").length}/500`;
   $("rewardQuota").value = item?.quotaTotal ?? "";
   $("rewardBudget").value = item?.budgetTotal ?? "";
   $("rewardTerms").value = item?.terms || "";
-  $("rewardTermsCount").textContent = `${($( "rewardTerms").value || "").length}/200`;
+  $("rewardTermsCount").textContent = `${($( "rewardTerms").value || "").length}/500`;
   $("rewardActive").value = item ? (item.active ? "ACTIVE" : "INACTIVE") : "ACTIVE";
   msg("rewardFormMsg", "");
 }
@@ -3022,8 +3022,7 @@ async function saveReward() {
     const path = editingRewardType ? `/owner/reward-pool/${encodeURIComponent(editingRewardType)}` : "/owner/reward-pool";
     await api(path, { method: editingRewardType ? "PATCH" : "POST", body: JSON.stringify(body) });
     closeRewardViews();
-    await loadOwnerData();
-    setOwnerView("reward-pool");
+    await loadOwnerRewardPool();
   } catch (error) {
     msg("rewardFormMsg", error.message);
   }
