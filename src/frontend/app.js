@@ -3018,37 +3018,40 @@ function updateRewardBudget() {
   const quota = Number($("rewardQuota")?.value);
   const unitPrice = Number($("rewardUnitPrice")?.value);
   const budget = Number.isInteger(quota) && quota > 0 && Number.isInteger(unitPrice) && unitPrice >= 0
-    ? quota * unitPrice
-    : 0;
+    ? quota * unitPrice : 0;
   if ($("rewardBudget")) $("rewardBudget").value = budget ? String(budget) : "";
 }
 
 async function saveReward() {
+  msg("rewardFormMsg", "");
   try {
     updateRewardBudget();
+    const rewardType = $("ownerRewardType").value.trim();
+    const quotaTotal = Number($("rewardQuota").value);
+    const unitPriceInput = $("rewardUnitPrice").value.trim();
+    const unitPrice = Number(unitPriceInput);
+    if (!rewardType || !Number.isInteger(quotaTotal) || quotaTotal < 1 ||
+        !unitPriceInput || !Number.isInteger(unitPrice) || unitPrice < 0) {
+      throw new Error("Nama reward, total stok, dan harga satuan wajib diisi.");
+    }
     const body = {
-      rewardType: $("ownerRewardType").value.trim(),
+      rewardType,
       description: $("rewardDescription").value.trim(),
-      quotaTotal: Number($("rewardQuota").value),
-      unitPrice: Number($("rewardUnitPrice").value),
-      budgetTotal: Number($("rewardBudget").value),
+      quotaTotal,
+      unitPrice,
+      budgetTotal: quotaTotal * unitPrice,
       terms: $("rewardTerms").value.trim(),
       active: $("rewardActive").value === "ACTIVE",
     };
-    const unitPriceInput = $("rewardUnitPrice").value.trim();
-    const unitPrice = Number(unitPriceInput);
-    if (!body.rewardType || !Number.isInteger(body.quotaTotal) || body.quotaTotal < 1 || !unitPriceInput || !Number.isInteger(unitPrice) || unitPrice < 0) {
-      throw new Error("Nama reward, total stok, dan harga satuan wajib diisi.");
-    }
-    body.budgetTotal = body.quotaTotal * unitPrice;
     const path = editingRewardType ? `/owner/reward-pool/${encodeURIComponent(editingRewardType)}` : "/owner/reward-pool";
     await api(path, { method: editingRewardType ? "PATCH" : "POST", body: JSON.stringify(body) });
     closeRewardViews();
     await loadOwnerRewardPool();
   } catch (error) {
-    msg("rewardFormMsg", error.message);
+    msg("rewardFormMsg", error.message || "Gagal menyimpan reward.");
   }
 }
+
 async function deleteReward() {
   if (!selectedRewardType) return;
   if (!window.confirm("Hapus reward ini?")) return;
