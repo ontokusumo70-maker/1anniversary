@@ -872,6 +872,12 @@ body[data-role="OWNER"] .owner-nav-icon{width:27px;height:25px}
 
 /* CUSTOMER TRACE — APPROVED LIST + DETAIL */
 .owner-customer-heading{margin-bottom:12px}
+.owner-customer-total-row{display:flex;align-items:center;gap:8px;flex-wrap:nowrap}
+.owner-customer-total-row p{margin:4px 0 0}
+.owner-customer-total-row select{height:34px;padding:0 28px 0 10px;border:1px solid #b9ddc7;border-radius:8px;background:#fff;color:#315448;font-size:11px;font-weight:600}
+.owner-customer-export{width:34px;height:34px;min-width:34px;margin-top:4px;padding:0;border:1px solid #b9ddc7;border-radius:8px;background:#fff;color:#16855e;display:grid;place-items:center;box-shadow:none;cursor:pointer}
+.owner-customer-export svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.owner-customer-export:active{transform:translateY(1px)}
 .owner-customer-heading p{margin-top:4px;font-size:14px;color:#74827c;font-weight:500}
 .owner-customer-search{display:grid;grid-template-columns:minmax(0,1fr) 108px;gap:8px;align-items:center;margin:0 0 12px}
 .owner-customer-search label{position:relative;margin:0;display:block}
