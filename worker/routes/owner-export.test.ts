@@ -3,8 +3,7 @@ import {
 } from "node:assert";
 
 import {
-  buildExportFilename,
-  normalizeExportRequest,
+  buildOwnerReportCsv,
 } from "./owner-export";
 
 function test(
@@ -15,116 +14,89 @@ function test(
     fn();
     console.log(`PASS: ${name}`);
   } catch (error) {
-    console.error(
-      `FAIL: ${name}`,
-      error,
-    );
+    console.error(`FAIL: ${name}`, error);
     throw error;
   }
 }
 
 test(
-  "normalizeExportRequest memakai default pagination",
+  "buildOwnerReportCsv menghasilkan bagian customer",
   () => {
-    const result =
-      normalizeExportRequest({ type: "customers" });
+    const csv = buildOwnerReportCsv({
+      datasets: new Set(["customer"]),
+      customers: [{
+        customer_id: "customer_1",
+        created_at: "2026-09-01T00:00:00.000Z",
+        total_customers: 1,
+        name: "Customer Test",
+        phone: "0800000000",
+        email: "test@example.com",
+      }],
+      machines: [],
+      events: [],
+      audit: [],
+    });
 
-    assert.equal(
-      result.limit,
-      500,
-    );
-
-    assert.equal(
-      result.offset,
-      0,
-    );
-
-    assert.equal(
-      result.from,
-      undefined,
-    );
-
-    assert.equal(
-      result.to,
-      undefined,
-    );
+    assert.match(csv, /LAPORAN TERAS LAUNDRY OWNER - CUSTOMER/);
+    assert.match(csv, /Customer Test/);
+    assert.match(csv, /test@example\.com/);
   },
 );
 
 test(
-  "normalizeExportRequest mempertahankan filter range",
+  "buildOwnerReportCsv menghasilkan bagian reward pool",
   () => {
-    const result =
-      normalizeExportRequest({
-        type: "customers",
-        from:
-          "2026-11-01T00:00:00.000Z",
-        to:
-          "2026-11-10T23:59:59.999Z",
-        limit: 100,
-        offset: 200,
-      });
+    const csv = buildOwnerReportCsv({
+      datasets: new Set(["reward-pool"]),
+      customers: [],
+      machines: [],
+      events: [],
+      audit: [],
+      rewardPool: [{
+        reward_type: "VOUCHER",
+        description: "Voucher Test",
+        quota_total: 10,
+        quota_used: 2,
+        budget_total: 100000,
+        reward_claimed: 1,
+        terms: "Test",
+        active: 1,
+      }],
+    });
 
-    assert.equal(
-      result.from,
-      "2026-11-01T00:00:00.000Z",
-    );
-
-    assert.equal(
-      result.to,
-      "2026-11-10T23:59:59.999Z",
-    );
-
-    assert.equal(
-      result.limit,
-      100,
-    );
-
-    assert.equal(
-      result.offset,
-      200,
-    );
+    assert.match(csv, /LAPORAN TERAS LAUNDRY OWNER - REWARD POOL/);
+    assert.match(csv, /VOUCHER/);
+    assert.match(csv, /100000/);
   },
 );
 
 test(
-  "normalizeExportRequest membatasi limit maksimum",
+  "buildOwnerReportCsv menghasilkan bagian event dan reward multi",
   () => {
-    const result =
-      normalizeExportRequest({
-        type: "customers",
-        limit: 5000,
-        offset: -10,
-      });
+    const csv = buildOwnerReportCsv({
+      datasets: new Set(["event"]),
+      customers: [],
+      machines: [],
+      audit: [],
+      events: [{
+        event_id: "event_1",
+        title: "Event Test",
+        starts_at: "2026-09-01T00:00:00.000Z",
+        ends_at: "2026-09-10T00:00:00.000Z",
+        reward_type: "VOUCHER",
+        reward_quantity: 1,
+        active: 1,
+      }],
+      eventRewards: [
+        { event_id: "event_1", reward_type: "VOUCHER", reward_quantity: 1, position: 0 },
+        { event_id: "event_1", reward_type: "COIN", reward_quantity: 2, position: 1 },
+      ],
+    });
 
-    assert.equal(
-      result.limit,
-      1000,
-    );
-
-    assert.equal(
-      result.offset,
-      0,
-    );
+    assert.match(csv, /LAPORAN TERAS LAUNDRY OWNER - EVENT/);
+    assert.match(csv, /VOUCHER/);
+    assert.match(csv, /COIN/);
   },
 );
 
-test(
-  "buildExportFilename menghasilkan nama CSV",
-  () => {
-    const filename =
-      buildExportFilename(
-        "2026-11-01",
-        "2026-11-10",
-      );
-
-    assert.equal(
-      filename,
-      "teras-laundry-owner-export-2026-11-01-2026-11-10.csv",
-    );
-  },
-);
-
-console.log(
-  "Owner Export 3.9.4 tests completed.",
-);
+console.log("Owner Export tests completed.");
