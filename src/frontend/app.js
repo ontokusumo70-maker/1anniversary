@@ -2772,36 +2772,84 @@ function renderEventRewardRows() {
   const options = pools.length
     ? `<option value="">Pilih reward dari Reward Pool</option>${pools.map((pool) => `<option value="${escapeHtml(pool.rewardType)}">${escapeHtml(pool.rewardType)}</option>`).join("")}`
     : `<option value="">Belum ada reward aktif</option>`;
+
   target.innerHTML = eventRewardRows.map((row, index) => {
     const pool = pools.find((item) => item.rewardType === row.rewardType);
-    const stock = pool ? `Stok tersedia di pool: ${Number(pool.remaining).toLocaleString("id-ID")}` : "";
+    const usedInForm = pool
+      ? eventRewardRows.reduce((total, currentRow) => {
+          return currentRow.rewardType === row.rewardType
+            ? total + Math.max(0, Number(currentRow.rewardQuantity) || 0)
+            : total;
+        }, 0)
+      : 0;
+    const remaining = pool
+      ? Math.max(0, Number(pool.remaining || 0) - usedInForm)
+      : 0;
+    const stock = pool ? `Stok tersedia di pool: ${remaining.toLocaleString("id-ID")}` : "";
+
     return `<div class="event-reward-row" data-reward-index="${index}">
       <label class="event-reward-select-field"><span>Pilih Reward</span><select data-event-reward-type>${options}</select></label>
-      <label class="event-reward-quantity-field"><span>Jumlah Reward</span><input data-event-reward-quantity type="number" min="1" placeholder="Masukkan jumlah reward" value="${escapeHtml(row.rewardQuantity ?? "")}"><small class="locked-field-note">${escapeHtml(stock)}</small></label>
+      <label class="event-reward-quantity-field"><span>Jumlah Reward</span><input data-event-reward-quantity type="number" min="1" placeholder="Masukkan jumlah reward" value="${escapeHtml(row.rewardQuantity ?? "")}"><small class="locked-field-note" data-reward-stock>${escapeHtml(stock)}</small></label>
       <button class="event-reward-delete" type="button" data-remove-event-reward="${index}" aria-label="Hapus Reward">${ownerIconSvg("trash")}</button>
     </div>`;
   }).join("");
+
   target.querySelectorAll("[data-event-reward-type]").forEach((select) => {
     const index = Number(select.closest("[data-reward-index]")?.dataset.rewardIndex);
     select.value = eventRewardRows[index]?.rewardType || "";
-    select.onchange = () => { eventRewardRows[index].rewardType = select.value; renderEventRewardRows(); };
+    select.onchange = () => {
+      eventRewardRows[index].rewardType = select.value;
+      updateEventRewardStock();
+    };
   });
+
   target.querySelectorAll("[data-event-reward-quantity]").forEach((input) => {
     const index = Number(input.closest("[data-reward-index]")?.dataset.rewardIndex);
-    input.oninput = () => { eventRewardRows[index].rewardQuantity = input.value; };
+    input.oninput = () => {
+      eventRewardRows[index].rewardQuantity = input.value;
+      updateEventRewardStock();
+    };
   });
+
   target.querySelectorAll("[data-remove-event-reward]").forEach((button) => {
     button.onclick = () => {
       const index = Number(button.dataset.removeEventReward);
-      if (eventRewardRows.length <= 1) { eventRewardRows = [{ rewardType: "", rewardQuantity: "" }]; }
-      else eventRewardRows.splice(index, 1);
+      if (eventRewardRows.length <= 1) {
+        eventRewardRows = [{ rewardType: "", rewardQuantity: "" }];
+      } else {
+        eventRewardRows.splice(index, 1);
+      }
       renderEventRewardRows();
     };
   });
 }
 
 function updateEventRewardStock() {
-  renderEventRewardRows();
+  const target = $("eventRewardList");
+  if (!target) return;
+  const pools = getActiveRewardPools();
+
+  target.querySelectorAll("[data-reward-index]").forEach((rowElement) => {
+    const index = Number(rowElement.dataset.rewardIndex);
+    const row = eventRewardRows[index];
+    const stockElement = rowElement.querySelector("[data-reward-stock]");
+    if (!row || !stockElement) return;
+
+    const pool = pools.find((item) => item.rewardType === row.rewardType);
+    if (!pool) {
+      stockElement.textContent = "";
+      return;
+    }
+
+    const usedInForm = eventRewardRows.reduce((total, currentRow) => {
+      return currentRow.rewardType === row.rewardType
+        ? total + Math.max(0, Number(currentRow.rewardQuantity) || 0)
+        : total;
+    }, 0);
+
+    const remaining = Math.max(0, Number(pool.remaining || 0) - usedInForm);
+    stockElement.textContent = `Stok tersedia di pool: ${remaining.toLocaleString("id-ID")}`;
+  });
 }
 
 function renderOwnerRewardList(items = ownerData?.rewardPool || []) {
@@ -3232,10 +3280,9 @@ function eventFormImageIsActive(event = null) {
   const start = $("eventStartsAt")?.value || (event ? toDateInput(event.startsAt) : "");
   const end = $("eventEndsAt")?.value || (event ? toDateInput(event.endsAt) : "");
   if (!start || !end) return false;
-  const now = Date.now();
   const startMs = Date.parse(`${start}T00:00:00+07:00`);
   const endMs = Date.parse(`${end}T23:59:59+07:00`);
-  return Number.isFinite(startMs) && Number.isFinite(endMs) && now >= startMs && now < endMs;
+  return Number.isFinite(startMs) && Number.isFinite(endMs) && startMs <= endMs;
 }
 
 function updateEventImageAvailability(event = null) {
@@ -3626,6 +3673,11 @@ $("addEventRewardButton")?.addEventListener("click", () => { eventRewardRows.pus
 $("eventStartsAt")?.addEventListener("change", () => updateEventImageAvailability(ownerData?.events?.find((row) => row.eventId === editingEventId) || null));
 $("eventEndsAt")?.addEventListener("change", () => updateEventImageAvailability(ownerData?.events?.find((row) => row.eventId === editingEventId) || null));
 $("eventStatus")?.addEventListener("change", () => updateEventImageAvailability(ownerData?.events?.find((row) => row.eventId === editingEventId) || null));
+document.querySelector(".locked-image-upload-card")?.addEventListener("click", (event) => {
+  if (event.target.closest("input[type=\"file\"]")) return;
+  const input = $("eventImage");
+  if (input && !input.disabled) input.click();
+});
 $("eventImage")?.addEventListener("change", () => {
   const file = $("eventImage")?.files?.[0];
   msg("eventImageMsg", "");
@@ -3759,7 +3811,7 @@ function bindEventFormCounters() {
     const counter = $(counterId);
     if (!input || !counter || input.dataset.counterBound) return;
     input.dataset.counterBound = "1";
-    const update = () => { counter.textContent = `${input.value.length}/200`; };
+    const update = () => { counter.textContent = `${input.value.length}/500`; };
     input.addEventListener("input", update);
     update();
   });
