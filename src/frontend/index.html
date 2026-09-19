@@ -96,7 +96,18 @@
       </label>
 
       <div class="authActions customer-login-actions">
-        <button id="staffLogin" class="primary-button" type="button" hidden>Login</button>
+        <button id="requestOtp" class="primary-button" type="button">Kirim OTP</button>
+        <p id="otpInfo" class="msg helper">Periksa email gmail anda untuk Kode OTP</p>
+        <button id="staffLogin" class="secondary-button" type="button" hidden>Login</button>
+      </div>
+
+      <div id="otpBox" class="otp-box customer-otp-box" hidden>
+        <div class="customer-login-step step-chip"><span>2</span> Masukkan Kode OTP</div>
+        <p class="customer-otp-note">Masukkan 6 digit kode OTP yang dikirim ke email Anda.</p>
+        <label>OTP 6 Digit
+          <input id="otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" aria-label="Kode OTP 6 digit">
+        </label>
+        <button id="verifyOtp" class="primary-button" type="button">Verifikasi OTP</button>
       </div>
 
       <p id="authMsg" class="msg status-msg customer-login-msg"></p>
@@ -657,14 +668,7 @@
         <img id="staffActiveEventImage" class="active-event-info-image" alt="Image Event Aktif" hidden>
         <p id="staffActiveEventDescription" class="active-event-info-description" hidden></p>
       </section>
-      <div id="staffScannerTool" class="card scanner-card" hidden>
-        <div class="step-chip"><span>1</span> Scan QR Reward</div>
-        <p id="scannerSupport" class="section-note">Scan QR reward menggunakan kamera.</p>
-        <button id="scanCamera" class="primary-button">SCAN QR DENGAN KAMERA</button>
-        <video id="camera" playsinline autoplay hidden></video>
-        <pre id="staffResult"></pre>
-      </div>
-      <div id="staffMachineTool" class="card machine-card" hidden>
+<div id="staffMachineTool" class="card machine-card" hidden>
         <div class="card-title-row"><div><span class="eyebrow">OPERASIONAL</span><h2>Aktivasi Mesin</h2></div></div>
         <div id="staffMachines" class="machineGrid"></div>
       </div>
