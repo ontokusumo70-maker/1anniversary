@@ -628,32 +628,87 @@ async function handleRewardPool(request: Request, env: Env): Promise<Response> {
   }
 
   if (request.method !== "POST" && request.method !== "PATCH") return errorResponse("NOT_FOUND", "Reward Pool endpoint not found.", 404);
-  let body: { rewardType?: unknown; description?: unknown; quotaTotal?: unknown; budgetTotal?: unknown; terms?: unknown; active?: unknown };
+  let body: { rewardType?: unknown; description?: unknown; quotaTotal?: unknown; unitPrice?: unknown; budgetTotal?: unknown; terms?: unknown; active?: unknown };
   try { body = await request.json() as typeof body; } catch { return errorResponse("INVALID_REQUEST", "Invalid JSON request body.", 400); }
-  const rewardType = isNonEmptyString(body.rewardType, 120) ? body.rewardType.trim() : match ? decodeURIComponent(match[1]).trim() : "";
+
+  const pathRewardType = match ? decodeURIComponent(match[1]).trim() : "";
+  const rewardType = isNonEmptyString(body.rewardType, 120) ? body.rewardType.trim() : pathRewardType;
   const description = body.description === undefined ? "" : (isNonEmptyString(body.description, 500) ? body.description.trim() : "");
   const terms = body.terms === undefined ? "" : (isNonEmptyString(body.terms, 500) ? body.terms.trim() : "");
   const quotaTotal = parsePositiveInteger(body.quotaTotal);
-  const budgetTotal = typeof body.budgetTotal === "number" ? body.budgetTotal : Number(body.budgetTotal);
+  const unitPriceValue = body.unitPrice === undefined ? null : Number(body.unitPrice);
+  const legacyBudgetTotal = typeof body.budgetTotal === "number" ? body.budgetTotal : Number(body.budgetTotal);
+  const budgetTotal = unitPriceValue !== null && Number.isInteger(unitPriceValue) && unitPriceValue >= 0 && quotaTotal !== null
+    ? quotaTotal * unitPriceValue
+    : legacyBudgetTotal;
   const active = body.active === undefined ? 1 : body.active ? 1 : 0;
-  if (!rewardType || quotaTotal === null || !Number.isInteger(budgetTotal) || budgetTotal < 0) return errorResponse("INVALID_REQUEST", "Nama reward, total stok, dan budget reward wajib diisi.", 400);
+
+  if (
+    !rewardType ||
+    quotaTotal === null ||
+    !Number.isSafeInteger(budgetTotal) ||
+    budgetTotal < 0
+  ) {
+    return errorResponse("INVALID_REQUEST", "Nama reward, total stok, dan harga satuan wajib diisi.", 400);
+  }
+
   const nowIso = new Date().toISOString();
 
   if (request.method === "POST") {
     try {
       await env.DB.prepare(`INSERT INTO reward_pool (reward_type, description, quota_total, quota_used, budget_total, terms, active, created_by, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?)`)
         .bind(rewardType, description, quotaTotal, budgetTotal, terms, active, owner.userId, nowIso, nowIso).run();
-    } catch { return errorResponse("REWARD_EXISTS", "Reward sudah ada.", 409); }
+    } catch {
+      return errorResponse("REWARD_EXISTS", "Reward sudah ada.", 409);
+    }
     await writeAuditSafe(env, { entityType: "REWARD", entityId: rewardType, action: "CREATE", actor: owner.userId, result: "SUCCESS" });
   } else {
-    if (!match) return errorResponse("INVALID_REQUEST", "Reward type is required.", 400);
-    const current = await env.DB.prepare(`SELECT quota_used FROM reward_pool WHERE reward_type = ? LIMIT 1`).bind(rewardType).first<{ quota_used: number }>();
+    if (!pathRewardType) return errorResponse("INVALID_REQUEST", "Reward type is required.", 400);
+
+    const current = await env.DB.prepare(`SELECT quota_used FROM reward_pool WHERE reward_type = ? LIMIT 1`)
+      .bind(pathRewardType)
+      .first<{ quota_used: number }>();
+
     if (!current) return errorResponse("REWARD_NOT_FOUND", "Reward tidak ditemukan.", 404);
-    if (quotaTotal < Number(current.quota_used)) return errorResponse("INVALID_QUOTA", "Total stok tidak boleh lebih kecil dari yang sudah digunakan.", 400);
-    const result = await env.DB.prepare(`UPDATE reward_pool SET description = ?, quota_total = ?, budget_total = ?, terms = ?, active = ?, updated_at = ? WHERE reward_type = ?`).bind(description, quotaTotal, budgetTotal, terms, active, nowIso, rewardType).run();
-    if (result.meta.changes !== 1) return errorResponse("REWARD_NOT_FOUND", "Reward tidak ditemukan.", 404);
-    await writeAuditSafe(env, { entityType: "REWARD", entityId: rewardType, action: "UPDATE", actor: owner.userId, result: "SUCCESS" });
+
+    if (quotaTotal < Number(current.quota_used)) {
+      return errorResponse("INVALID_QUOTA", "Total stok tidak boleh lebih kecil dari yang sudah digunakan.", 400);
+    }
+
+    if (rewardType !== pathRewardType) {
+      const duplicate = await env.DB.prepare(`SELECT reward_type FROM reward_pool WHERE reward_type = ? LIMIT 1`)
+        .bind(rewardType)
+        .first<{ reward_type: string }>();
+      if (duplicate) return errorResponse("REWARD_EXISTS", "Nama reward sudah digunakan.", 409);
+    }
+
+    if (rewardType !== pathRewardType) {
+      await env.DB.batch([
+        env.DB.prepare(`UPDATE reward_pool SET reward_type = ?, description = ?, quota_total = ?, budget_total = ?, terms = ?, active = ?, updated_at = ? WHERE reward_type = ?`)
+          .bind(rewardType, description, quotaTotal, budgetTotal, terms, active, nowIso, pathRewardType),
+        env.DB.prepare(`UPDATE events SET reward_type = ?, updated_at = ? WHERE reward_type = ?`)
+          .bind(rewardType, nowIso, pathRewardType),
+        env.DB.prepare(`UPDATE event_rewards SET reward_type = ?, updated_at = ? WHERE reward_type = ?`)
+          .bind(rewardType, nowIso, pathRewardType),
+        env.DB.prepare(`UPDATE rewards SET type = ? WHERE type = ?`)
+          .bind(rewardType, pathRewardType),
+      ]);
+    } else {
+      const result = await env.DB.prepare(`UPDATE reward_pool SET description = ?, quota_total = ?, budget_total = ?, terms = ?, active = ?, updated_at = ? WHERE reward_type = ?`)
+        .bind(description, quotaTotal, budgetTotal, terms, active, nowIso, pathRewardType)
+        .run();
+      if (result.meta.changes !== 1) return errorResponse("REWARD_NOT_FOUND", "Reward tidak ditemukan.", 404);
+    }
+
+    await writeAuditSafe(env, {
+      entityType: "REWARD",
+      entityId: rewardType,
+      action: "UPDATE",
+      actor: owner.userId,
+      result: "SUCCESS",
+    });
   }
+
   return json({ ok: true, rewardType });
 }
 
