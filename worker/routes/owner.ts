@@ -551,9 +551,10 @@ async function handleRewardPool(request: Request, env: Env): Promise<Response> {
   const match = url.pathname.match(/^\/owner\/reward-pool\/([^/]+)$/);
 
   if (request.method === "GET") {
-    const [result, eventResult, claimedResult] = await Promise.all([
+    const [result, eventResult, eventRewardResult, claimedResult] = await Promise.all([
       env.DB.prepare(`SELECT reward_type, description, quota_total, quota_used, budget_total, terms, active FROM reward_pool ORDER BY reward_type ASC`).all(),
       env.DB.prepare(`SELECT event_id, title, starts_at, ends_at, reward_type, reward_quantity, active FROM events ORDER BY starts_at DESC, event_id DESC LIMIT 100`).all(),
+      env.DB.prepare(`SELECT event_id, reward_type, reward_quantity, position FROM event_rewards ORDER BY event_id ASC, position ASC`).all(),
       env.DB.prepare(`SELECT type AS reward_type, COUNT(*) AS claimed_count FROM rewards WHERE claimed_at IS NOT NULL AND claimed_at >= ? AND claimed_at < ? GROUP BY type`).bind(
         (() => {
           const from = url.searchParams.get("from");
@@ -569,12 +570,29 @@ async function handleRewardPool(request: Request, env: Env): Promise<Response> {
     for (const row of (claimedResult.results ?? []) as Array<Record<string, unknown>>) {
       claimedByReward.set(String(row.reward_type), Number(row.claimed_count ?? 0));
     }
+    const rewardRowsByEvent = new Map<string, Array<{ rewardType: string; rewardQuantity: number }>>();
+    for (const row of (eventRewardResult.results ?? []) as Array<Record<string, unknown>>) {
+      const eventId = String(row.event_id);
+      const list = rewardRowsByEvent.get(eventId) ?? [];
+      list.push({ rewardType: String(row.reward_type), rewardQuantity: Number(row.reward_quantity ?? 0) });
+      rewardRowsByEvent.set(eventId, list);
+    }
     const eventsByReward = new Map<string, Array<Record<string, unknown>>>();
     for (const row of (eventResult.results ?? []) as Array<Record<string, unknown>>) {
-      const rewardType = String(row.reward_type);
-      const list = eventsByReward.get(rewardType) ?? [];
-      list.push(row);
-      eventsByReward.set(rewardType, list);
+      const eventId = String(row.event_id);
+      const rewards = rewardRowsByEvent.get(eventId);
+      const legacyReward = { rewardType: String(row.reward_type), rewardQuantity: Number(row.reward_quantity ?? 0) };
+      const eventRewards = rewards?.length ? rewards : [legacyReward];
+      for (const reward of eventRewards) {
+        const eventRecord = {
+          ...row,
+          reward_type: reward.rewardType,
+          reward_quantity: reward.rewardQuantity,
+        };
+        const list = eventsByReward.get(reward.rewardType) ?? [];
+        list.push(eventRecord);
+        eventsByReward.set(reward.rewardType, list);
+      }
     }
     const items = (result.results ?? []).map((row) => {
       const record = row as Record<string, unknown>;
@@ -601,7 +619,7 @@ async function handleRewardPool(request: Request, env: Env): Promise<Response> {
   if (request.method === "DELETE") {
     if (!match) return errorResponse("INVALID_REQUEST", "Reward type is required.", 400);
     const rewardType = decodeURIComponent(match[1]);
-    const linked = await env.DB.prepare(`SELECT COUNT(*) AS count FROM events WHERE reward_type = ?`).bind(rewardType).first<{ count: number }>();
+    const linked = await env.DB.prepare(`SELECT COUNT(*) AS count FROM events WHERE reward_type = ? OR event_id IN (SELECT event_id FROM event_rewards WHERE reward_type = ?)`).bind(rewardType, rewardType).first<{ count: number }>();
     if (Number(linked?.count ?? 0) > 0) return errorResponse("REWARD_IN_USE", "Reward masih digunakan oleh event dan tidak dapat dihapus.", 409);
     const result = await env.DB.prepare(`DELETE FROM reward_pool WHERE reward_type = ?`).bind(rewardType).run();
     if (result.meta.changes !== 1) return errorResponse("REWARD_NOT_FOUND", "Reward tidak ditemukan.", 404);
@@ -613,8 +631,8 @@ async function handleRewardPool(request: Request, env: Env): Promise<Response> {
   let body: { rewardType?: unknown; description?: unknown; quotaTotal?: unknown; budgetTotal?: unknown; terms?: unknown; active?: unknown };
   try { body = await request.json() as typeof body; } catch { return errorResponse("INVALID_REQUEST", "Invalid JSON request body.", 400); }
   const rewardType = isNonEmptyString(body.rewardType, 120) ? body.rewardType.trim() : match ? decodeURIComponent(match[1]).trim() : "";
-  const description = body.description === undefined ? "" : (isNonEmptyString(body.description, 200) ? body.description.trim() : "");
-  const terms = body.terms === undefined ? "" : (isNonEmptyString(body.terms, 200) ? body.terms.trim() : "");
+  const description = body.description === undefined ? "" : (isNonEmptyString(body.description, 500) ? body.description.trim() : "");
+  const terms = body.terms === undefined ? "" : (isNonEmptyString(body.terms, 500) ? body.terms.trim() : "");
   const quotaTotal = parsePositiveInteger(body.quotaTotal);
   const budgetTotal = typeof body.budgetTotal === "number" ? body.budgetTotal : Number(body.budgetTotal);
   const active = body.active === undefined ? 1 : body.active ? 1 : 0;
