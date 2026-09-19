@@ -719,7 +719,6 @@
       <button type="button" data-owner-view="customer-trace"><span class="owner-nav-icon" data-owner-icon="customer"></span><span>Customer Trace</span></button>
       <button type="button" data-owner-view="events"><span class="owner-nav-icon" data-owner-icon="event"></span><span>Event</span></button>
       <button type="button" data-owner-view="service-settings"><span class="owner-nav-icon" data-owner-icon="settings"></span><span>Layanan</span></button>
-      <button type="button" data-owner-view="csv-export"><span class="owner-nav-icon" data-owner-icon="csv"></span><span>CSV Export</span></button>
     </nav>
 
     <div id="ownerViewOverview" class="owner-view">
@@ -912,7 +911,7 @@
     <div id="ownerViewCustomerTrace" class="owner-view" hidden>
       <div id="ownerCustomerListView">
         <div class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</div>
-        <div class="owner-page-heading compact owner-customer-heading"><div><h1 id="ownerCustomerHeading">Customer Trace</h1><div class="owner-customer-total-row"><p id="ownerCustomerTotal">0 Customers</p><select id="ownerCustomerStatusFilter" aria-label="Filter status customer"><option value="all">All</option><option value="active">Active</option><option value="inactive">Inactive</option></select></div></div></div>
+        <div class="owner-page-heading compact owner-customer-heading"><div><h1 id="ownerCustomerHeading">Customer Trace</h1><div class="owner-customer-total-row"><p id="ownerCustomerTotal">0 Customers</p><select id="ownerCustomerStatusFilter" aria-label="Filter status customer"><option value="all">All</option><option value="active">Active</option><option value="inactive">Inactive</option></select><button id="ownerCustomerExportButton" class="owner-customer-export" type="button" aria-label="Buka Export CSV" title="Export CSV"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v5h5M10 12h5M10 16h5"/></svg></button></div></div></div>
         <div class="owner-customer-search"><label><span class="owner-search-icon" aria-hidden="true">⌕</span><input id="ownerCustomerSearch" maxlength="128" placeholder="Email ID / No. HP" aria-label="Cari customer"></label><button id="ownerCustomerSearchButton" class="primary-button" type="button">Cari</button></div>
         <div id="ownerCustomerList" class="owner-customer-list"></div>
         <div class="owner-customer-pagination-summary" id="ownerCustomerPaginationSummary">0 dari 0</div>
