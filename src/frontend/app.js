@@ -2132,6 +2132,7 @@ let ownerRewardFilter = "ACTIVE";
 let selectedRewardType = null;
 let selectedEventId = null;
 let eventRewardRows = [];
+let eventImageObjectUrl = null;
 
 function formatDateTime(value) {
   if (!value) return "—";
