@@ -33,12 +33,12 @@ function getAllowedOrigin(
   request: Request,
   env: Env,
 ): string | null {
-  const configured =
-    env.ALLOWED_ORIGIN?.trim();
+  const productionOrigin =
+    'https://1anniversary.pages.dev';
 
-  if (!configured) {
-    return null;
-  }
+  const configured =
+    env.ALLOWED_ORIGIN?.trim() ||
+    productionOrigin;
 
   const requestOrigin =
     request.headers.get('Origin');
@@ -47,11 +47,14 @@ function getAllowedOrigin(
     return configured;
   }
 
-  if (requestOrigin !== configured) {
+  if (
+    requestOrigin !== configured &&
+    requestOrigin !== productionOrigin
+  ) {
     return null;
   }
 
-  return configured;
+  return requestOrigin;
 }
 
 function corsHeaders(
