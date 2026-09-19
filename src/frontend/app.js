@@ -2622,21 +2622,52 @@ async function openOwnerActiveEventRewardDetail() {
     await setOwnerView("reward-pool");
 
     const rewardPool = ownerData?.rewardPool || [];
-    const item = rewardPool.find((row) =>
-      String(row.rewardType || "") === String(activeEvent.rewardType || "") &&
-      (row.events || []).some((event) =>
-        String(event.eventId) === String(activeEvent.eventId) &&
-        event.active &&
-        eventCategory(event) === "ACTIVE"
-      )
-    );
+    const activeRewards = Array.isArray(activeEvent.rewards) && activeEvent.rewards.length
+      ? activeEvent.rewards
+      : [{ rewardType: activeEvent.rewardType, rewardQuantity: activeEvent.rewardQuantity }];
+    const rewardItems = activeRewards
+      .map((reward) => {
+        const item = rewardPool.find((row) => String(row.rewardType || "") === String(reward.rewardType || ""));
+        return item ? { item, reward } : null;
+      })
+      .filter(Boolean);
 
-    if (!item) {
+    if (!rewardItems.length) {
       msg("rewardDetailMsg", "Reward untuk event aktif tidak ditemukan.");
       return;
     }
 
-    openRewardDetail(item.rewardType, activeEvent.eventId);
+    // Keep the existing single-reward detail unchanged.
+    if (rewardItems.length === 1) {
+      openRewardDetail(rewardItems[0].item.rewardType, activeEvent.eventId);
+      return;
+    }
+
+    // Multi-reward event: use the existing Reward Detail layout and show every reward.
+    selectedRewardType = null;
+    $("rewardPoolListView").hidden = true;
+    $("rewardFormCard").hidden = true;
+    $("rewardDetailView").hidden = false;
+    const heading = $("rewardDetailView")?.querySelector(".locked-detail-heading h1");
+    const subtitle = $("rewardDetailView")?.querySelector(".locked-detail-heading p");
+    if (heading) heading.textContent = "Reward Event Aktif";
+    if (subtitle) subtitle.textContent = "Informasi seluruh reward pada event aktif";
+    if ($("editRewardButton")) $("editRewardButton").hidden = true;
+    if ($("deleteRewardButton")) $("deleteRewardButton").hidden = true;
+
+    $("rewardDetailCard").innerHTML = `
+      <div class="locked-detail-rows">
+        ${rewardItems.map(({ item, reward }, index) => `
+          <div><span>Reward ${index + 1}</span><b>${escapeHtml(item.rewardType)}</b></div>
+          <div><span>Deskripsi</span><b>${escapeHtml(item.description || "—")}</b></div>
+          <div><span>Jumlah Dialokasikan</span><b>${Number(reward.rewardQuantity || 0).toLocaleString("id-ID")}</b></div>
+          <div><span>Total Stok</span><b>${Number(item.quotaTotal || 0).toLocaleString("id-ID")}</b></div>
+          <div><span>Stok Tersisa</span><b>${Number(item.remaining || 0).toLocaleString("id-ID")}</b></div>
+          <div><span>Reward Claimed</span><b>${Number(item.rewardClaimed || 0).toLocaleString("id-ID")}</b></div>
+          <div><span>Syarat &amp; Ketentuan</span><b>${escapeHtml(item.terms || "—")}</b></div>
+        `).join("")}
+      </div>`;
+    msg("rewardDetailMsg", "");
   } catch (error) {
     msg("ownerResult", error.message);
   }
@@ -2936,6 +2967,12 @@ function openRewardDetail(rewardType, eventId = null) {
   const item = (ownerData?.rewardPool || []).find((row) => row.rewardType === rewardType);
   if (!item) return;
   selectedRewardType = rewardType;
+  const heading = $("rewardDetailView")?.querySelector(".locked-detail-heading h1");
+  const subtitle = $("rewardDetailView")?.querySelector(".locked-detail-heading p");
+  if (heading) heading.textContent = "Detail Reward";
+  if (subtitle) subtitle.textContent = "Informasi lengkap reward";
+  if ($("editRewardButton")) $("editRewardButton").hidden = false;
+  if ($("deleteRewardButton")) $("deleteRewardButton").hidden = false;
   $("rewardPoolListView").hidden = true;
   $("rewardFormCard").hidden = true;
   $("rewardDetailView").hidden = false;
@@ -2960,6 +2997,12 @@ function openRewardDetail(rewardType, eventId = null) {
 function closeRewardViews() {
   $("rewardFormCard").hidden = true;
   $("rewardDetailView").hidden = true;
+  const heading = $("rewardDetailView")?.querySelector(".locked-detail-heading h1");
+  const subtitle = $("rewardDetailView")?.querySelector(".locked-detail-heading p");
+  if (heading) heading.textContent = "Detail Reward";
+  if (subtitle) subtitle.textContent = "Informasi lengkap reward";
+  if ($("editRewardButton")) $("editRewardButton").hidden = false;
+  if ($("deleteRewardButton")) $("deleteRewardButton").hidden = false;
   $("rewardPoolListView").hidden = false;
   selectedRewardType = null;
   resetRewardForm();
@@ -3339,7 +3382,9 @@ function renderCustomerTraceList(data) {
   target.querySelectorAll("[data-delete-customer]").forEach((button) => button.addEventListener("click", async (event) => {
     event.stopPropagation();
     const customerId = button.dataset.deleteCustomer;
-    if (!customerId || !window.confirm("Hapus customer ini beserta seluruh data customer?")) return;
+    const customerRow = button.closest("tr");
+    const customerEmail = customerRow?.querySelector("td:nth-child(2)")?.textContent?.trim() || "yang dipilih";
+    if (!customerId || !window.confirm(`Hapus customer yang dipilih (${customerEmail}) beserta data customer tersebut?`)) return;
     try {
       await api(`/owner/customers/${encodeURIComponent(customerId)}`, { method: "DELETE" });
       if (ownerCustomerData.items?.length === 1 && ownerCustomerPage > 1) ownerCustomerPage -= 1;
@@ -3610,6 +3655,7 @@ $("loadOwner")?.addEventListener("click", loadOwnerData);
 $("ownerCustomerSearchButton")?.addEventListener("click", () => { ownerCustomerSearch = ($("ownerCustomerSearch")?.value || "").trim(); ownerCustomerPage = 1; loadOwnerCustomers(); });
 $("ownerCustomerSearch")?.addEventListener("keydown", (event) => { if (event.key === "Enter") { ownerCustomerSearch = event.currentTarget.value.trim(); ownerCustomerPage = 1; loadOwnerCustomers(); } });
 $("ownerCustomerStatusFilter")?.addEventListener("change", () => { ownerCustomerPage = 1; loadOwnerCustomers(); });
+$("ownerCustomerExportButton")?.addEventListener("click", () => { setOwnerView("csv-export"); });
 $("ownerCustomerDetailBack")?.addEventListener("click", () => { const list = $("ownerCustomerListView"); const detail = $("ownerCustomerDetailView"); if (list) list.hidden = false; if (detail) detail.hidden = true; ownerSelectedCustomerId = null; });
 
 $("downloadExport")?.addEventListener("click", async () => {
