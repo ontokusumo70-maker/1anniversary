@@ -3293,7 +3293,7 @@ function eventFormImageIsActive(event = null) {
 function updateEventImageAvailability(event = null) {
   const input = $("eventImage");
   if (!input) return;
-  input.disabled = false;
+  input.disabled = Boolean(event && !eventFormImageIsActive(event));
 }
 
 async function uploadEventImage(eventId) {
@@ -3687,11 +3687,6 @@ $("eventImage")?.addEventListener("change", () => {
   const file = $("eventImage")?.files?.[0];
   msg("eventImageMsg", "");
   if (!file) return;
-  if (!eventFormImageIsActive(ownerData?.events?.find((row) => row.eventId === editingEventId) || null)) {
-    $("eventImage").value = "";
-    msg("eventImageMsg", "Image hanya dapat disimpan untuk Event Aktif.");
-    return;
-  }
   if (!/^image\/(jpeg|webp)$/i.test(file.type)) {
     $("eventImage").value = "";
     msg("eventImageMsg", "Image harus JPG atau WebP.");
