@@ -899,8 +899,11 @@
         <p class="locked-form-subtitle">Buat reward baru untuk event</p>
         <label>Nama Reward <span class="required-mark">*</span><input id="ownerRewardType" maxlength="120" placeholder="Masukkan nama reward"></label>
         <label>Deskripsi Reward<textarea id="rewardDescription" maxlength="500" placeholder="Tulis deskripsi reward"></textarea><span class="locked-counter" id="rewardDescriptionCount">0/500</span></label>
-        <label>Total Stok <span class="required-mark">*</span><input id="rewardQuota" type="number" min="1" placeholder="Masukkan total stok"></label>
-        <label>Budget Reward <span class="required-mark">*</span><input id="rewardBudget" type="number" min="0" step="1" inputmode="numeric" placeholder="Masukkan budget reward (Rp)"></label>
+        <div class="locked-reward-price-grid">
+          <label>Total Stok <span class="required-mark">*</span><input id="rewardQuota" type="number" min="1" placeholder="Masukkan total stok"></label>
+          <label>Harga Satuan <span class="required-mark">*</span><input id="rewardUnitPrice" type="number" min="0" step="1" inputmode="numeric" placeholder="Masukkan harga satuan (Rp)"></label>
+        </div>
+        <label>Budget Reward <span class="required-mark">*</span><input id="rewardBudget" type="number" min="0" step="1" inputmode="numeric" placeholder="Total stok × harga satuan" readonly></label>
         <label>Syarat &amp; Ketentuan<textarea id="rewardTerms" maxlength="500" placeholder="Tulis syarat dan ketentuan (opsional)"></textarea><span class="locked-counter" id="rewardTermsCount">0/500</span></label>
         <label>Status <span class="required-mark">*</span><select id="rewardActive"><option value="ACTIVE">Aktif</option><option value="INACTIVE">Nonaktif</option></select></label>
         <div class="locked-form-actions"><button id="cancelRewardButton" class="secondary-button" type="button">Batal</button><button id="saveRewardButton" class="primary-button" type="button">Simpan Reward</button></div>
