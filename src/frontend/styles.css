@@ -3061,7 +3061,7 @@ body.owner-machine-detail-open{overflow:hidden}
 /* OWNER SERVICE SETTINGS — PRODUCTION COMPACT VISUAL FIX */
 body[data-role="OWNER"] .owner-service-settings-form{width:100%;max-width:900px;padding:0 0 24px}
 body[data-role="OWNER"] .owner-settings-card{margin:0 0 10px;padding:12px;border:1px solid #dfe8e3;border-radius:10px;background:#fff}
-body[data-role="OWNER"] .owner-settings-card h2{margin:0 0 9px;color:#173f30;font-size:22px;line-height:1.08;font-weight:900;letter-spacing:-.3px}
+body[data-role="OWNER"] .owner-settings-card h2{margin:0 0 9px;color:#173f30;font-size:14px;line-height:1.08;font-weight:900;letter-spacing:-.3px}
 body[data-role="OWNER"] .owner-settings-card label{display:block;margin:0 0 8px;color:#315846;font-size:11px;line-height:1.2;font-weight:800}
 body[data-role="OWNER"] .owner-settings-card label:last-child{margin-bottom:0}
 body[data-role="OWNER"] .owner-settings-card input,
@@ -3096,7 +3096,7 @@ body[data-role="OWNER"] #serviceSettingsMsg{margin:7px 0 0;text-align:center;fon
 @media(max-width:600px){
   body[data-role="OWNER"] .owner-service-settings-form{max-width:none}
   body[data-role="OWNER"] .owner-settings-card{padding:11px;margin-bottom:9px;border-radius:10px}
-  body[data-role="OWNER"] .owner-settings-card h2{font-size:21px;margin-bottom:9px}
+  body[data-role="OWNER"] .owner-settings-card h2{font-size:14px;margin-bottom:9px}
   body[data-role="OWNER"] .owner-settings-card label{font-size:11px;margin-bottom:7px}
   body[data-role="OWNER"] .owner-settings-card input,
   body[data-role="OWNER"] .owner-settings-card select,
