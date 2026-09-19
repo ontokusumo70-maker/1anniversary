@@ -3293,7 +3293,7 @@ function eventFormImageIsActive(event = null) {
 function updateEventImageAvailability(event = null) {
   const input = $("eventImage");
   if (!input) return;
-  input.disabled = !eventFormImageIsActive(event);
+  input.disabled = false;
 }
 
 async function uploadEventImage(eventId) {
