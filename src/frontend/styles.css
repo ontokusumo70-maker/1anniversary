@@ -3432,3 +3432,14 @@ body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-delete-row 
   body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-delete-row .danger-button{height:36px;min-height:36px;padding:0 10px;border-radius:8px;font-size:10px}
   body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-delete-row .reward-detail-action-icon{width:14px;height:14px}
 }
+
+/* CUSTOMER-ONLY FIX — dashboard geometry + hide event status label */
+@media(max-width:600px){
+  .screen-customer.customer-dashboard-screen .staff-dashboard{
+    transform:translateY(0);
+  }
+}
+
+body[data-role="CUSTOMER"] #customerEventInfoStatus{
+  display:none !important;
+}
