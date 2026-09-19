@@ -3118,3 +3118,323 @@ body[data-role="OWNER"] #serviceSettingsMsg{margin:7px 0 0;text-align:center;fon
   body[data-role="OWNER"] .owner-settings-actions button{height:40px;min-height:40px;font-size:10px}
 }
 
+
+/* OWNER DETAIL REWARD — VISUAL TARGET ONLY */
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .app-shell{
+  width:min(calc(100vw - 70px),960px);
+  max-width:960px;
+  padding-left:0;
+  padding-right:0;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .screen-owner{
+  padding-left:0;
+  padding-right:0;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) #rewardDetailView{
+  padding:0;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-back{
+  margin:0;
+  padding:25px 0 8px;
+  color:#087a59;
+  font-size:21px;
+  font-weight:700;
+  line-height:1.2;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-back .owner-back-arrow{
+  font-size:40px;
+  line-height:.65;
+  vertical-align:-4px;
+  margin-right:8px;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-heading{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:22px;
+  align-items:center;
+  padding:17px 0 28px;
+  min-height:0;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-heading h1{
+  margin:0;
+  color:#10171d;
+  font-size:55px;
+  line-height:.98;
+  letter-spacing:-1.7px;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-heading p{
+  margin:10px 0 0;
+  color:#68747b;
+  font-size:25px;
+  line-height:1.1;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-heading .owner-outline-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  height:76px;
+  min-height:76px;
+  padding:0 28px;
+  border:2px solid #16845f;
+  border-radius:15px;
+  background:#fff;
+  color:#147955;
+  font-size:24px;
+  font-weight:800;
+  box-shadow:none;
+  white-space:nowrap;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .reward-detail-action-icon{
+  display:inline-grid;
+  place-items:center;
+  width:34px;
+  height:34px;
+  flex:none;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .reward-detail-action-icon svg{
+  width:100%;
+  height:100%;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-card{
+  width:100%;
+  padding:14px;
+  border:2px solid #e0e5e6;
+  border-radius:16px;
+  background:#fff;
+  overflow:hidden;
+  box-sizing:border-box;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:14px;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div{
+  position:relative;
+  display:grid;
+  grid-template-columns:1fr;
+  gap:6px;
+  min-height:157px;
+  padding:24px 24px;
+  border:0;
+  border-radius:15px;
+  background:#f5f7f8;
+  box-sizing:border-box;
+  align-content:center;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div>span{
+  color:#59656c;
+  font-size:23px;
+  line-height:1.2;
+  font-weight:650;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div>b{
+  color:#10191f;
+  font-size:30px;
+  line-height:1.2;
+  font-weight:800;
+  overflow-wrap:anywhere;
+}
+/* Hero: name + description */
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(1),
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(2){
+  min-height:180px;
+  background:#f4f8f7;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(1){
+  border-radius:15px 0 0 15px;
+  margin-right:-7px;
+  padding-right:28px;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(2){
+  border-radius:0 15px 15px 0;
+  margin-left:-7px;
+  padding-left:28px;
+  border-left:2px solid #d8dfe0;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(1)::after{
+  content:"";
+  display:block;
+  width:max-content;
+  min-width:88px;
+  padding:9px 15px;
+  border-radius:14px;
+  background:#dff5ea;
+  color:#13825e;
+  font-size:21px;
+  font-weight:800;
+  line-height:1;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows:has(>div:nth-child(9) .locked-status.inactive)>div:nth-child(1)::after{
+  content:"● Nonaktif";
+  background:#edf0ef;
+  color:#68756f;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(1)::after{content:"● Aktif"}
+/* Metrics */
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(3),
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(4),
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(6),
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(7){
+  grid-template-columns:74px minmax(0,1fr);
+  gap:20px;
+  min-height:156px;
+  padding:22px 25px;
+  align-items:center;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(3)::before,
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(4)::before,
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(6)::before,
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(7)::before,
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(5)::before,
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(8)::before{
+  content:"";
+  grid-row:1 / span 3;
+  width:66px;
+  height:66px;
+  background-repeat:no-repeat;
+  background-position:center;
+  background-size:contain;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(3)::before{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg fill='none' stroke='%2354615e' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cellipse cx='32' cy='15' rx='19' ry='8'/%3E%3Cpath d='M13 15v15c0 4 8.5 8 19 8s19-4 19-8V15M13 30v15c0 4 8.5 8 19 8s19-4 19-8V30'/%3E%3C/g%3E%3C/svg%3E");
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(4)::before{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M10 25 34 8l20 20-27 27-20-20Z' fill='none' stroke='%2354615e' stroke-width='3' stroke-linejoin='round'/%3E%3Ccircle cx='34' cy='22' r='3' fill='none' stroke='%2354615e' stroke-width='3'/%3E%3C/svg%3E");
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(6)::before{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 8v24h24' fill='none' stroke='%2354615e' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M56 32A24 24 0 1 1 32 8v24Z' fill='none' stroke='%2354615e' stroke-width='3' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(7)::before{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg fill='none' stroke='%2354615e' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='25' cy='22' r='9'/%3E%3Cpath d='M9 48c1-9 7-14 16-14s15 5 16 14M45 31c5 0 9 3 10 8M44 15a8 8 0 0 1 0 15'/%3E%3C/g%3E%3C/svg%3E");
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(3)>span,
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(4)>span,
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(6)>span,
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(7)>span{
+  font-size:22px;
+  font-weight:700;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(3)>b,
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(4)>b,
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(6)>b,
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(7)>b{
+  font-size:35px;
+}
+/* Budget */
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(5){
+  grid-column:1 / -1;
+  grid-template-columns:74px minmax(0,1fr);
+  gap:20px;
+  min-height:150px;
+  padding:20px 25px;
+  background:#e8f7f1;
+  align-items:center;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(5)::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='13' y='7' width='38' height='50' rx='5' fill='none' stroke='%2316805e' stroke-width='3'/%3E%3Cpath d='M20 16h24M21 28h5M31 28h5M41 28h2M21 39h5M31 39h5M41 39h2M21 50h5M31 50h5M41 50h2' fill='none' stroke='%2316805e' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(5)>span{font-size:22px;font-weight:700;color:#596a63}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(5)>b{font-size:37px;color:#087b59}
+/* Event + terms */
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(8),
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(9){
+  grid-column:1 / -1;
+  grid-template-columns:74px minmax(0,1fr);
+  gap:20px;
+  min-height:135px;
+  padding:22px 25px;
+  align-items:center;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(8)::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='8' y='12' width='48' height='44' rx='5' fill='none' stroke='%2354615e' stroke-width='3'/%3E%3Cpath d='M8 25h48M20 8v12M44 8v12' fill='none' stroke='%2354615e' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(9)::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M18 6h23l11 11v41H18z' fill='none' stroke='%2354615e' stroke-width='3' stroke-linejoin='round'/%3E%3Cpath d='M41 6v12h11M26 30h18M26 39h18M26 48h12' fill='none' stroke='%2354615e' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(8)>span,
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(9)>span{font-size:22px;font-weight:700}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(8)>b,
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(9)>b{font-size:22px}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(8) .locked-detail-events{gap:6px}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(8) .locked-detail-events section{padding:7px 9px;border-radius:8px;background:#f4f7f5}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(8) .locked-detail-events section>b{font-size:15px}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(8) .locked-detail-events section>small{font-size:11px}
+/* Hide the standalone status row; status is rendered visually beneath reward name. */
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(10){display:none}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-delete-row{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:18px;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-delete-row .danger-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  height:64px;
+  min-height:64px;
+  padding:0 24px;
+  border:2px solid #ef6a62;
+  border-radius:14px;
+  background:#fff;
+  color:#df2d27;
+  font-size:22px;
+  font-weight:800;
+  box-shadow:none;
+}
+body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-delete-row .reward-detail-action-icon{width:30px;height:30px}
+@media(max-width:600px){
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .app-shell{width:100%;max-width:none;padding:0 8px 18px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .screen-owner{padding:0 3px 18px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-back{padding:15px 0 5px;font-size:15px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-back .owner-back-arrow{font-size:31px;margin-right:5px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-heading{gap:10px;padding:11px 0 16px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-heading h1{font-size:31px;letter-spacing:-.8px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-heading p{font-size:14px;margin-top:5px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-heading .owner-outline-button{height:46px;min-height:46px;padding:0 12px;border-radius:9px;gap:5px;font-size:13px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .reward-detail-action-icon{width:21px;height:21px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-card{padding:8px;border-radius:11px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows{gap:7px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div{padding:13px 12px;min-height:86px;border-radius:9px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(1),
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(2){min-height:122px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(1){margin-right:-3px;padding-right:15px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(2){margin-left:-3px;padding-left:15px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div>span{font-size:12px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div>b{font-size:15px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(1)::after{min-width:55px;padding:6px 8px;border-radius:9px;font-size:11px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(3),
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(4),
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(6),
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(7){grid-template-columns:36px minmax(0,1fr);gap:9px;min-height:91px;padding:13px 12px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(3)::before,
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(4)::before,
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(6)::before,
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(7)::before,
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(5)::before,
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(8)::before,
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(9)::before{width:36px;height:36px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(3)>span,
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(4)>span,
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(6)>span,
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(7)>span,
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(5)>span,
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(8)>span,
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(9)>span{font-size:12px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(3)>b,
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(4)>b,
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(6)>b,
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(7)>b{font-size:17px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(5){grid-template-columns:36px minmax(0,1fr);gap:9px;min-height:92px;padding:13px 12px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(5)>b{font-size:19px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(8),
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(9){grid-template-columns:36px minmax(0,1fr);gap:9px;min-height:92px;padding:13px 12px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(8)>b,
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(9)>b{font-size:13px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(8) .locked-detail-events section>b{font-size:12px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-rows>div:nth-child(8) .locked-detail-events section>small{font-size:9px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-delete-row{margin-top:10px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-delete-row .danger-button{height:45px;min-height:45px;padding:0 12px;border-radius:9px;font-size:13px;gap:5px}
+  body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-delete-row .reward-detail-action-icon{width:20px;height:20px}
+}
