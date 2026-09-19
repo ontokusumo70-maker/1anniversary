@@ -3678,11 +3678,6 @@ $("addEventRewardButton")?.addEventListener("click", () => { eventRewardRows.pus
 $("eventStartsAt")?.addEventListener("change", () => updateEventImageAvailability(ownerData?.events?.find((row) => row.eventId === editingEventId) || null));
 $("eventEndsAt")?.addEventListener("change", () => updateEventImageAvailability(ownerData?.events?.find((row) => row.eventId === editingEventId) || null));
 $("eventStatus")?.addEventListener("change", () => updateEventImageAvailability(ownerData?.events?.find((row) => row.eventId === editingEventId) || null));
-document.querySelector(".locked-image-upload-card")?.addEventListener("click", (event) => {
-  if (event.target.closest("input[type=\"file\"]")) return;
-  const input = $("eventImage");
-  if (input && !input.disabled) input.click();
-});
 $("eventImage")?.addEventListener("change", () => {
   const file = $("eventImage")?.files?.[0];
   msg("eventImageMsg", "");
