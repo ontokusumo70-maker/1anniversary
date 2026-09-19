@@ -2893,6 +2893,7 @@ function renderOwnerRewardList(items = ownerData?.rewardPool || []) {
         <span class="locked-card-main">
           <span class="locked-card-title-row"><b>${escapeHtml(item.rewardType)}</b><em class="locked-status ${item.active ? "active" : "inactive"}">${item.active ? "Aktif" : "Nonaktif"}</em></span>
           <span class="locked-stock-row"><span>${ownerIconSvg("gift")} Total Stok: <b>${Number(item.quotaTotal).toLocaleString("id-ID")}</b></span><span>Sisa: <b>${Number(item.remaining).toLocaleString("id-ID")}</b></span><span>Digunakan: <b>${Number(item.quotaUsed).toLocaleString("id-ID")}</b></span></span>
+          <span class="locked-budget-row">Budget: <b>Rp ${Number(item.budgetTotal || 0).toLocaleString("id-ID")}</b></span>
           <span class="locked-used-label">Digunakan di Event:</span>
           ${events.length ? events.map((event) => `<span class="locked-event-reference"><span class="locked-reference-icon">${ownerIconSvg("calendar")}</span><span><b>${escapeHtml(event.title)}</b><small>${escapeHtml(formatOwnerShortDate(event.startsAt))} – ${escapeHtml(formatOwnerShortDate(event.endsAt))}</small><small>Jumlah: ${Number(event.rewardQuantity || 0).toLocaleString("id-ID")}</small></span></span>`).join("") : `<span class="locked-no-event">Belum digunakan pada event</span>`}
         </span>
@@ -2937,6 +2938,7 @@ function resetRewardForm() {
   $("rewardDescription").value = "";
   $("rewardDescriptionCount").textContent = "0/500";
   $("rewardQuota").value = "";
+  $("rewardUnitPrice").value = "";
   $("rewardBudget").value = "";
   $("rewardTerms").value = "";
   $("rewardTermsCount").textContent = "0/500";
@@ -2951,12 +2953,15 @@ function openRewardForm(rewardType = null) {
   const item = (ownerData?.rewardPool || []).find((row) => row.rewardType === rewardType);
   $("rewardFormTitle").textContent = rewardType ? "Edit Reward" : "Tambah Reward";
   $("lockedRewardFormSubtitle") && ($("lockedRewardFormSubtitle").textContent = rewardType ? "Ubah informasi reward" : "Buat reward baru untuk event");
-  $("ownerRewardType").disabled = Boolean(rewardType);
+  $("ownerRewardType").disabled = false;
   $("ownerRewardType").value = rewardType || "";
   $("rewardDescription").value = item?.description || "";
   $("rewardDescriptionCount").textContent = `${($( "rewardDescription").value || "").length}/500`;
   $("rewardQuota").value = item?.quotaTotal ?? "";
-  $("rewardBudget").value = item?.budgetTotal ?? "";
+  const existingQuota = Number(item?.quotaTotal || 0);
+  const existingBudget = Number(item?.budgetTotal || 0);
+  $("rewardUnitPrice").value = existingQuota > 0 && existingBudget % existingQuota === 0 ? String(existingBudget / existingQuota) : "";
+  $("rewardBudget").value = existingBudget;
   $("rewardTerms").value = item?.terms || "";
   $("rewardTermsCount").textContent = `${($( "rewardTerms").value || "").length}/500`;
   $("rewardActive").value = item ? (item.active ? "ACTIVE" : "INACTIVE") : "ACTIVE";
@@ -2983,6 +2988,7 @@ function openRewardDetail(rewardType, eventId = null) {
       <div><span>Nama Reward</span><b>${escapeHtml(item.rewardType)}</b></div>
       <div><span>Deskripsi</span><b>${escapeHtml(item.description || "—")}</b></div>
       <div><span>Total Stok</span><b>${Number(item.quotaTotal).toLocaleString("id-ID")}</b></div>
+      <div><span>Harga Satuan</span><b>Rp ${Number(item.quotaTotal) > 0 && Number(item.budgetTotal || 0) % Number(item.quotaTotal) === 0 ? (Number(item.budgetTotal || 0) / Number(item.quotaTotal)).toLocaleString("id-ID") : "—"}</b></div>
       <div><span>Budget Reward</span><b>Rp ${Number(item.budgetTotal || 0).toLocaleString("id-ID")}</b></div>
       <div><span>Stok Tersisa</span><b>${Number(item.remaining).toLocaleString("id-ID")}</b></div>
       <div><span>Reward Claimed</span><b>${Number(item.rewardClaimed || 0).toLocaleString("id-ID")}</b></div>
@@ -3008,17 +3014,33 @@ function closeRewardViews() {
   resetRewardForm();
 }
 
+function updateRewardBudget() {
+  const quota = Number($("rewardQuota")?.value);
+  const unitPrice = Number($("rewardUnitPrice")?.value);
+  const budget = Number.isInteger(quota) && quota > 0 && Number.isInteger(unitPrice) && unitPrice >= 0
+    ? quota * unitPrice
+    : 0;
+  if ($("rewardBudget")) $("rewardBudget").value = budget ? String(budget) : "";
+}
+
 async function saveReward() {
   try {
+    updateRewardBudget();
     const body = {
       rewardType: $("ownerRewardType").value.trim(),
       description: $("rewardDescription").value.trim(),
       quotaTotal: Number($("rewardQuota").value),
+      unitPrice: Number($("rewardUnitPrice").value),
       budgetTotal: Number($("rewardBudget").value),
       terms: $("rewardTerms").value.trim(),
       active: $("rewardActive").value === "ACTIVE",
     };
-    if (!body.rewardType || !Number.isInteger(body.quotaTotal) || body.quotaTotal < 1) throw new Error("Nama reward dan total stok wajib diisi.");
+    const unitPriceInput = $("rewardUnitPrice").value.trim();
+    const unitPrice = Number(unitPriceInput);
+    if (!body.rewardType || !Number.isInteger(body.quotaTotal) || body.quotaTotal < 1 || !unitPriceInput || !Number.isInteger(unitPrice) || unitPrice < 0) {
+      throw new Error("Nama reward, total stok, dan harga satuan wajib diisi.");
+    }
+    body.budgetTotal = body.quotaTotal * unitPrice;
     const path = editingRewardType ? `/owner/reward-pool/${encodeURIComponent(editingRewardType)}` : "/owner/reward-pool";
     await api(path, { method: editingRewardType ? "PATCH" : "POST", body: JSON.stringify(body) });
     closeRewardViews();
@@ -3027,7 +3049,6 @@ async function saveReward() {
     msg("rewardFormMsg", error.message);
   }
 }
-
 async function deleteReward() {
   if (!selectedRewardType) return;
   if (!window.confirm("Hapus reward ini?")) return;
@@ -3645,6 +3666,8 @@ $("cancelRewardButton")?.addEventListener("click", closeRewardViews);
 $("cancelRewardTop")?.addEventListener("click", closeRewardViews);
 $("rewardDetailBack")?.addEventListener("click", closeRewardViews);
 $("editRewardButton")?.addEventListener("click", () => { if (selectedRewardType) openRewardForm(selectedRewardType); });
+$("rewardQuota")?.addEventListener("input", updateRewardBudget);
+$("rewardUnitPrice")?.addEventListener("input", updateRewardBudget);
 $("deleteRewardButton")?.addEventListener("click", deleteReward);
 $("saveRewardButton")?.addEventListener("click", saveReward);
 $("eventDetailBack")?.addEventListener("click", () => { closeEventViews(); setOwnerView("events"); });
