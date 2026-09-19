@@ -3327,18 +3327,33 @@ async function prepareEventImage(file) {
     image.decoding = "async";
     image.src = sourceUrl;
     await image.decode();
-    const scale = Math.min(1, 1200 / image.naturalWidth, 1200 / image.naturalHeight);
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
-    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("Image tidak dapat diproses.");
-    context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    const type = "image/webp";
-    for (const quality of [0.86, 0.78, 0.7, 0.62, 0.54, 0.46]) {
-      const blob = await new Promise((resolve) => canvas.toBlob(resolve, type, quality));
-      if (blob && blob.size <= 307200) return { blob, type };
+    const maxBytes = 307200;
+    const maxDimension = 1200;
+
+    if (file.size <= maxBytes && image.naturalWidth <= maxDimension && image.naturalHeight <= maxDimension) {
+      return { blob: file, type: file.type };
     }
+
+    let scale = Math.min(1, maxDimension / image.naturalWidth, maxDimension / image.naturalHeight);
+    const type = "image/webp";
+    const qualities = [0.86, 0.78, 0.7, 0.62, 0.54, 0.46];
+
+    for (let pass = 0; pass < 4; pass += 1) {
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("Image tidak dapat diproses.");
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+      for (const quality of qualities) {
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, type, quality));
+        if (blob && blob.size <= maxBytes) return { blob, type };
+      }
+
+      scale *= 0.75;
+    }
+
     throw new Error("Image tetap lebih dari 300 KB setelah kompresi.");
   } finally {
     URL.revokeObjectURL(sourceUrl);
