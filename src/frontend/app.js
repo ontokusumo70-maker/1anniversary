@@ -2375,17 +2375,8 @@ function renderServiceDisplay() {
     });
   });
   document.querySelectorAll("[data-service-photo]").forEach((node) => {
-    node.src = resolveServicePhotoUrl(serviceSettingsData?.photoUrl);
+    node.src = serviceSettingsData?.photoUrl || "/assets/background/laundry/Laundry-area.jpg";
   });
-}
-
-function resolveServicePhotoUrl(value) {
-  const fallback = "/assets/background/laundry/Laundry-area.jpg";
-  const source = String(value || "").trim();
-  if (!source) return fallback;
-  if (/^https?:\/\//i.test(source)) return source;
-  if (source.startsWith("/service-settings/image")) return `${apiBase}${source}`;
-  return source;
 }
 
 async function loadServiceSettings() {
@@ -2439,23 +2430,13 @@ function fillServiceSettingsForm(data = serviceSettingsData) {
   $("serviceFacilitiesFnb").value = (settings.facilitiesFnb || []).join("\n");
   $("servicePhotoRemove").checked = false;
   $("servicePhoto").value = "";
-  $("servicePhotoPreview").src = resolveServicePhotoUrl(data?.photoUrl);
+  $("servicePhotoPreview").src = data?.photoUrl || "/assets/background/laundry/Laundry-area.jpg";
 }
 
 async function loadOwnerServiceSettings() {
-  try {
-    const data = await api("/owner/service-settings", { method: "GET" });
-    if (!data?.ok) throw new Error(data?.message || data?.error || "Gagal memuat Pengaturan Layanan.");
-    serviceSettingsData = data;
-    serviceSettingsSnapshot = JSON.parse(JSON.stringify(data));
-    fillServiceSettingsForm(data);
-    msg("serviceSettingsMsg", "");
-    return data;
-  } catch (error) {
-    const message = error?.message || "Gagal memuat Pengaturan Layanan.";
-    msg("serviceSettingsMsg", message);
-    return null;
-  }
+  const data = await loadServiceSettings();
+  serviceSettingsSnapshot = JSON.parse(JSON.stringify(data));
+  fillServiceSettingsForm(data);
 }
 
 function collectServiceSettingsForm() {
@@ -2476,7 +2457,6 @@ function collectServiceSettingsForm() {
 async function saveOwnerServiceSettings(event) {
   event.preventDefault();
   const button = $("serviceSettingsSave");
-  if (button) button.disabled = true;
   try {
     const file = $("servicePhoto")?.files?.[0];
     if (file && file.size > 1048576) throw new Error("Foto maksimal 1 MB.");
@@ -2493,17 +2473,33 @@ async function saveOwnerServiceSettings(event) {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.message || data.error || `HTTP ${response.status}`);
-    if (!data?.ok) throw new Error(data.message || data.error || "Pengaturan Layanan gagal disimpan.");
     serviceSettingsData = data;
     serviceSettingsSnapshot = JSON.parse(JSON.stringify(data));
     fillServiceSettingsForm(data);
     renderServiceDisplay();
     msg("serviceSettingsMsg", "Pengaturan Layanan berhasil disimpan.");
+    showServiceSettingsSavedToast();
   } catch (error) {
-    msg("serviceSettingsMsg", error?.message || "Pengaturan Layanan gagal disimpan.");
-  } finally {
-    if (button) button.disabled = false;
+    msg("serviceSettingsMsg", error.message);
   }
+}
+
+function showServiceSettingsSavedToast() {
+  const existing = document.getElementById("serviceSettingsSavedToast");
+  if (existing) existing.remove();
+
+  const toast = document.createElement("div");
+  toast.id = "serviceSettingsSavedToast";
+  toast.className = "service-settings-saved-toast";
+  toast.textContent = "Perubahan disimpan";
+  document.body.appendChild(toast);
+
+  requestAnimationFrame(() => toast.classList.add("is-visible"));
+
+  window.setTimeout(() => {
+    toast.classList.remove("is-visible");
+    window.setTimeout(() => toast.remove(), 220);
+  }, 2200);
 }
 
 function resetOwnerServiceSettings() {
@@ -3816,7 +3812,7 @@ $("servicePhotoRemove")?.addEventListener("change", () => {
     $("servicePhoto").value = "";
     $("servicePhotoPreview").src = "/assets/background/laundry/Laundry-area.jpg";
   } else if (serviceSettingsData?.photoUrl) {
-    $("servicePhotoPreview").src = resolveServicePhotoUrl(serviceSettingsData.photoUrl);
+    $("servicePhotoPreview").src = serviceSettingsData.photoUrl;
   }
 });
 
