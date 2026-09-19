@@ -3009,6 +3009,39 @@ body[data-role="OWNER"] .event-add-reward span{font-size:18px;line-height:1}
   body[data-role="OWNER"] .event-reward-row{grid-template-columns:minmax(0,1.65fr) minmax(92px,.9fr) 24px;gap:6px;padding:7px}
 }
 
+/* OWNER STATUS + SERVICE — TARGETED REGRESSION FIX ONLY */
+body[data-role="OWNER"] .owner-operation-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+body[data-role="OWNER"] .owner-operation-grid > *{min-width:0}
+body[data-role="OWNER"] .owner-operation-grid input,
+body[data-role="OWNER"] .owner-operation-grid select{min-width:0;width:100%;box-sizing:border-box}
+body[data-role="OWNER"] .owner-machine-row{grid-template-columns:27px 29px minmax(0,1fr) 70px 54px 20px;gap:6px;align-items:center}
+body[data-role="OWNER"] .owner-machine-row .machine-row-arrow{display:block;align-self:center;justify-self:end;text-align:center;line-height:1;font-size:25px;color:#4f625a}
+body[data-role="OWNER"] .owner-machine-row.is-idle,
+body[data-role="OWNER"] .owner-machine-row.is-busy{cursor:pointer}
+body[data-role="OWNER"] .owner-machine-detail-modal[hidden]{display:none!important}
+body[data-role="OWNER"] .owner-machine-detail-modal{position:fixed;inset:0;z-index:1200;display:block}
+body[data-role="OWNER"] .owner-machine-detail-backdrop{position:absolute;inset:0;background:rgba(13,35,25,.34)}
+body[data-role="OWNER"] .owner-machine-detail-sheet{position:absolute;left:50%;right:auto;bottom:0;width:min(100%,520px);transform:translateX(-50%);padding:8px 16px 18px;border-radius:22px 22px 0 0;background:#fff;box-shadow:0 -10px 35px rgba(16,45,33,.16)}
+body[data-role="OWNER"] .owner-machine-detail-handle{width:42px;height:4px;margin:0 auto 10px;border-radius:999px;background:#d7dfdb}
+body[data-role="OWNER"] .owner-machine-detail-header{display:grid;grid-template-columns:48px minmax(0,1fr) 42px;align-items:center;gap:9px}
+body[data-role="OWNER"] .owner-machine-detail-icon{width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:#e5f8ee;color:#0b8f61}
+body[data-role="OWNER"] .owner-machine-detail-icon svg{width:31px;height:31px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+body[data-role="OWNER"] .owner-machine-detail-header h2{margin:0;font-size:18px;line-height:1.1;color:#14251f}
+body[data-role="OWNER"] .owner-machine-detail-header p{margin:3px 0 0;font-size:12px;color:#74817b}
+body[data-role="OWNER"] .owner-machine-detail-close{width:42px;height:42px;padding:0;border:0;border-radius:50%;background:#edf0f1;color:#3e4744;font-size:30px;line-height:1;font-weight:300;display:grid;place-items:center}
+body[data-role="OWNER"] .owner-machine-detail-details{display:grid;gap:0;margin-top:10px;border:1px solid #e1e9e5;border-radius:12px;overflow:hidden;background:#fff}
+body[data-role="OWNER"] .owner-machine-detail-details>div{display:grid;grid-template-columns:1fr auto;align-items:center;min-height:42px;padding:8px 11px;border-bottom:1px solid #edf1ef}
+body[data-role="OWNER"] .owner-machine-detail-details>div:last-child{border-bottom:0}
+body[data-role="OWNER"] .owner-machine-detail-details span{font-size:10px;color:#74817b}
+body[data-role="OWNER"] .owner-machine-detail-details b{font-size:11px;color:#173d34;font-weight:800;text-align:right}
+body.owner-machine-detail-open{overflow:hidden}
+@media(max-width:600px){
+  body[data-role="OWNER"] .owner-operation-grid{gap:8px}
+  body[data-role="OWNER"] .owner-machine-row{grid-template-columns:27px 29px minmax(43px,1fr) 70px 52px 20px;gap:5px;padding-left:8px;padding-right:8px}
+  body[data-role="OWNER"] .owner-machine-row .machine-row-arrow{font-size:25px}
+  body[data-role="OWNER"] .owner-machine-detail-sheet{width:100%;padding:6px 16px 16px}
+}
+
 /* OWNER SERVICE SETTINGS — PRODUCTION COMPACT VISUAL FIX */
 body[data-role="OWNER"] .owner-service-settings-form{width:100%;max-width:900px;padding:0 0 24px}
 body[data-role="OWNER"] .owner-settings-card{margin:0 0 10px;padding:12px;border:1px solid #dfe8e3;border-radius:10px;background:#fff}
@@ -3024,12 +3057,12 @@ body[data-role="OWNER"] .owner-settings-card textarea{min-height:64px;padding:8p
 body[data-role="OWNER"] .owner-settings-card input:focus,
 body[data-role="OWNER"] .owner-settings-card select:focus,
 body[data-role="OWNER"] .owner-settings-card textarea:focus{border-color:#0b8f61;box-shadow:0 0 0 2px rgba(11,143,97,.10)}
-body[data-role="OWNER"] .owner-settings-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+body[data-role="OWNER"] .owner-settings-grid-2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 10px}
 body[data-role="OWNER"] .owner-settings-help{display:block;margin-top:3px;color:#718079;font-size:9px;font-weight:500;line-height:1.25}
 body[data-role="OWNER"] .owner-service-tariff-rows{display:grid;gap:7px}
-body[data-role="OWNER"] .owner-service-tariff-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 36px;gap:8px;align-items:end;padding:9px;border:1px solid #e1eae5;border-radius:9px;background:#f8fcfa}
+body[data-role="OWNER"] .owner-service-tariff-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 36px;gap:8px;align-items:start;padding:9px;border:1px solid #e1eae5;border-radius:9px;background:#f8fcfa}
 body[data-role="OWNER"] .owner-service-tariff-row label{margin:0}
-body[data-role="OWNER"] .owner-service-remove-tariff{width:36px;height:39px;min-height:39px;padding:0;border:1.5px solid #efcfcb;border-radius:9px;background:#fff;color:#c84b43;font-size:24px;font-weight:900;line-height:1;box-shadow:none;display:grid;place-items:center}
+body[data-role="OWNER"] .owner-service-remove-tariff{width:36px;height:39px;min-height:39px;margin-top:20px;align-self:start;padding:0;border:1.5px solid #efcfcb;border-radius:9px;background:#fff;color:#c84b43;font-size:24px;font-weight:900;line-height:1;box-shadow:none;display:grid;place-items:center}
 body[data-role="OWNER"] .owner-service-remove-tariff:disabled{opacity:.35}
 body[data-role="OWNER"] .owner-service-add-button{width:100%;height:39px;min-height:39px;margin-top:8px;padding:0 10px;border:1.5px solid #8fd2ba;border-radius:9px;background:#f7fcf9;color:#147955;font-size:11px;font-weight:800;box-shadow:none}
 body[data-role="OWNER"] .owner-service-photo-row{display:grid;grid-template-columns:minmax(150px,42%) minmax(0,1fr);gap:12px;align-items:start}
@@ -3055,7 +3088,7 @@ body[data-role="OWNER"] #serviceSettingsMsg{margin:7px 0 0;text-align:center;fon
   body[data-role="OWNER"] .owner-settings-card input,
   body[data-role="OWNER"] .owner-settings-card select{height:39px;line-height:39px}
   body[data-role="OWNER"] .owner-settings-card textarea{min-height:60px}
-  body[data-role="OWNER"] .owner-settings-grid-2{grid-template-columns:1fr 1fr;gap:0 8px}
+  body[data-role="OWNER"] .owner-settings-grid-2{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 8px}
   body[data-role="OWNER"] .owner-service-tariff-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 36px;gap:6px;padding:8px}
   body[data-role="OWNER"] .owner-service-remove-tariff{width:36px;height:39px;min-height:39px}
   body[data-role="OWNER"] .owner-service-add-button{height:39px;min-height:39px;font-size:11px}
