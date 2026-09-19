@@ -1907,7 +1907,8 @@ function renderStaffEventInfo(data) {
   }
 }
 
-function openStaffEvent() {
+async function openStaffEvent() {
+  await loadActiveEventForRole("STAFF");
   if ($("staffDashboard")) $("staffDashboard").hidden = true;
   if ($("staffTools")) $("staffTools").hidden = false;
   if ($("staffMachineStatusView")) $("staffMachineStatusView").hidden = true;
@@ -1926,7 +1927,8 @@ function closeStaffEvent() {
   showStaffDashboard();
 }
 
-function openStaffServices() {
+async function openStaffServices() {
+  await loadServiceSettings();
   if ($("staffDashboard")) $("staffDashboard").hidden = true;
   if ($("staffTools")) $("staffTools").hidden = false;
   if ($("staffMachineStatusView")) $("staffMachineStatusView").hidden = true;
