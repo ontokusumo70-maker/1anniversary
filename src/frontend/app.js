@@ -2958,13 +2958,34 @@ async function loadOwnerRewardPool() {
   }
 }
 
+function parseRupiahValue(value) {
+  if (value === null || value === undefined) return 0;
+  const digits = String(value).replace(/[^0-9]/g, "");
+  return digits ? Number(digits) : 0;
+}
+
+function formatRupiahValue(value) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount < 0) return "";
+  return `Rp ${Math.trunc(amount).toLocaleString("id-ID")},-`;
+}
+
+function setupRewardCurrencyInputs() {
+  [$("rewardUnitPrice"), $("rewardBudget")].forEach((input) => {
+    if (!input) return;
+    input.type = "text";
+    input.inputMode = "numeric";
+    input.autocomplete = "off";
+  });
+}
+
 function updateRewardBudget() {
   const quota = Number($("rewardQuota")?.value || 0);
-  const unitPrice = Number($("rewardUnitPrice")?.value || 0);
+  const unitPrice = parseRupiahValue($("rewardUnitPrice")?.value);
   const budget = Number.isFinite(quota) && Number.isFinite(unitPrice) && quota > 0 && unitPrice >= 0
     ? quota * unitPrice
     : 0;
-  if ($("rewardBudget")) $("rewardBudget").value = String(budget);
+  if ($("rewardBudget")) $("rewardBudget").value = budget > 0 ? formatRupiahValue(budget) : "";
 }
 
 function resetRewardForm() {
@@ -2996,7 +3017,7 @@ function openRewardForm(rewardType = null) {
   $("rewardQuota").value = item?.quotaTotal ?? "";
   const existingQuota = Number(item?.quotaTotal || 0);
   const existingBudget = Number(item?.budgetTotal || 0);
-  $("rewardUnitPrice").value = existingQuota > 0 ? Math.round(existingBudget / existingQuota) : "";
+  $("rewardUnitPrice").value = existingQuota > 0 ? formatRupiahValue(Math.round(existingBudget / existingQuota)) : "";
   updateRewardBudget();
   $("rewardTerms").value = item?.terms || "";
   $("rewardTermsCount").textContent = `${($( "rewardTerms").value || "").length}/500`;
@@ -3046,13 +3067,13 @@ function openRewardDetail(rewardType, eventId = null) {
         </section>
         <section class="reward-detail-metric-card">
           <div class="reward-detail-icon">${ownerIconSvg("tag")}</div>
-          <div><span>Harga Satuan</span><strong>Rp ${unitPrice.toLocaleString("id-ID")}</strong><small>Nilai per unit reward</small></div>
+          <div><span>Harga Satuan</span><strong>${formatRupiahValue(unitPrice)}</strong><small>Nilai per unit reward</small></div>
         </section>
       </div>
 
       <section class="reward-detail-budget-card">
         <div class="reward-detail-icon">${ownerIconSvg("calculator")}</div>
-        <div><span>Budget Reward</span><strong>Rp ${budgetTotal.toLocaleString("id-ID")}</strong><small>Total nilai reward (stok × harga satuan)</small></div>
+        <div><span>Budget Reward</span><strong>${formatRupiahValue(budgetTotal)}</strong><small>Total nilai reward (stok × harga satuan)</small></div>
       </section>
 
       <div class="reward-detail-metric-grid">
@@ -3105,11 +3126,11 @@ async function saveReward() {
       rewardType: $("ownerRewardType").value.trim(),
       description: $("rewardDescription").value.trim(),
       quotaTotal: Number($("rewardQuota").value),
-      budgetTotal: Number($("rewardBudget").value),
+      budgetTotal: parseRupiahValue($("rewardBudget").value),
       terms: $("rewardTerms").value.trim(),
       active: $("rewardActive").value === "ACTIVE",
     };
-    const unitPrice = Number($("rewardUnitPrice").value);
+    const unitPrice = parseRupiahValue($("rewardUnitPrice").value);
     if (!body.rewardType || !Number.isInteger(body.quotaTotal) || body.quotaTotal < 1 || !Number.isInteger(unitPrice) || unitPrice < 0) {
       throw new Error("Nama reward, total stok, dan harga satuan wajib diisi.");
     }
@@ -3741,8 +3762,14 @@ $("cancelRewardTop")?.addEventListener("click", closeRewardViews);
 $("rewardDetailBack")?.addEventListener("click", closeRewardViews);
 $("editRewardButton")?.addEventListener("click", () => { if (selectedRewardType) openRewardForm(selectedRewardType); });
 $("deleteRewardButton")?.addEventListener("click", deleteReward);
+setupRewardCurrencyInputs();
 $("rewardQuota")?.addEventListener("input", updateRewardBudget);
-$("rewardUnitPrice")?.addEventListener("input", updateRewardBudget);
+$("rewardUnitPrice")?.addEventListener("input", (event) => {
+  const input = event.currentTarget;
+  const value = parseRupiahValue(input.value);
+  input.value = value > 0 ? formatRupiahValue(value) : "";
+  updateRewardBudget();
+});
 $("saveRewardButton")?.addEventListener("click", saveReward);
 $("eventDetailBack")?.addEventListener("click", () => { closeEventViews(); setOwnerView("events"); });
 $("editEventButton")?.addEventListener("click", () => { if (selectedEventId) openEventForm(selectedEventId); });
