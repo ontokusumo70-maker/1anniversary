@@ -1907,8 +1907,7 @@ function renderStaffEventInfo(data) {
   }
 }
 
-async function openStaffEvent() {
-  await loadActiveEventForRole("STAFF");
+function openStaffEvent() {
   if ($("staffDashboard")) $("staffDashboard").hidden = true;
   if ($("staffTools")) $("staffTools").hidden = false;
   if ($("staffMachineStatusView")) $("staffMachineStatusView").hidden = true;
@@ -1919,6 +1918,9 @@ async function openStaffEvent() {
   if ($("staffToolsBack")) $("staffToolsBack").hidden = true;
   if ($("staffEventView")) $("staffEventView").hidden = false;
   renderStaffEventInfo(staffActiveEventData);
+  loadActiveEventForRole("STAFF").then(() => {
+    if ($("staffEventView") && !$('staffEventView').hidden) renderStaffEventInfo(staffActiveEventData);
+  });
 }
 
 function closeStaffEvent() {
@@ -1927,8 +1929,7 @@ function closeStaffEvent() {
   showStaffDashboard();
 }
 
-async function openStaffServices() {
-  await loadServiceSettings();
+function openStaffServices() {
   if ($("staffDashboard")) $("staffDashboard").hidden = true;
   if ($("staffTools")) $("staffTools").hidden = false;
   if ($("staffMachineStatusView")) $("staffMachineStatusView").hidden = true;
@@ -1937,6 +1938,7 @@ async function openStaffServices() {
   if ($("staffActiveEvent")) $("staffActiveEvent").hidden = true;
   if ($("staffEventView")) $("staffEventView").hidden = true;
   if ($("staffMachineTool")) $("staffMachineTool").hidden = true;
+  loadServiceSettings();
 }
 
 function closeStaffServices() {
