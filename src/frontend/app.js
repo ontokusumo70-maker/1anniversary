@@ -1693,6 +1693,7 @@ function openCustomerServices() {
   if ($("customerServicesView")) $("customerServicesView").hidden = false;
   if ($("customerEventView")) $("customerEventView").hidden = true;
   stopCustomerMachineStatusTimer();
+  loadServiceSettings();
   requestAnimationFrame(scrollCustomerTop);
 }
 
