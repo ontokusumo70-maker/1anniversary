@@ -3253,7 +3253,7 @@ function resetEventImageUI() {
   const remove = $("removeEventImageButton");
   if (input) { input.value = ""; input.disabled = false; }
   if (preview) { preview.hidden = true; preview.removeAttribute("src"); }
-  if (empty) empty.hidden = false;
+  if (empty) { empty.hidden = false; empty.style.display = "grid"; }
   if (remove) remove.hidden = true;
   msg("eventImageMsg", "");
 }
@@ -3265,7 +3265,7 @@ function setEventImagePreview(src, revokePrevious = false) {
   if (revokePrevious) revokeEventImagePreview();
   preview.src = src;
   preview.hidden = false;
-  if (empty) empty.hidden = true;
+  if (empty) { empty.hidden = true; empty.style.display = "none"; }
   $("removeEventImageButton") && ($("removeEventImageButton").hidden = false);
 }
 
