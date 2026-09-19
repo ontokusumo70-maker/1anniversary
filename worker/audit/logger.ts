@@ -9,7 +9,8 @@ export type AuditEntityType =
   | "MACHINE"
   | "EXPORT"
   | "TRACE"
-  | "EVENT";
+  | "EVENT"
+  | "EVENT_IMAGE";
 
 export type AuditAction =
   | "START"
@@ -23,7 +24,9 @@ export type AuditAction =
   | "DELETE"
   | "EXPORT"
   | "TRACE"
-  | "EVENT";
+  | "EVENT"
+  | "UPLOAD"
+  | "REVOKE";
 
 export type AuditResult =
   | "SUCCESS"
