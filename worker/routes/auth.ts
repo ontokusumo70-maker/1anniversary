@@ -419,7 +419,7 @@ async function loginStaffOwner(
 
 async function logoutRequest(request: Request, env: AuthEnv): Promise<Response> {
   const authorization = request.headers.get("Authorization") || "";
-  const match = authorization.trim().match(/^Bearer\\s+([A-Za-z0-9_-]{20,256})$/i);
+  const match = authorization.trim().match(/^Bearer\s+([A-Za-z0-9_-]{20,256})$/i);
   if (!match) return json({ ok: true }, 200);
 
   const tokenHash = await hashAuthSessionToken(match[1]);
