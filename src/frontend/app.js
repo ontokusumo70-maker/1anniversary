@@ -3695,9 +3695,14 @@ $("eventImage")?.addEventListener("change", () => {
   if (file.size > 307200) {
     msg("eventImageMsg", "File akan dikompresi maksimal 300 KB saat disimpan.");
   }
-  const previewUrl = URL.createObjectURL(file);
-  setEventImagePreview(previewUrl, true);
-  eventImageObjectUrl = previewUrl;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const previewUrl = String(reader.result || "");
+    if (!previewUrl) return;
+    setEventImagePreview(previewUrl, true);
+    eventImageObjectUrl = null;
+  };
+  reader.readAsDataURL(file);
 });
 $("removeEventImageButton")?.addEventListener("click", async () => {
   try {
