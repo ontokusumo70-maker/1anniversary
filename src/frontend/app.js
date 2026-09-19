@@ -3687,9 +3687,9 @@ $("eventImage")?.addEventListener("change", () => {
   const file = $("eventImage")?.files?.[0];
   msg("eventImageMsg", "");
   if (!file) return;
-  if (!/^image\/(jpeg|webp)$/i.test(file.type)) {
+  if (!file.type || !file.type.startsWith("image/")) {
     $("eventImage").value = "";
-    msg("eventImageMsg", "Image harus JPG atau WebP.");
+    msg("eventImageMsg", "File harus berupa image.");
     return;
   }
   if (file.size > 307200) {
