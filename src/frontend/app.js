@@ -3249,19 +3249,23 @@ function resetEventImageUI() {
   revokeEventImagePreview();
   const input = $("eventImage");
   const preview = $("eventImagePreview");
+  const empty = $("eventImageField")?.querySelector(".locked-image-preview-empty");
   const remove = $("removeEventImageButton");
   if (input) { input.value = ""; input.disabled = false; }
   if (preview) { preview.hidden = true; preview.removeAttribute("src"); }
+  if (empty) empty.hidden = false;
   if (remove) remove.hidden = true;
   msg("eventImageMsg", "");
 }
 
 function setEventImagePreview(src, revokePrevious = false) {
   const preview = $("eventImagePreview");
+  const empty = $("eventImageField")?.querySelector(".locked-image-preview-empty");
   if (!preview) return;
   if (revokePrevious) revokeEventImagePreview();
   preview.src = src;
   preview.hidden = false;
+  if (empty) empty.hidden = true;
   $("removeEventImageButton") && ($("removeEventImageButton").hidden = false);
 }
 
