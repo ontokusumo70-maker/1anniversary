@@ -2295,7 +2295,11 @@ function ownerIconSvg(name) {
     trash: `<svg ${common}><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg>`,
     link: `<svg ${common}><path d="M10 13.5 8.5 15a3.5 3.5 0 0 1-5-5l2-2a3.5 3.5 0 0 1 5 0"/><path d="M14 10.5 15.5 9a3.5 3.5 0 0 1 5 5l-2 2a3.5 3.5 0 0 1-5 0"/><path d="m9 15 6-6"/></svg>`,
     share: `<svg ${common}><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.4M8.2 13.2l7.6 4.4"/></svg>`,
-    settings: `<svg ${common}><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.4 1a8 8 0 0 0-1.7-1L14.5 3h-5L9 6a8 8 0 0 0-1.7 1l-2.4-1-2 3.5L5 11a7 7 0 0 0 0 2l-2 1.5 2 3.5 2.4-1a8 8 0 0 0 1.7 1l.5 3h5l.5-3a8 8 0 0 0 1.7-1l2.4 1 2-3.5-2-1.5c.1-.3.1-.7.1-1Z"/></svg>`
+    settings: `<svg ${common}><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.4 1a8 8 0 0 0-1.7-1L14.5 3h-5L9 6a8 8 0 0 0-1.7 1l-2.4-1-2 3.5L5 11a7 7 0 0 0 0 2l-2 1.5 2 3.5 2.4-1a8 8 0 0 0 1.7 1l.5 3h5l.5-3a8 8 0 0 0 1.7-1l2.4 1 2-3.5-2-1.5c.1-.3.1-.7.1-1Z"/></svg>`,
+    tag: `<svg ${common}><path d="M4 6.5 13.5 4 20 10.5 10.5 20 4 13.5Z"/><circle cx="9" cy="9" r="1.5"/></svg>`,
+    calculator: `<svg ${common}><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2M12 11h2M16 11h.01M8 15h2M12 15h2M16 15h.01M8 18h2M12 18h2M16 18h.01"/></svg>`,
+    database: `<svg ${common}><ellipse cx="12" cy="5.5" rx="7" ry="3"/><path d="M5 5.5v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6M5 11.5v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></svg>`,
+    pie: `<svg ${common}><path d="M12 4v8h8"/><path d="M20 12a8 8 0 1 1-8-8v8Z"/></svg>`
   };
   return icons[name] || '';
 }
@@ -2893,7 +2897,6 @@ function renderOwnerRewardList(items = ownerData?.rewardPool || []) {
         <span class="locked-card-main">
           <span class="locked-card-title-row"><b>${escapeHtml(item.rewardType)}</b><em class="locked-status ${item.active ? "active" : "inactive"}">${item.active ? "Aktif" : "Nonaktif"}</em></span>
           <span class="locked-stock-row"><span>${ownerIconSvg("gift")} Total Stok: <b>${Number(item.quotaTotal).toLocaleString("id-ID")}</b></span><span>Sisa: <b>${Number(item.remaining).toLocaleString("id-ID")}</b></span><span>Digunakan: <b>${Number(item.quotaUsed).toLocaleString("id-ID")}</b></span></span>
-          <span class="locked-budget-row">Budget: <b>Rp ${Number(item.budgetTotal || 0).toLocaleString("id-ID")}</b></span>
           <span class="locked-used-label">Digunakan di Event:</span>
           ${events.length ? events.map((event) => `<span class="locked-event-reference"><span class="locked-reference-icon">${ownerIconSvg("calendar")}</span><span><b>${escapeHtml(event.title)}</b><small>${escapeHtml(formatOwnerShortDate(event.startsAt))} – ${escapeHtml(formatOwnerShortDate(event.endsAt))}</small><small>Jumlah: ${Number(event.rewardQuantity || 0).toLocaleString("id-ID")}</small></span></span>`).join("") : `<span class="locked-no-event">Belum digunakan pada event</span>`}
         </span>
@@ -2931,6 +2934,15 @@ async function loadOwnerRewardPool() {
   }
 }
 
+function updateRewardBudget() {
+  const quota = Number($("rewardQuota")?.value || 0);
+  const unitPrice = Number($("rewardUnitPrice")?.value || 0);
+  const budget = Number.isFinite(quota) && Number.isFinite(unitPrice) && quota > 0 && unitPrice >= 0
+    ? quota * unitPrice
+    : 0;
+  if ($("rewardBudget")) $("rewardBudget").value = String(budget);
+}
+
 function resetRewardForm() {
   editingRewardType = null;
   $("ownerRewardType").disabled = false;
@@ -2953,15 +2965,15 @@ function openRewardForm(rewardType = null) {
   const item = (ownerData?.rewardPool || []).find((row) => row.rewardType === rewardType);
   $("rewardFormTitle").textContent = rewardType ? "Edit Reward" : "Tambah Reward";
   $("lockedRewardFormSubtitle") && ($("lockedRewardFormSubtitle").textContent = rewardType ? "Ubah informasi reward" : "Buat reward baru untuk event");
-  $("ownerRewardType").disabled = false;
+  $("ownerRewardType").disabled = Boolean(rewardType);
   $("ownerRewardType").value = rewardType || "";
   $("rewardDescription").value = item?.description || "";
   $("rewardDescriptionCount").textContent = `${($( "rewardDescription").value || "").length}/500`;
   $("rewardQuota").value = item?.quotaTotal ?? "";
   const existingQuota = Number(item?.quotaTotal || 0);
   const existingBudget = Number(item?.budgetTotal || 0);
-  $("rewardUnitPrice").value = existingQuota > 0 && existingBudget % existingQuota === 0 ? String(existingBudget / existingQuota) : "";
-  $("rewardBudget").value = existingBudget;
+  $("rewardUnitPrice").value = existingQuota > 0 ? Math.round(existingBudget / existingQuota) : "";
+  updateRewardBudget();
   $("rewardTerms").value = item?.terms || "";
   $("rewardTermsCount").textContent = `${($( "rewardTerms").value || "").length}/500`;
   $("rewardActive").value = item ? (item.active ? "ACTIVE" : "INACTIVE") : "ACTIVE";
@@ -2983,18 +2995,66 @@ function openRewardDetail(rewardType, eventId = null) {
   $("rewardDetailView").hidden = false;
   const allEvents = item.events || [];
   const events = eventId ? allEvents.filter((event) => event.eventId === eventId) : allEvents;
+  const quotaTotal = Number(item.quotaTotal || 0);
+  const budgetTotal = Number(item.budgetTotal || 0);
+  const unitPrice = quotaTotal > 0 ? Math.round(budgetTotal / quotaTotal) : 0;
+  const claimed = Number(item.rewardClaimed || 0);
+  const remaining = Number(item.remaining || 0);
   $("rewardDetailCard").innerHTML = `
-    <div class="locked-detail-rows">
-      <div><span>Nama Reward</span><b>${escapeHtml(item.rewardType)}</b></div>
-      <div><span>Deskripsi</span><b>${escapeHtml(item.description || "—")}</b></div>
-      <div><span>Total Stok</span><b>${Number(item.quotaTotal).toLocaleString("id-ID")}</b></div>
-      <div><span>Harga Satuan</span><b>Rp ${Number(item.quotaTotal) > 0 && Number(item.budgetTotal || 0) % Number(item.quotaTotal) === 0 ? (Number(item.budgetTotal || 0) / Number(item.quotaTotal)).toLocaleString("id-ID") : "—"}</b></div>
-      <div><span>Budget Reward</span><b>Rp ${Number(item.budgetTotal || 0).toLocaleString("id-ID")}</b></div>
-      <div><span>Stok Tersisa</span><b>${Number(item.remaining).toLocaleString("id-ID")}</b></div>
-      <div><span>Reward Claimed</span><b>${Number(item.rewardClaimed || 0).toLocaleString("id-ID")}</b></div>
-      <div class="locked-detail-event-row"><span>Digunakan di Event (${events.length})</span><div class="locked-detail-events">${events.length ? events.map((event) => `<section><b>${escapeHtml(event.title)}</b><small>${ownerIconSvg("calendar")} ${escapeHtml(formatOwnerShortDate(event.startsAt))} – ${escapeHtml(formatOwnerShortDate(event.endsAt))}</small><small>${ownerIconSvg("gift")} Jumlah dialokasikan: ${Number(event.rewardQuantity || 0).toLocaleString("id-ID")}</small><small>${ownerIconSvg("gift")} Reward Claimed: ${Number(item.rewardClaimed || 0).toLocaleString("id-ID")}</small></section>`).join("") : `<span class="locked-no-event">Belum digunakan pada event</span>`}</div></div>
-      <div><span>Syarat &amp; Ketentuan</span><b>${escapeHtml(item.terms || "—")}</b></div>
-      <div><span>Status</span><b><em class="locked-status ${item.active ? "active" : "inactive"}">${item.active ? "Aktif" : "Nonaktif"}</em></b></div>
+    <div class="reward-detail-layout">
+      <section class="reward-detail-hero-card">
+        <div class="reward-detail-hero-main">
+          <span>Nama Reward</span>
+          <strong>${escapeHtml(item.rewardType)}</strong>
+          <em class="reward-detail-status ${item.active ? "active" : "inactive"}"><i></i>${item.active ? "Aktif" : "Nonaktif"}</em>
+        </div>
+        <div class="reward-detail-hero-divider" aria-hidden="true"></div>
+        <div class="reward-detail-hero-description">
+          <span>Deskripsi</span>
+          <strong>${escapeHtml(item.description || "—")}</strong>
+        </div>
+      </section>
+
+      <div class="reward-detail-metric-grid">
+        <section class="reward-detail-metric-card">
+          <div class="reward-detail-icon">${ownerIconSvg("database")}</div>
+          <div><span>Total Stok</span><strong>${quotaTotal.toLocaleString("id-ID")}</strong><small>Jumlah total reward tersedia</small></div>
+        </section>
+        <section class="reward-detail-metric-card">
+          <div class="reward-detail-icon">${ownerIconSvg("tag")}</div>
+          <div><span>Harga Satuan</span><strong>Rp ${unitPrice.toLocaleString("id-ID")}</strong><small>Nilai per unit reward</small></div>
+        </section>
+      </div>
+
+      <section class="reward-detail-budget-card">
+        <div class="reward-detail-icon">${ownerIconSvg("calculator")}</div>
+        <div><span>Budget Reward</span><strong>Rp ${budgetTotal.toLocaleString("id-ID")}</strong><small>Total nilai reward (stok × harga satuan)</small></div>
+      </section>
+
+      <div class="reward-detail-metric-grid">
+        <section class="reward-detail-metric-card">
+          <div class="reward-detail-icon">${ownerIconSvg("pie")}</div>
+          <div><span>Stok Tersisa</span><strong>${remaining.toLocaleString("id-ID")}</strong><small>Sisa reward yang belum diklaim</small></div>
+        </section>
+        <section class="reward-detail-metric-card">
+          <div class="reward-detail-icon">${ownerIconSvg("customer")}</div>
+          <div><span>Reward Claimed</span><strong>${claimed.toLocaleString("id-ID")}</strong><small>Jumlah reward yang sudah diklaim</small></div>
+        </section>
+      </div>
+
+      <section class="reward-detail-wide-card reward-detail-event-card">
+        <div class="reward-detail-icon">${ownerIconSvg("calendar")}</div>
+        <div>
+          <span>Digunakan di Event (${events.length})</span>
+          ${events.length ? `<div class="reward-detail-events">${events.map((event) => `<section><b>${escapeHtml(event.title)}</b><small>${ownerIconSvg("calendar")} ${escapeHtml(formatOwnerShortDate(event.startsAt))} – ${escapeHtml(formatOwnerShortDate(event.endsAt))}</small><small>${ownerIconSvg("gift")} Jumlah dialokasikan: ${Number(event.rewardQuantity || 0).toLocaleString("id-ID")}</small><small>${ownerIconSvg("gift")} Reward Claimed: ${claimed.toLocaleString("id-ID")}</small></section>`).join("")}</div>` : `<strong class="reward-detail-empty-event">Belum digunakan pada event</strong>`}
+          <small class="reward-detail-helper">Event yang menggunakan reward ini</small>
+        </div>
+      </section>
+
+      <section class="reward-detail-wide-card reward-detail-terms-card">
+        <div class="reward-detail-icon">${ownerIconSvg("audit")}</div>
+        <div><span>Syarat &amp; Ketentuan</span><strong>${escapeHtml(item.terms || "—")}</strong><small>Syarat dan ketentuan untuk mendapatkan reward ini</small></div>
+      </section>
     </div>`;
   msg("rewardDetailMsg", "");
 }
@@ -3014,41 +3074,28 @@ function closeRewardViews() {
   resetRewardForm();
 }
 
-function updateRewardBudget() {
-  const quota = Number($("rewardQuota")?.value);
-  const unitPrice = Number($("rewardUnitPrice")?.value);
-  const budget = Number.isInteger(quota) && quota > 0 && Number.isInteger(unitPrice) && unitPrice >= 0
-    ? quota * unitPrice : 0;
-  if ($("rewardBudget")) $("rewardBudget").value = budget ? String(budget) : "";
-}
-
 async function saveReward() {
-  msg("rewardFormMsg", "");
   try {
     updateRewardBudget();
-    const rewardType = $("ownerRewardType").value.trim();
-    const quotaTotal = Number($("rewardQuota").value);
-    const unitPriceInput = $("rewardUnitPrice").value.trim();
-    const unitPrice = Number(unitPriceInput);
-    if (!rewardType || !Number.isInteger(quotaTotal) || quotaTotal < 1 ||
-        !unitPriceInput || !Number.isInteger(unitPrice) || unitPrice < 0) {
-      throw new Error("Nama reward, total stok, dan harga satuan wajib diisi.");
-    }
     const body = {
-      rewardType,
+      rewardType: $("ownerRewardType").value.trim(),
       description: $("rewardDescription").value.trim(),
-      quotaTotal,
-      unitPrice,
-      budgetTotal: quotaTotal * unitPrice,
+      quotaTotal: Number($("rewardQuota").value),
+      budgetTotal: Number($("rewardBudget").value),
       terms: $("rewardTerms").value.trim(),
       active: $("rewardActive").value === "ACTIVE",
     };
+    const unitPrice = Number($("rewardUnitPrice").value);
+    if (!body.rewardType || !Number.isInteger(body.quotaTotal) || body.quotaTotal < 1 || !Number.isInteger(unitPrice) || unitPrice < 0) {
+      throw new Error("Nama reward, total stok, dan harga satuan wajib diisi.");
+    }
+    body.budgetTotal = body.quotaTotal * unitPrice;
     const path = editingRewardType ? `/owner/reward-pool/${encodeURIComponent(editingRewardType)}` : "/owner/reward-pool";
     await api(path, { method: editingRewardType ? "PATCH" : "POST", body: JSON.stringify(body) });
     closeRewardViews();
     await loadOwnerRewardPool();
   } catch (error) {
-    msg("rewardFormMsg", error.message || "Gagal menyimpan reward.");
+    msg("rewardFormMsg", error.message);
   }
 }
 
@@ -3669,9 +3716,9 @@ $("cancelRewardButton")?.addEventListener("click", closeRewardViews);
 $("cancelRewardTop")?.addEventListener("click", closeRewardViews);
 $("rewardDetailBack")?.addEventListener("click", closeRewardViews);
 $("editRewardButton")?.addEventListener("click", () => { if (selectedRewardType) openRewardForm(selectedRewardType); });
+$("deleteRewardButton")?.addEventListener("click", deleteReward);
 $("rewardQuota")?.addEventListener("input", updateRewardBudget);
 $("rewardUnitPrice")?.addEventListener("input", updateRewardBudget);
-$("deleteRewardButton")?.addEventListener("click", deleteReward);
 $("saveRewardButton")?.addEventListener("click", saveReward);
 $("eventDetailBack")?.addEventListener("click", () => { closeEventViews(); setOwnerView("events"); });
 $("editEventButton")?.addEventListener("click", () => { if (selectedEventId) openEventForm(selectedEventId); });
