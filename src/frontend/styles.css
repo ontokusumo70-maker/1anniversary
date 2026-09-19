@@ -686,6 +686,7 @@ body[data-role="OWNER"] .event-field-caption{display:block;font-size:10px!import
 body[data-role="OWNER"] .event-date-field{position:relative}
 body[data-role="OWNER"] .event-date-field .owner-inline-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:17px;height:17px;z-index:2;pointer-events:none}
 body[data-role="OWNER"] .event-date-field input{padding:0 11px!important;margin-top:0!important;text-align:center!important;-webkit-appearance:none!important;appearance:none!important}
+body[data-role="OWNER"] .event-date-field input::-webkit-datetime-edit{display:block;text-align:center;width:100%;}
 body[data-role="OWNER"] .event-form-panel input[type="date"]::-webkit-calendar-picker-indicator{opacity:0}
 body[data-role="OWNER"] .event-form-panel input[type="date"]{color:#7c8983}
 body[data-role="OWNER"] .event-counter{display:block;text-align:right;color:#65736d;font-size:9px;margin-top:-10px;margin-bottom:13px}
