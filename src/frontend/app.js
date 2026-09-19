@@ -809,21 +809,14 @@ function showCustomerAuth(clearMessage = true) {
     $("emailLabel").hidden = false;
   }
 
-  if ($("requestOtp")) {
-    $("requestOtp").hidden = false;
-  }
-
-  if ($("otpInfo")) {
-    $("otpInfo").hidden = false;
+  if ($("customerLogin")) {
+    $("customerLogin").hidden = false;
   }
 
   if ($("staffLogin")) {
     $("staffLogin").hidden = true;
   }
 
-  if ($("otpBox")) {
-    $("otpBox").hidden = true;
-  }
 
   if (clearMessage) {
     msg("authMsg", "");
@@ -837,12 +830,8 @@ function showStaffOwnerAuth(clearMessage = true) {
     $("emailLabel").hidden = true;
   }
 
-  if ($("requestOtp")) {
-    $("requestOtp").hidden = true;
-  }
-
-  if ($("otpInfo")) {
-    $("otpInfo").hidden = true;
+  if ($("customerLogin")) {
+    $("customerLogin").hidden = true;
   }
 
   if ($("staffLogin")) {
@@ -850,9 +839,6 @@ function showStaffOwnerAuth(clearMessage = true) {
     $("staffLogin").textContent = "Login";
   }
 
-  if ($("otpBox")) {
-    $("otpBox").hidden = true;
-  }
 
   if (clearMessage) {
     msg("authMsg", "");
@@ -905,114 +891,36 @@ async function detectAuthMode() {
   }, 250);
 }
 
-async function requestCustomerOtp() {
+async function loginCustomer() {
   try {
-    const phone =
-      $("phone").value.trim();
+    const phone = $("phone")?.value.trim() || "";
+    const email = $("email")?.value.trim() || "";
 
-    const email =
-      $("email").value.trim();
-
-    if (!phone) {
-      msg(
-        "authMsg",
-        "Nomor WhatsApp wajib diisi.",
-      );
+    if (!phone || !email) {
+      msg("authMsg", "Nomor HP dan email wajib diisi.");
       return;
     }
 
-    if (!email) {
-      msg(
-        "authMsg",
-        "Email wajib diisi.",
-      );
-      return;
-    }
+    const data = await api("/auth/customer-access", {
+      method: "POST",
+      body: JSON.stringify({ phone, email }),
+    });
 
-    const data =
-      await api(
-        "/auth/request-otp",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            phone,
-            email,
-          }),
-        },
-      );
-
-    state.challengeId =
-      data.challengeId;
-
-    $("otpBox").hidden = false;
-    $("otp")?.focus();
-
-    msg(
-      "authMsg",
-      "OTP terkirim ke email. Berlaku 5 menit.",
-    );
-  } catch (error) {
-    msg(
-      "authMsg",
-      error.message,
-    );
-  }
-}
-
-async function verifyCustomerOtp() {
-  try {
-    const phone =
-      $("phone").value.trim();
-
-    const email =
-      $("email").value.trim();
-
-    const otp =
-      $("otp").value.trim();
-
-    if (!state.challengeId) {
-      msg(
-        "authMsg",
-        "Silakan minta OTP terlebih dahulu.",
-      );
-      return;
-    }
-
-    const data =
-      await api(
-        "/auth/verify-otp",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            phone,
-            email,
-            challengeId:
-              state.challengeId,
-            otp,
-          }),
-        },
-      );
-
-    if (data.role !== "CUSTOMER") {
-      throw new Error("Akses Customer tidak valid.");
+    if (data.role !== "CUSTOMER" || !data.token || data.guest) {
+      throw new Error("Data Customer tidak valid.");
     }
 
     state.token = data.token;
     state.role = data.role;
     state.userId = data.userId;
-    state.expiresAt =
-      data.expiresAt || null;
+    state.expiresAt = data.expiresAt || null;
 
     saveSession();
-
+    saveCustomerIdentity({ phone, email, userId: data.userId });
     msg("authMsg", "");
-
     showRole();
   } catch (error) {
-    msg(
-      "authMsg",
-      error.message,
-    );
+    msg("authMsg", error.message || "Data tidak dapat diproses.");
   }
 }
 
@@ -1091,14 +999,8 @@ if ($("phone")) {
   );
 }
 
-if ($("requestOtp")) {
-  $("requestOtp").onclick =
-    requestCustomerOtp;
-}
-
-if ($("verifyOtp")) {
-  $("verifyOtp").onclick =
-    verifyCustomerOtp;
+if ($("customerLogin")) {
+  $("customerLogin").onclick = loginCustomer;
 }
 
 if ($("customerIdentitySubmit")) $("customerIdentitySubmit").addEventListener("click", submitCustomerIdentity);
@@ -4297,7 +4199,7 @@ async function initialize() {
   }
 
   // /customer and every /customer/* URL open directly to Customer Dashboard.
-  // Customer never enters the OTP flow. A guest session is created first so
+  // Customer access can start as a guest session when no identity is stored.
   // the read-only machine/event APIs continue to work; identity is collected
   // separately by the compact No. HP + Email popup.
   if (expectedRole === "CUSTOMER") {
