@@ -2,6 +2,7 @@ const state = {
   token: null,
   role: null,
   userId: null,
+  challengeId: null,
   playId: null,
   sessionId: null,
   rewardId: null,
@@ -808,15 +809,21 @@ function showCustomerAuth(clearMessage = true) {
     $("emailLabel").hidden = false;
   }
 
-  if ($("staffLogin")) {
-    $("staffLogin").hidden = false;
-    $("staffLogin").textContent = "Login";
+  if ($("requestOtp")) {
+    $("requestOtp").hidden = false;
+  }
+
+  if ($("otpInfo")) {
+    $("otpInfo").hidden = false;
   }
 
   if ($("staffLogin")) {
     $("staffLogin").hidden = true;
   }
 
+  if ($("otpBox")) {
+    $("otpBox").hidden = true;
+  }
 
   if (clearMessage) {
     msg("authMsg", "");
@@ -830,9 +837,21 @@ function showStaffOwnerAuth(clearMessage = true) {
     $("emailLabel").hidden = true;
   }
 
+  if ($("requestOtp")) {
+    $("requestOtp").hidden = true;
+  }
+
+  if ($("otpInfo")) {
+    $("otpInfo").hidden = true;
+  }
+
   if ($("staffLogin")) {
     $("staffLogin").hidden = false;
     $("staffLogin").textContent = "Login";
+  }
+
+  if ($("otpBox")) {
+    $("otpBox").hidden = true;
   }
 
   if (clearMessage) {
@@ -886,41 +905,114 @@ async function detectAuthMode() {
   }, 250);
 }
 
-async function loginCustomer() {
+async function requestCustomerOtp() {
   try {
-    const phone = $("phone")?.value.trim() || "";
-    const email = $("email")?.value.trim() || "";
+    const phone =
+      $("phone").value.trim();
+
+    const email =
+      $("email").value.trim();
 
     if (!phone) {
-      msg("authMsg", "Nomor HP wajib diisi.");
+      msg(
+        "authMsg",
+        "Nomor WhatsApp wajib diisi.",
+      );
       return;
     }
 
     if (!email) {
-      msg("authMsg", "Email wajib diisi.");
+      msg(
+        "authMsg",
+        "Email wajib diisi.",
+      );
       return;
     }
 
-    const data = await api("/auth/customer-access", {
-      method: "POST",
-      body: JSON.stringify({ phone, email }),
-    });
+    const data =
+      await api(
+        "/auth/request-otp",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            phone,
+            email,
+          }),
+        },
+      );
 
-    if (data.role !== "CUSTOMER" || !data.token || data.guest) {
+    state.challengeId =
+      data.challengeId;
+
+    $("otpBox").hidden = false;
+    $("otp")?.focus();
+
+    msg(
+      "authMsg",
+      "OTP terkirim ke email. Berlaku 5 menit.",
+    );
+  } catch (error) {
+    msg(
+      "authMsg",
+      error.message,
+    );
+  }
+}
+
+async function verifyCustomerOtp() {
+  try {
+    const phone =
+      $("phone").value.trim();
+
+    const email =
+      $("email").value.trim();
+
+    const otp =
+      $("otp").value.trim();
+
+    if (!state.challengeId) {
+      msg(
+        "authMsg",
+        "Silakan minta OTP terlebih dahulu.",
+      );
+      return;
+    }
+
+    const data =
+      await api(
+        "/auth/verify-otp",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            phone,
+            email,
+            challengeId:
+              state.challengeId,
+            otp,
+          }),
+        },
+      );
+
+    if (data.role !== "CUSTOMER") {
       throw new Error("Akses Customer tidak valid.");
     }
 
     state.token = data.token;
     state.role = data.role;
     state.userId = data.userId;
-    state.expiresAt = data.expiresAt || null;
+    state.expiresAt =
+      data.expiresAt || null;
 
     saveSession();
-    saveCustomerIdentity({ phone, email, userId: data.userId });
+
     msg("authMsg", "");
+
     showRole();
   } catch (error) {
-    msg("authMsg", error.message);
+    msg(
+      "authMsg",
+      error.message,
+    );
   }
 }
 
@@ -999,17 +1091,21 @@ if ($("phone")) {
   );
 }
 
+if ($("requestOtp")) {
+  $("requestOtp").onclick =
+    requestCustomerOtp;
+}
+
+if ($("verifyOtp")) {
+  $("verifyOtp").onclick =
+    verifyCustomerOtp;
+}
 
 if ($("customerIdentitySubmit")) $("customerIdentitySubmit").addEventListener("click", submitCustomerIdentity);
 
 if ($("staffLogin")) {
-  $("staffLogin").onclick = () => {
-    if (state.authMode === "CUSTOMER") {
-      loginCustomer();
-      return;
-    }
-    loginStaffOwner();
-  };
+  $("staffLogin").onclick =
+    loginStaffOwner;
 }
 
 let raf = 0;
@@ -1818,7 +1914,6 @@ function openStaffEvent() {
   if ($("staffServicesView")) $("staffServicesView").hidden = true;
   if ($("staffActiveEvent")) $("staffActiveEvent").hidden = true;
   if ($("staffEventView")) $("staffEventView").hidden = true;
-  if ($("staffScannerTool")) $("staffScannerTool").hidden = true;
   if ($("staffMachineTool")) $("staffMachineTool").hidden = true;
   if ($("staffToolsBack")) $("staffToolsBack").hidden = true;
   if ($("staffEventView")) $("staffEventView").hidden = false;
@@ -1839,7 +1934,6 @@ function openStaffServices() {
   if ($("staffToolsBack")) $("staffToolsBack").hidden = true;
   if ($("staffActiveEvent")) $("staffActiveEvent").hidden = true;
   if ($("staffEventView")) $("staffEventView").hidden = true;
-  if ($("staffScannerTool")) $("staffScannerTool").hidden = true;
   if ($("staffMachineTool")) $("staffMachineTool").hidden = true;
 }
 
@@ -1854,7 +1948,6 @@ function openStaffMachineStatus() {
   if ($("staffMachineStatusView")) $("staffMachineStatusView").hidden = false;
   if ($("staffActiveEvent")) $("staffActiveEvent").hidden = true;
   if ($("staffEventView")) $("staffEventView").hidden = true;
-  if ($("staffScannerTool")) $("staffScannerTool").hidden = true;
   if ($("staffMachineTool")) $("staffMachineTool").hidden = true;
   renderStaffMachineStatusMeta();
   refreshStaffMachines();
@@ -2089,144 +2182,6 @@ $("staffLogout")?.addEventListener("click", async () => {
   clearSession();
   window.location.href = LOGIN_ROUTES.STAFF;
 });
-
-let cameraStream = null;
-
-if ($("scanCamera")) {
-  $("scanCamera").onclick =
-    async () => {
-      if (
-        !window.BarcodeDetector
-      ) {
-        msg(
-          "scannerSupport",
-          "Browser ini tidak menyediakan pemindai QR native.",
-        );
-        return;
-      }
-
-      try {
-        const detector =
-          new BarcodeDetector({
-            formats: [
-              "qr_code",
-            ],
-          });
-
-        const video =
-          $("camera");
-
-        cameraStream =
-          await navigator
-            .mediaDevices
-            .getUserMedia({
-              video: {
-                facingMode:
-                  "environment",
-              },
-              audio: false,
-            });
-
-        video.srcObject =
-          cameraStream;
-
-        video.hidden =
-          false;
-
-        const loop =
-          async () => {
-            if (
-              video.hidden
-            ) {
-              return;
-            }
-
-            try {
-              const codes =
-                await detector.detect(
-                  video,
-                );
-
-              if (
-                codes[0]
-                  ?.rawValue
-              ) {
-                video.hidden =
-                  true;
-
-                cameraStream
-                  .getTracks()
-                  .forEach(
-                    (track) =>
-                      track.stop(),
-                  );
-
-                cameraStream =
-                  null;
-
-                const data =
-                  await api(
-                    `/staff/scan/${encodeURIComponent(
-                      codes[0].rawValue,
-                    )}`,
-                  );
-
-                $("staffResult").textContent =
-                  JSON.stringify(
-                    data,
-                    null,
-                    2,
-                  );
-
-                if (
-                  data.redeemable
-                ) {
-                  const redeem =
-                    await api(
-                      "/staff/redeem",
-                      {
-                        method:
-                          "POST",
-                        body:
-                          JSON.stringify({
-                            rewardId:
-                              data.rewardId,
-                          }),
-                      },
-                    );
-
-                  $("staffResult").textContent =
-                    JSON.stringify(
-                      {
-                        ...data,
-                        redeem,
-                      },
-                      null,
-                      2,
-                    );
-                }
-
-                return;
-              }
-            } catch (error) {
-              $("staffResult").textContent =
-                error.message;
-            }
-
-            requestAnimationFrame(
-              loop,
-            );
-          };
-
-        loop();
-      } catch (error) {
-        msg(
-          "scannerSupport",
-          error.message,
-        );
-      }
-    };
-}
 
 let ownerData = null;
 let ownerServerTimeReceivedAt = 0;
@@ -4173,7 +4128,7 @@ async function initialize() {
   }
 
   // /customer and every /customer/* URL open directly to Customer Dashboard.
-  // Customer identity is handled with phone number and email. A guest session can be created first so
+  // Customer never enters the OTP flow. A guest session is created first so
   // the read-only machine/event APIs continue to work; identity is collected
   // separately by the compact No. HP + Email popup.
   if (expectedRole === "CUSTOMER") {
