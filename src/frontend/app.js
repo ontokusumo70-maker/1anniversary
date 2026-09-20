@@ -2623,8 +2623,11 @@ function renderOwnerMachineSummary() {
 
 function formatOwnerShortDate(value) {
   if (!value) return "—";
-  const date = new Date(`${value}T00:00:00+07:00`);
-  if (!Number.isFinite(date.getTime())) return String(value);
+  const raw = String(value).trim();
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(raw)
+    ? new Date(`${raw}T00:00:00+07:00`)
+    : new Date(raw);
+  if (!Number.isFinite(date.getTime())) return raw;
   return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Jakarta" }).format(date);
 }
 
@@ -3127,13 +3130,13 @@ function eventStatusLabel(category) {
 
 function renderEventCard(event) {
   const description = String(event.description || "").trim();
-  return `<button class="locked-event-card" type="button" data-open-event="${escapeHtml(event.eventId)}">
-    <span class="locked-event-copy">
-      <span class="locked-card-title-row"><b>${escapeHtml(event.title)}</b></span>
-      <span class="locked-event-line">${ownerIconSvg("calendar")}<span>${escapeHtml(formatOwnerShortDate(event.startsAt))} – ${escapeHtml(formatOwnerShortDate(event.endsAt))}</span></span>
-      <span class="locked-event-description${description ? "" : " muted"}">${escapeHtml(description || "Event Teras Laundry")}</span>
+  return `<button class="owner-event-list-card" type="button" data-open-event="${escapeHtml(event.eventId)}">
+    <span class="owner-event-list-copy">
+      <b class="owner-event-list-title">${escapeHtml(event.title)}</b>
+      <span class="owner-event-list-period">${ownerIconSvg("calendar")}<span>${escapeHtml(formatOwnerShortDate(event.startsAt))} – ${escapeHtml(formatOwnerShortDate(event.endsAt))}</span></span>
+      <span class="owner-event-list-description${description ? "" : " muted"}">${escapeHtml(description || "—")}</span>
     </span>
-    <span class="locked-card-arrow">›</span>
+    <span class="owner-event-list-arrow" aria-hidden="true">›</span>
   </button>`;
 }
 
@@ -3323,8 +3326,9 @@ async function loadOwnerEventImage(eventId) {
   }
 }
 
-function eventFormImageIsActive(event = null) {
+function eventFormImageCanBeStored(event = null) {
   if (event && $("eventStatus")?.value === "INACTIVE") return false;
+  if (event && event.active === false) return false;
   const start = $("eventStartsAt")?.value || (event ? toDateInput(event.startsAt) : "");
   const end = $("eventEndsAt")?.value || (event ? toDateInput(event.endsAt) : "");
   if (!start || !end) return false;
@@ -3336,7 +3340,7 @@ function eventFormImageIsActive(event = null) {
 function updateEventImageAvailability(event = null) {
   const input = $("eventImage");
   if (!input) return;
-  input.disabled = Boolean(event && !eventFormImageIsActive(event));
+  input.disabled = Boolean(event && (!eventFormImageCanBeStored(event) || eventCategory(event) === "COMPLETED"));
 }
 
 async function uploadEventImage(eventId) {
@@ -3425,7 +3429,7 @@ function openEventForm(eventId = null) {
   if (event) $("eventStatus").value = event.active ? "ACTIVE" : "INACTIVE";
   resetEventImageUI();
   updateEventImageAvailability(event);
-  if (event && eventCategory(event) === "ACTIVE") {
+  if (event && event.active && eventCategory(event) !== "COMPLETED") {
     loadOwnerEventImage(event.eventId);
   }
   updateEventRewardStock();
@@ -3448,9 +3452,7 @@ async function saveEvent() {
     if (!body.title || !start || !end || !rewards.length || rewards.some((reward) => !reward.rewardType || !Number.isInteger(reward.rewardQuantity) || reward.rewardQuantity < 1)) throw new Error("Lengkapi data event dan reward.");
     const path = editingEventId ? `/owner/events/${encodeURIComponent(editingEventId)}` : "/owner/events";
     const saved = await api(path, { method: editingEventId ? "PATCH" : "POST", body: JSON.stringify(body) });
-    if (body.active && editingEventId && eventFormImageIsActive(ownerData?.events?.find((row) => row.eventId === editingEventId)) && $("eventImage")?.files?.[0]) {
-      await uploadEventImage(editingEventId);
-    } else if (body.active && !editingEventId && saved.eventId && eventFormImageIsActive(null) && $("eventImage")?.files?.[0]) {
+    if (body.active && saved.eventId && $("eventImage")?.files?.[0]) {
       await uploadEventImage(saved.eventId);
     }
     closeEventViews();
@@ -3766,7 +3768,11 @@ $("removeEventImageButton")?.addEventListener("click", async () => {
     msg("eventImageMsg", error.message);
   }
 });
-$("cancelEventTop")?.addEventListener("click", closeEventViews);
+$("cancelEventTop")?.addEventListener("click", (event) => {
+  event.preventDefault();
+  closeEventViews();
+  setOwnerView("events");
+});
 $("saveEventButton")?.addEventListener("click", saveEvent);
 $("newRewardButton")?.addEventListener("click", () => openRewardForm());
 $("cancelRewardButton")?.addEventListener("click", closeRewardViews);
