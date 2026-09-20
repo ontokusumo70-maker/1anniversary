@@ -372,18 +372,47 @@ let customerMachineStatusTimer = null;
 let customerEventInfoImageObjectUrl = null;
 let customerActiveEventData = null;
 
+function renderEventDashboardOptions(containerId, data, openHandler) {
+  const container = $(containerId);
+  if (!container) return;
+
+  const events = Array.isArray(data?.events)
+    ? data.events.filter((event) => event?.eventId)
+    : (data?.event?.eventId ? [data.event] : []);
+
+  if (!events.length) {
+    container.innerHTML = `<span class="staff-event-empty">Belum ada event</span>`;
+    return;
+  }
+
+  const active = events.filter((event) => event.status === "ACTIVE");
+  const upcoming = events.filter((event) => event.status === "UPCOMING");
+  const ordered = [active[0], upcoming[0]].filter(Boolean);
+
+  container.innerHTML = ordered.map((event) => {
+    const label = event.status === "ACTIVE" ? "Event Aktif" : "Akan Datang";
+    return `<button type="button" class="staff-event-option" data-event-id="${escapeHtml(event.eventId)}">
+      <span class="staff-event-option-label">${label}</span>
+      <strong class="staff-event-option-title">${escapeHtml(event.title || "—")}</strong>
+    </button>`;
+  }).join("");
+
+  container.querySelectorAll("[data-event-id]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openHandler(button.dataset.eventId || "");
+    });
+  });
+}
+
 function renderCustomerDashboardEvent(data) {
   const title = $("customerDashboardEventTitle");
   const period = $("customerDashboardEventPeriod");
   if (!title || !period) return;
   customerActiveEventData = data || null;
-  if (!data?.active || !data.event) {
-    title.textContent = "Belum ada event";
-    period.textContent = "—";
-    return;
-  }
-  title.textContent = data.event.title || "Event Aktif";
-  period.textContent = formatDateRange(data.event.startsAt, data.event.endsAt);
+  renderEventDashboardOptions("customerDashboardEventTitle", data, (eventId) => openCustomerEvent(eventId));
+  period.hidden = true;
 }
 
 function renderStaffDashboardMachineSummary() {
@@ -409,13 +438,8 @@ function renderStaffDashboardEvent(data) {
   const title = $("staffDashboardEventTitle");
   const period = $("staffDashboardEventPeriod");
   if (!title || !period) return;
-  if (!data?.active || !data.event) {
-    title.textContent = "Belum ada event";
-    period.textContent = "—";
-    return;
-  }
-  title.textContent = data.event.title || "Event Aktif";
-  period.textContent = formatDateRange(data.event.startsAt, data.event.endsAt);
+  renderEventDashboardOptions("staffDashboardEventTitle", data, (eventId) => openStaffEvent(eventId));
+  period.hidden = true;
 }
 
 function normalizePathname(rawPath = window.location.pathname || "/") {
@@ -1810,7 +1834,7 @@ function renderStaffEventInfo(data) {
   }
 }
 
-function openStaffEvent() {
+function openStaffEvent(eventId = "") {
   if ($("staffDashboard")) $("staffDashboard").hidden = true;
   if ($("staffTools")) $("staffTools").hidden = false;
   if ($("staffMachineStatusView")) $("staffMachineStatusView").hidden = true;
@@ -1821,7 +1845,7 @@ function openStaffEvent() {
   if ($("staffToolsBack")) $("staffToolsBack").hidden = true;
   if ($("staffEventView")) $("staffEventView").hidden = false;
   renderStaffEventInfo(staffActiveEventData);
-  loadActiveEventForRole("STAFF").then(() => {
+  loadActiveEventForRole("STAFF", eventId).then(() => {
     if ($("staffEventView") && !$('staffEventView').hidden) renderStaffEventInfo(staffActiveEventData);
   });
 }
