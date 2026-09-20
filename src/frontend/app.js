@@ -232,26 +232,88 @@ function renderRoleActiveEvent(role, data) {
   }
 }
 
-async function loadActiveEventForRole(role, eventId = "") {
+async function loadActiveEventForRole(role, eventId = "", expectedSyncGeneration = null) {
   try {
     const path = eventId ? `/event/active?eventId=${encodeURIComponent(eventId)}` : "/event/active";
-    const data = await api(path);
+    const response = await api(path);
+    if (expectedSyncGeneration !== null && expectedSyncGeneration !== eventSyncGeneration) return null;
+    const data = normalizeActiveEventData(response, eventId);
     if (role === "STAFF") {
       staffActiveEventData = data;
       renderRoleActiveEvent(role, data);
       renderStaffDashboardEvent(data);
     } else if (role === "CUSTOMER") {
+      customerActiveEventData = data;
       renderCustomerDashboardEvent(data);
     }
+    return data;
   } catch {
+    if (expectedSyncGeneration !== null && expectedSyncGeneration !== eventSyncGeneration) return null;
+    const empty = normalizeActiveEventData(null, eventId);
     if (role === "STAFF") {
+      staffActiveEventData = empty;
       renderRoleActiveEvent(role, null);
-      renderStaffDashboardEvent(null);
+      renderStaffDashboardEvent(empty);
     } else if (role === "CUSTOMER") {
-      renderCustomerDashboardEvent(null);
+      customerActiveEventData = empty;
+      renderCustomerDashboardEvent(empty);
     }
+    return empty;
   }
 }
+
+let eventSyncTimer = null;
+let eventSyncRole = null;
+let eventSyncInFlight = false;
+let eventSyncGeneration = 0;
+
+function isRoleDashboardVisible(role) {
+  const id = role === "STAFF" ? "staffDashboard" : "customerDashboard";
+  const dashboard = $(id);
+  return Boolean(dashboard && !dashboard.hidden && state.role === role);
+}
+
+function stopEventSync() {
+  if (eventSyncTimer) {
+    window.clearInterval(eventSyncTimer);
+    eventSyncTimer = null;
+  }
+  eventSyncRole = null;
+  eventSyncGeneration += 1;
+}
+
+async function syncRoleEvents(role) {
+  if (!isRoleDashboardVisible(role) || eventSyncInFlight) return;
+  const generation = eventSyncGeneration;
+  eventSyncInFlight = true;
+  try {
+    await loadActiveEventForRole(role, "", generation);
+  } finally {
+    eventSyncInFlight = false;
+    if (generation !== eventSyncGeneration) return;
+  }
+}
+
+function startEventSync(role) {
+  stopEventSync();
+  eventSyncRole = role;
+  void syncRoleEvents(role);
+  eventSyncTimer = window.setInterval(() => {
+    void syncRoleEvents(role);
+  }, 5000);
+}
+
+function refreshVisibleEventSync() {
+  if (eventSyncRole && isRoleDashboardVisible(eventSyncRole)) {
+    void syncRoleEvents(eventSyncRole);
+  }
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) refreshVisibleEventSync();
+});
+window.addEventListener("focus", refreshVisibleEventSync);
+window.addEventListener("pageshow", refreshVisibleEventSync);
 
 let staffDashboardClockTimer = null;
 
@@ -285,6 +347,7 @@ function showStaffDashboard() {
     $("staffTools").hidden = true;
   }
 
+  startEventSync("STAFF");
   renderStaffDashboardDate();
 
   if (staffDashboardClockTimer) {
@@ -316,6 +379,7 @@ function renderCustomerDashboardDate() {
 
 function showCustomerDashboard() {
   if ($("customerDashboard")) $("customerDashboard").hidden = false;
+  startEventSync("CUSTOMER");
   renderCustomerDashboardDate();
   if (customerDashboardClockTimer) window.clearInterval(customerDashboardClockTimer);
   customerDashboardClockTimer = window.setInterval(() => {
@@ -372,6 +436,28 @@ let customerMachineStatusTimer = null;
 let customerEventInfoImageObjectUrl = null;
 let customerActiveEventData = null;
 
+function normalizeActiveEventData(data, requestedEventId = "") {
+  const rawEvents = Array.isArray(data?.events)
+    ? data.events
+    : (data?.event?.eventId ? [data.event] : []);
+  const events = rawEvents.filter((event) => event?.eventId).map((event) => ({
+    ...event,
+    status: event.status === "UPCOMING" || event.status === "ACTIVE"
+      ? event.status
+      : (Date.parse(event.startsAt) > (Date.parse(data?.serverNow || "") || Date.now()) ? "UPCOMING" : "ACTIVE"),
+  }));
+  const selected = requestedEventId
+    ? events.find((event) => String(event.eventId) === String(requestedEventId))
+    : events[0];
+  return {
+    ...(data || {}),
+    ok: data?.ok !== false,
+    active: events.length > 0,
+    events,
+    event: selected || null,
+  };
+}
+
 function renderEventDashboardOptions(containerId, data, openHandler) {
   const container = $(containerId);
   if (!container) return;
@@ -380,14 +466,16 @@ function renderEventDashboardOptions(containerId, data, openHandler) {
     ? data.events.filter((event) => event?.eventId)
     : (data?.event?.eventId ? [data.event] : []);
 
-  if (!events.length) {
-    container.innerHTML = `<span class="staff-event-empty">Belum ada event</span>`;
-    return;
-  }
-
   const active = events.filter((event) => event.status === "ACTIVE");
   const upcoming = events.filter((event) => event.status === "UPCOMING");
   const ordered = [active[0], upcoming[0]].filter(Boolean);
+
+  container.dataset.hasEvent = ordered.length ? "true" : "false";
+
+  if (!ordered.length) {
+    container.innerHTML = `<span class="staff-event-empty">Belum ada event</span>`;
+    return;
+  }
 
   container.innerHTML = ordered.map((event) => {
     const label = event.status === "ACTIVE" ? "Event Aktif" : "Akan Datang";
@@ -673,7 +761,6 @@ function showRole() {
     loadServiceSettings();
     showCustomerDashboard();
     refreshCustomerDashboardMachines();
-    loadActiveEventForRole("CUSTOMER");
     restoreCustomerView();
     return;
   }
@@ -685,7 +772,6 @@ function showRole() {
     $("staff").hidden = false;
     showStaffDashboard();
     refreshStaffMachines();
-    loadActiveEventForRole("STAFF");
     return;
   }
 
@@ -1717,6 +1803,9 @@ function renderCustomerEventInfo(data) {
 }
 
 async function openCustomerEvent(sharedEventId = "") {
+  const requestedEventId = sharedEventId || customerActiveEventData?.events?.[0]?.eventId || "";
+  if (!requestedEventId) return;
+  stopEventSync();
   saveCustomerView("EVENT");
   scrollCustomerTop();
   closeCustomerMachineDetail();
@@ -1726,7 +1815,7 @@ async function openCustomerEvent(sharedEventId = "") {
   if ($("customerServicesView")) $("customerServicesView").hidden = true;
   if ($("customerEventView")) $("customerEventView").hidden = false;
   stopCustomerMachineStatusTimer();
-  await loadActiveEventForRole("CUSTOMER", sharedEventId);
+  await loadActiveEventForRole("CUSTOMER", requestedEventId);
   renderCustomerEventInfo(customerActiveEventData);
   requestAnimationFrame(scrollCustomerTop);
 }
@@ -1787,6 +1876,7 @@ function renderStaffEventInfo(data) {
   const event = data?.event;
   staffActiveEventData = data || null;
   const image = $("staffEventInfoImage");
+  const status = $("staffEventInfoStatus");
   const title = $("staffEventInfoTitle");
   const period = $("staffEventInfoPeriod");
   const description = $("staffEventInfoDescription");
@@ -1795,6 +1885,7 @@ function renderStaffEventInfo(data) {
 
   revokeStaffEventInfoImage();
   if (!data?.active || !event) {
+    if (status) status.textContent = "EVENT TIDAK TERSEDIA";
     title.classList.add("empty-state");
     title.textContent = "Belum ada event";
     period.textContent = "—";
@@ -1805,6 +1896,7 @@ function renderStaffEventInfo(data) {
     return;
   }
 
+  if (status) status.textContent = event.status === "UPCOMING" ? "EVENT AKAN DATANG" : "EVENT AKTIF";
   title.classList.remove("empty-state");
   title.textContent = event.title || "—";
   period.textContent = formatDateRange(event.startsAt, event.endsAt);
@@ -1835,6 +1927,9 @@ function renderStaffEventInfo(data) {
 }
 
 function openStaffEvent(eventId = "") {
+  const requestedEventId = eventId || staffActiveEventData?.events?.[0]?.eventId || "";
+  if (!requestedEventId) return;
+  stopEventSync();
   if ($("staffDashboard")) $("staffDashboard").hidden = true;
   if ($("staffTools")) $("staffTools").hidden = false;
   if ($("staffMachineStatusView")) $("staffMachineStatusView").hidden = true;
@@ -1845,7 +1940,7 @@ function openStaffEvent(eventId = "") {
   if ($("staffToolsBack")) $("staffToolsBack").hidden = true;
   if ($("staffEventView")) $("staffEventView").hidden = false;
   renderStaffEventInfo(staffActiveEventData);
-  loadActiveEventForRole("STAFF", eventId).then(() => {
+  loadActiveEventForRole("STAFF", requestedEventId).then(() => {
     if ($("staffEventView") && !$('staffEventView').hidden) renderStaffEventInfo(staffActiveEventData);
   });
 }
@@ -2009,7 +2104,10 @@ if ($("staffServicesBack")) {
 }
 
 if ($("staffEventCard")) {
-  $("staffEventCard").addEventListener("click", openStaffEvent);
+  $("staffEventCard").addEventListener("click", (event) => {
+    if (event.target.closest("[data-event-id]")) return;
+    openStaffEvent();
+  });
   $("staffEventCard").addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
@@ -2068,7 +2166,10 @@ if ($("customerStatusCard")) {
   });
 }
 if ($("customerEventCard")) {
-  $("customerEventCard").addEventListener("click", openCustomerEvent);
+  $("customerEventCard").addEventListener("click", (event) => {
+    if (event.target.closest("[data-event-id]")) return;
+    openCustomerEvent();
+  });
   $("customerEventCard").addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
