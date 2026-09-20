@@ -864,15 +864,25 @@ body[data-role="OWNER"] .owner-nav-icon{width:27px;height:25px}
 }
 
 
-/* OWNER MACHINE REALTIME */
-.owner-machine-heading-meta{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;}
-.owner-machine-heading-meta p{margin:3px 0 0;white-space:nowrap;}
-.owner-machine-heading-meta #ownerMachineRealtime{font-size:11px;font-weight:600;color:#159d65;white-space:nowrap;margin-top:3px;}
-.owner-machine-heading{width:100%;}
+/* OWNER STATUS MESIN — compact manual refresh */
+.owner-machine-heading-refresh{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:10px;width:100%}
+.owner-machine-heading-copy{min-width:0}
+.owner-machine-heading-copy h1{margin:0}
+.owner-machine-heading-copy p{margin:4px 0 0;font-size:11px;color:#75827d}
+.owner-machine-heading-actions{display:flex;flex-direction:column;align-items:flex-end;gap:5px;min-width:0}
+.owner-machine-refresh{display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100px;height:38px;padding:0 10px;border:1px solid #16855f;border-radius:9px;background:#fff;color:#16855f;font-size:12px;font-weight:800;box-shadow:none}
+.owner-machine-refresh svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.owner-machine-refresh:disabled{opacity:.7;cursor:wait}
+.owner-machine-refresh.is-refreshing svg{animation:ownerMachineRefreshSpin .8s linear infinite}
+@keyframes ownerMachineRefreshSpin{to{transform:rotate(360deg)}}
+.owner-machine-heading-actions #ownerMachineRealtime{font-size:10px;font-weight:600;color:#159d65;white-space:nowrap;margin:0}
+
 @media(max-width:600px){
-  .owner-machine-heading-meta{gap:8px;}
-  .owner-machine-heading-meta p{font-size:10px;}
-  .owner-machine-heading-meta #ownerMachineRealtime{font-size:9px;}
+  .owner-machine-heading-refresh{gap:8px}
+  .owner-machine-heading-copy p{font-size:10px}
+  .owner-machine-refresh{width:96px;height:36px;border-radius:8px;font-size:11px;gap:6px}
+  .owner-machine-refresh svg{width:17px;height:17px}
+  .owner-machine-heading-actions #ownerMachineRealtime{font-size:9px}
 }
 
 /* CUSTOMER TRACE — APPROVED LIST + DETAIL */
@@ -3940,4 +3950,3 @@ body[data-role="OWNER"] #ownerEventsList .locked-event-stats{
     font-size:27px;
   }
 }
-
