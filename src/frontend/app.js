@@ -513,9 +513,9 @@ function renderEventDashboardOptions(containerId, data, openHandler) {
       if (Number.isFinite(startDiff) && startDiff !== 0) return startDiff;
       return String(a.eventId || "").localeCompare(String(b.eventId || ""));
     });
-  // Show the current active event plus ALL upcoming events.
+  // Show ALL current active events plus ALL upcoming events.
   // Each option keeps its own eventId so detail navigation stays event-specific.
-  const ordered = [active[0], ...upcoming].filter(Boolean);
+  const ordered = [...active, ...upcoming];
 
   container.dataset.hasEvent = ordered.length ? "true" : "false";
 
