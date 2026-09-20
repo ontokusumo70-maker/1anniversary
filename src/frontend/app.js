@@ -2501,6 +2501,7 @@ function ownerIconSvg(name) {
     csv: `<svg ${common}><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v5h5M10 12h5M10 16h5"/></svg>`,
     calendar: `<svg ${common}><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 9h16M8 13h3"/></svg>`,
     clock: `<svg ${common}><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>`,
+    reset: `<svg ${common}><path d="M20 11a8 8 0 1 0 1 4"/><path d="M20 5v6h-6"/></svg>`,
     washer: `<svg ${common}><rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="13" r="4.5"/><path d="M8 7h1M11 7h1"/></svg>`,
     dryer: `<svg ${common}><rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="13" r="4.5"/><path d="M8 7h8"/></svg>`,
     user: `<svg ${common}><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-4 3-6 7-6s6.2 2 7 6"/></svg>`,
@@ -2943,9 +2944,41 @@ function renderOwnerOperations() {
   document.querySelectorAll("#operationPeriods button").forEach((button) => button.classList.toggle("active", button.dataset.period === ownerOperationPeriod));
   const data = ownerData.operatingTime[ownerOperationPeriod] || { washer: 0, dryer: 0 };
   target.innerHTML = `
-    <div class="operation-stat"><span class="operation-stat-icon washer-clock">${ownerIconSvg("clock")}</span><div><span>Total Waktu Operasi<br>Washer</span><b>${formatDuration(Number(data.washer || 0))}</b></div></div>
-    <div class="operation-stat"><span class="operation-stat-icon dryer-clock">${ownerIconSvg("clock")}</span><div><span>Total Waktu Operasi<br>Dryer</span><b>${formatDuration(Number(data.dryer || 0))}</b></div></div>
+    <div class="owner-operation-item">
+      <div class="operation-stat"><span class="operation-stat-icon washer-clock">${ownerIconSvg("clock")}</span><div><span>Total Waktu Operasi<br>Washer</span><b>${formatDuration(Number(data.washer || 0))}</b></div></div>
+      <button type="button" class="owner-operation-reset" data-reset-operation="WASHER" aria-label="Reset total waktu operasi Washer"><span>${ownerIconSvg("reset")}</span><b>Reset</b></button>
+    </div>
+    <div class="owner-operation-item">
+      <div class="operation-stat"><span class="operation-stat-icon dryer-clock">${ownerIconSvg("clock")}</span><div><span>Total Waktu Operasi<br>Dryer</span><b>${formatDuration(Number(data.dryer || 0))}</b></div></div>
+      <button type="button" class="owner-operation-reset" data-reset-operation="DRYER" aria-label="Reset total waktu operasi Dryer"><span>${ownerIconSvg("reset")}</span><b>Reset</b></button>
+    </div>
   `;
+  target.querySelectorAll("[data-reset-operation]").forEach((button) => {
+    button.addEventListener("click", () => {
+      void resetOwnerOperation(button.dataset.resetOperation || "");
+    });
+  });
+}
+
+async function resetOwnerOperation(machineType) {
+  const type = String(machineType || "").trim().toUpperCase();
+  if (type !== "WASHER" && type !== "DRYER") return;
+  const label = type === "WASHER" ? "Washer" : "Dryer";
+  if (!window.confirm(`Reset total waktu operasi ${label} ke 00:00?`)) return;
+  const button = document.querySelector(`[data-reset-operation="${type}"]`);
+  if (button) button.disabled = true;
+  try {
+    await api("/owner/operations/reset", {
+      method: "POST",
+      body: JSON.stringify({ machineType: type }),
+    });
+    await loadOwnerData();
+  } catch (error) {
+    msg("ownerResult", error.message);
+  } finally {
+    const currentButton = document.querySelector(`[data-reset-operation="${type}"]`);
+    if (currentButton) currentButton.disabled = false;
+  }
 }
 
 function revokeOwnerActiveEventImages() {
