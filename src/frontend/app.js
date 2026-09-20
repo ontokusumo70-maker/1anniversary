@@ -534,7 +534,7 @@ function renderEventDashboardOptions(containerId, data, openHandler) {
           <button type="button" class="staff-event-option" data-event-id="${escapeHtml(event.eventId)}" aria-label="Lihat informasi event ${escapeHtml(event.title || "—")}">
             <span class="staff-event-option-copy">
               <span class="staff-event-option-title">${escapeHtml(event.title || "—")}</span>
-              <span class="staff-event-option-period">${escapeHtml(formatDateRange(event.startsAt, event.endsAt))}</span>
+              <span class="staff-event-option-period">${ownerIconSvg("calendar")}<span>${escapeHtml(formatDateRange(event.startsAt, event.endsAt))}</span></span>
             </span>
             <span class="staff-event-option-chevron" aria-hidden="true">›</span>
           </button>
