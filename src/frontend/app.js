@@ -2743,7 +2743,7 @@ async function openOwnerActiveEventRewardDetail() {
 
     // Keep the existing single-reward detail unchanged.
     if (rewardItems.length === 1) {
-      openRewardDetail(rewardItems[0].item.rewardType, activeEvent.eventId);
+      openRewardDetail(rewardItems[0].item.rewardPoolId, activeEvent.eventId);
       return;
     }
 
@@ -4032,7 +4032,7 @@ $("newEventButton")?.addEventListener("click", () => openEventForm());
 $("cancelEventButton")?.addEventListener("click", closeEventViews);
 
 $("eventDescription")?.addEventListener("input", () => { $("eventDescriptionCount").textContent = `${$("eventDescription").value.length}/500`; });
-$("addEventRewardButton")?.addEventListener("click", () => { eventRewardRows.push({ rewardType: "", rewardQuantity: "" }); renderEventRewardRows(); });
+$("addEventRewardButton")?.addEventListener("click", () => { eventRewardRows.push({ rewardPoolId: "", rewardType: "", rewardQuantity: "" }); renderEventRewardRows(); });
 $("eventStartsAt")?.addEventListener("change", () => updateEventImageAvailability(ownerData?.events?.find((row) => row.eventId === editingEventId) || null));
 $("eventEndsAt")?.addEventListener("change", () => updateEventImageAvailability(ownerData?.events?.find((row) => row.eventId === editingEventId) || null));
 $("eventStatus")?.addEventListener("change", () => updateEventImageAvailability(ownerData?.events?.find((row) => row.eventId === editingEventId) || null));
