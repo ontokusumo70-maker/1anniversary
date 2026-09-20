@@ -3183,9 +3183,10 @@ function revokeOwnerEventDetailImage() {
 
 async function loadOwnerEventDetailImage(event) {
   const image = $("ownerEventDetailImage");
-  if (!image || !event?.imageUrl) return;
+  if (!image || !event?.eventId) return;
+  const imagePath = event.imageUrl || `/owner/events/${encodeURIComponent(event.eventId)}/image`;
   try {
-    const blob = await apiBlob(event.imageUrl);
+    const blob = await apiBlob(imagePath);
     if ($("eventDetailView")?.hidden) return;
     revokeOwnerEventDetailImage();
     ownerEventDetailObjectUrl = URL.createObjectURL(blob);
@@ -3234,13 +3235,6 @@ function openEventDetail(eventId) {
       <h3>Deskripsi Event</h3>
       <p>${escapeHtml(String(event.description || "").trim() || "—")}</p>
     </section>`;
-  const shareUrl = "https://1anniversary.pages.dev/customer";
-  const actions = document.createElement("div");
-  actions.className = "event-share-actions";
-  actions.innerHTML = `<button type="button" class="owner-outline-button" id="copyEventLinkButton">${ownerIconSvg("link")} Copy Link</button><button type="button" class="owner-green-button" id="shareEventButton">${ownerIconSvg("share")} Share</button>`;
-  $("eventDetailCard")?.appendChild(actions);
-  $("copyEventLinkButton")?.addEventListener("click", () => copyOwnerEventLink(shareUrl));
-  $("shareEventButton")?.addEventListener("click", () => shareOwnerEvent(shareUrl, event.title));
   msg("eventDetailMsg", "");
   loadOwnerEventDetailImage(event);
 }
