@@ -10,7 +10,10 @@ import { handleStaffRedeemRequest } from './routes/staff-redeem';
 import { handleAuthRequest } from './routes/auth';
 import { cleanupExpiredEvents, handleOwnerRequest } from './routes/owner';
 import { handleAssetRequest } from './routes/assets';
-import { handleActiveEventRequest } from './routes/event-active';
+import {
+  cleanupInactiveEventImages,
+  handleActiveEventRequest,
+} from './routes/event-active';
 
 export interface Env {
   REALTIME_HUB: DurableObjectNamespace;
@@ -418,7 +421,9 @@ export default {
     _ctx: any,
   ): Promise<void> {
     try {
+      const nowIso = new Date().toISOString();
       await cleanupExpiredEvents(env);
+      await cleanupInactiveEventImages(env, nowIso);
     } catch (error) {
       console.error("Scheduled event cleanup error:", error);
     }
