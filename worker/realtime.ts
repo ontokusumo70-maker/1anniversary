@@ -1,4 +1,5 @@
 import type { Env } from './index';
+import { getSession } from './auth/session-guard';
 
 /**
  * RealtimeHub is the Durable Object endpoint for the application's
@@ -114,6 +115,55 @@ export class RealtimeHub {
       );
     }
 
+    const protocolsHeader = request.headers.get('Sec-WebSocket-Protocol');
+    const authProtocol = protocolsHeader
+      ?.split(',')
+      .map((value) => value.trim())
+      .find((value) => value.startsWith('bearer.'));
+
+    const token = authProtocol?.slice('bearer.'.length) || '';
+
+    if (!token) {
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: 'AUTH_REQUIRED',
+        }),
+        {
+          status: 401,
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'no-store',
+          },
+        },
+      );
+    }
+
+    const authRequest = new Request(request.url, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const session = await getSession(authRequest, this.env);
+
+    if (!session || (session.role !== 'CUSTOMER' && session.role !== 'STAFF')) {
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: 'UNAUTHORIZED',
+        }),
+        {
+          status: 401,
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'no-store',
+          },
+        },
+      );
+    }
+
     const pair = new WebSocketPair();
     const client = pair[0];
     const server = pair[1];
@@ -122,6 +172,9 @@ export class RealtimeHub {
 
     return new Response(null, {
       status: 101,
+      headers: {
+        'Sec-WebSocket-Protocol': authProtocol,
+      },
       webSocket: client,
     });
   }
