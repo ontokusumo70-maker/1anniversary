@@ -186,6 +186,15 @@ async function handleRequest(
 
   if (
     request.method === 'GET' &&
+    url.pathname === '/realtime'
+  ) {
+    const id = env.REALTIME_HUB.idFromName('global');
+    const stub = env.REALTIME_HUB.get(id);
+    return stub.fetch(request);
+  }
+
+  if (
+    request.method === 'GET' &&
     url.pathname === '/'
   ) {
     return json(
