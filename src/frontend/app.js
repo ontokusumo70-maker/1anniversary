@@ -35,6 +35,7 @@ let apiBase =
 let assetBasePath = "/assets/";
 
 const ownerActiveEventObjectUrls = new Map();
+const activeEventObjectUrls = new Map();
 
 async function api(path, options = {}) {
   const headers = {
@@ -1758,7 +1759,7 @@ function renderCustomerEventInfo(data) {
   const image = $("customerEventInfoImage");
   const title = $("customerEventInfoTitle");
   const period = $("customerEventInfoPeriod");
-  const periodText = $("customerEventPeriodText");
+  const periodText = period?.querySelector(".staff-event-period-text");
   const description = $("customerEventInfoDescription");
   const terms = $("customerEventInfoTerms");
   revokeCustomerEventInfoImage();
