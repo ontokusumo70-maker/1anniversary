@@ -89,7 +89,6 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
         LEFT JOIN event_images i ON i.event_id = e.event_id
         WHERE e.active = 1 AND e.starts_at > ? AND e.ends_at > ?
         ORDER BY e.starts_at ASC, e.event_id ASC
-        LIMIT 1
       `).bind(nowIso, nowIso).all();
 
       const activeRow = activeResult.results?.[0];
