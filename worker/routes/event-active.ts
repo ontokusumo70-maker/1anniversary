@@ -19,7 +19,12 @@ async function requireEventViewer(request: Request, env: Env) {
   return requireSession(request, env, ["OWNER", "STAFF", "CUSTOMER"]);
 }
 
+const EVENT_IMAGE_RETENTION_DAYS = 30;
+
 async function cleanupInactiveEventImages(env: Env, nowIso: string) {
+  const nowMs = Date.parse(nowIso);
+  if (!Number.isFinite(nowMs)) return;
+  const cutoffIso = new Date(nowMs - (EVENT_IMAGE_RETENTION_DAYS * 86400000)).toISOString();
   await env.DB.prepare(`
     DELETE FROM event_images
     WHERE event_id IN (
@@ -27,7 +32,7 @@ async function cleanupInactiveEventImages(env: Env, nowIso: string) {
       FROM events
       WHERE active != 1 OR ends_at <= ?
     )
-  `).bind(nowIso).run();
+  `).bind(cutoffIso).run();
 }
 
 export async function handleActiveEventRequest(request: Request, env: Env): Promise<Response> {
@@ -44,7 +49,7 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
   if (request.method === "GET" && url.pathname === "/event/active") {
     await cleanupInactiveEventImages(env, nowIso);
     const requestedEventId = (url.searchParams.get("eventId") || "").trim();
-    const row = requestedEventId
+    let row: any = requestedEventId
       ? await env.DB.prepare(`
       SELECT e.event_id, e.title, e.starts_at, e.ends_at, e.reward_type,
              e.reward_quantity, e.description,
@@ -53,15 +58,9 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
       FROM events e
       LEFT JOIN reward_pool rp ON rp.reward_type = e.reward_type
       LEFT JOIN event_images i ON i.event_id = e.event_id
-      WHERE e.event_id = ?
-        AND e.active = 1
-        AND e.ends_at > ?
+      WHERE e.event_id = ? AND e.active = 1 AND e.ends_at > ?
       LIMIT 1
-    `).bind(requestedEventId, nowIso).first<{
-          event_id: string; title: string; starts_at: string; ends_at: string; reward_type: string;
-          reward_quantity: number; description: string; quota_total: number | null;
-          quota_used: number | null; terms: string | null; has_image: number;
-        }>()
+    `).bind(requestedEventId, nowIso).first()
       : await env.DB.prepare(`
       SELECT e.event_id, e.title, e.starts_at, e.ends_at, e.reward_type,
              e.reward_quantity, e.description,
@@ -73,19 +72,22 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
       WHERE e.active = 1 AND e.starts_at <= ? AND e.ends_at > ?
       ORDER BY e.starts_at DESC, e.event_id DESC
       LIMIT 1
-    `).bind(nowIso, nowIso).first<{
-      event_id: string;
-      title: string;
-      starts_at: string;
-      ends_at: string;
-      reward_type: string;
-      reward_quantity: number;
-      description: string;
-      quota_total: number | null;
-      quota_used: number | null;
-      terms: string | null;
-      has_image: number;
-    }>();
+    `).bind(nowIso, nowIso).first();
+
+    if (!row && !requestedEventId) {
+      row = await env.DB.prepare(`
+        SELECT e.event_id, e.title, e.starts_at, e.ends_at, e.reward_type,
+               e.reward_quantity, e.description,
+               rp.quota_total, rp.quota_used, rp.terms,
+               CASE WHEN i.event_id IS NULL THEN 0 ELSE 1 END AS has_image
+        FROM events e
+        LEFT JOIN reward_pool rp ON rp.reward_type = e.reward_type
+        LEFT JOIN event_images i ON i.event_id = e.event_id
+        WHERE e.active = 1 AND e.starts_at > ? AND e.ends_at > ?
+        ORDER BY e.starts_at ASC, e.event_id ASC
+        LIMIT 1
+      `).bind(nowIso, nowIso).first();
+    }
 
     if (!row) return json({ ok: true, active: false });
 
@@ -120,7 +122,7 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
         description: row.description || "",
         rewards,
         status: Date.parse(row.starts_at) > Date.parse(nowIso) ? "UPCOMING" : "ACTIVE",
-        imageUrl: Number(row.has_image) === 1 && Date.parse(row.starts_at) <= Date.parse(nowIso) ? `/event/active/image${requestedEventId ? `?eventId=${encodeURIComponent(row.event_id)}` : ""}` : null,
+        imageUrl: Number(row.has_image) === 1 ? `/event/active/image${requestedEventId ? `?eventId=${encodeURIComponent(row.event_id)}` : ""}` : null,
       },
     });
   }
@@ -128,14 +130,14 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
   if (request.method === "GET" && url.pathname === "/event/active/image") {
     await cleanupInactiveEventImages(env, nowIso);
     const requestedEventId = (url.searchParams.get("eventId") || "").trim();
-    const row = requestedEventId
+    let row: any = requestedEventId
       ? await env.DB.prepare(`
       SELECT i.mime_type, i.image_blob
       FROM event_images i
       INNER JOIN events e ON e.event_id = i.event_id
-      WHERE e.event_id = ? AND e.active = 1 AND e.starts_at <= ? AND e.ends_at > ?
+      WHERE e.event_id = ? AND e.active = 1 AND e.ends_at > ?
       LIMIT 1
-    `).bind(requestedEventId, nowIso, nowIso).first<{ mime_type: string; image_blob: ArrayBuffer }>()
+    `).bind(requestedEventId, nowIso).first()
       : await env.DB.prepare(`
       SELECT i.mime_type, i.image_blob
       FROM event_images i
@@ -143,7 +145,17 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
       WHERE e.active = 1 AND e.starts_at <= ? AND e.ends_at > ?
       ORDER BY e.starts_at DESC, e.event_id DESC
       LIMIT 1
-    `).bind(nowIso, nowIso).first<{ mime_type: string; image_blob: ArrayBuffer }>();
+    `).bind(nowIso, nowIso).first();
+    if (!row && !requestedEventId) {
+      row = await env.DB.prepare(`
+        SELECT i.mime_type, i.image_blob
+        FROM event_images i
+        INNER JOIN events e ON e.event_id = i.event_id
+        WHERE e.active = 1 AND e.starts_at > ? AND e.ends_at > ?
+        ORDER BY e.starts_at ASC, e.event_id ASC
+        LIMIT 1
+      `).bind(nowIso, nowIso).first();
+    }
 
     if (!row?.image_blob) return new Response("", { status: 404 });
 
