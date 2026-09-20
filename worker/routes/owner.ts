@@ -13,6 +13,94 @@ async function publishRealtime(env: Env, type: string, payload: unknown): Promis
   }
 }
 
+async function getOperationResetTimes(env: Env): Promise<Record<"WASHER" | "DRYER", string | null>> {
+  const result = await env.DB.prepare(`
+    SELECT entity_id, MAX(timestamp) AS reset_at
+    FROM audit_log
+    WHERE entity_type = 'MACHINE_OPERATION_RESET'
+      AND action = 'RESET'
+      AND result = 'SUCCESS'
+      AND entity_id IN ('WASHER', 'DRYER')
+    GROUP BY entity_id
+  `).all<{ entity_id: "WASHER" | "DRYER"; reset_at: string | null }>();
+
+  const resetTimes: Record<"WASHER" | "DRYER", string | null> = {
+    WASHER: null,
+    DRYER: null,
+  };
+
+  for (const row of result.results ?? []) {
+    if (row.entity_id === "WASHER" || row.entity_id === "DRYER") {
+      resetTimes[row.entity_id] = row.reset_at || null;
+    }
+  }
+
+  return resetTimes;
+}
+
+async function handleOwnerOperationReset(request: Request, env: Env): Promise<Response> {
+  const owner = await requireOwner(request, env);
+  if (!owner) return errorResponse("UNAUTHORIZED", "Owner authentication is required.", 401);
+
+  let body: { machineType?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return errorResponse("INVALID_JSON", "Request reset tidak valid.", 400);
+  }
+
+  const machineType = typeof body.machineType === "string" ? body.machineType.trim().toUpperCase() : "";
+  if (machineType !== "WASHER" && machineType !== "DRYER") {
+    return errorResponse("INVALID_REQUEST", "Tipe mesin untuk reset tidak valid.", 400);
+  }
+
+  await releaseExpiredMachines(env);
+
+  const active = await env.DB.prepare(`
+    SELECT machine_id
+    FROM machines
+    WHERE machine_type = ?
+      AND status = 'IN_USE'
+    LIMIT 1
+  `).bind(machineType).first<{ machine_id: string }>();
+
+  if (active) {
+    return errorResponse(
+      "MACHINE_IN_USE",
+      `Reset ${machineType === "WASHER" ? "Washer" : "Dryer"} hanya dapat dilakukan saat semua mesin tipe tersebut IDLE.`,
+      409,
+    );
+  }
+
+  const nowIso = new Date().toISOString();
+  await writeAuditSafe(env, {
+    entityType: "MACHINE_OPERATION_RESET",
+    entityId: machineType,
+    action: "RESET",
+    actor: owner.userId,
+    result: "SUCCESS",
+  });
+
+  const resetAudit = await env.DB.prepare(`
+    SELECT timestamp
+    FROM audit_log
+    WHERE entity_type = 'MACHINE_OPERATION_RESET'
+      AND entity_id = ?
+      AND action = 'RESET'
+      AND actor = ?
+      AND result = 'SUCCESS'
+      AND timestamp >= ?
+    ORDER BY timestamp DESC, audit_id DESC
+    LIMIT 1
+  `).bind(machineType, owner.userId, nowIso).first<{ timestamp: string }>();
+
+  if (!resetAudit?.timestamp) {
+    return errorResponse("RESET_FAILED", "Reset waktu operasi gagal disimpan.", 500);
+  }
+
+  return json({ ok: true, machineType, resetAt: resetAudit.timestamp });
+}
+
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -279,14 +367,31 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
     yearly: { start: yearStart, end: new Date(Date.UTC(year + 1, 0, 1) - wibOffset) },
   };
 
+  const operationResetTimes = await getOperationResetTimes(env);
+  const resetStart = (type: "WASHER" | "DRYER", rangeStart: Date): string => {
+    const resetAt = operationResetTimes[type];
+    if (!resetAt) return rangeStart.toISOString();
+    const resetMs = Date.parse(resetAt);
+    return Number.isFinite(resetMs) && resetMs > rangeStart.getTime()
+      ? new Date(resetMs).toISOString()
+      : rangeStart.toISOString();
+  };
+
   const operations = ["daily", "weekly", "monthly", "yearly"].map((period) => {
     const range = operationRanges[period as keyof typeof operationRanges];
+    const washerStart = resetStart("WASHER", range.start);
+    const dryerStart = resetStart("DRYER", range.start);
     return env.DB.prepare(`
       SELECT machine_type, COALESCE(SUM(duration_seconds),0) AS total_seconds
       FROM machine_operations
-      WHERE started_at >= ? AND started_at < ?
+      WHERE (
+        (machine_type = 'WASHER' AND started_at >= ?)
+        OR
+        (machine_type = 'DRYER' AND started_at >= ?)
+      )
+      AND started_at < ?
       GROUP BY machine_type
-    `).bind(range.start.toISOString(), range.end.toISOString());
+    `).bind(washerStart, dryerStart, range.end.toISOString());
   });
 
   const events = env.DB.prepare(`
@@ -1643,6 +1748,7 @@ export async function handleOwnerRequest(request: Request, env: Env): Promise<Re
     return handleOwnerServiceSettings(request, env);
   }
   if (url.pathname === "/owner/export" && request.method === "GET") return handleOwnerExportRequest(request, env);
+  if (url.pathname === "/owner/operations/reset" && request.method === "POST") return handleOwnerOperationReset(request, env);
   if (url.pathname === "/owner/overview" && request.method === "GET") return handleOwnerOverview(request, env);
   const customerDeleteMatch = url.pathname.match(/^\/owner\/customers\/([^/]+)$/);
   if (customerDeleteMatch && request.method === "DELETE") {
