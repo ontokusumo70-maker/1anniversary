@@ -1,3 +1,4 @@
+export { RealtimeHub } from './realtime';
 import { handleGameRequest } from './routes/game';
 import { handleMachineRequest } from './routes/machines';
 import {
@@ -12,6 +13,7 @@ import { handleAssetRequest } from './routes/assets';
 import { handleActiveEventRequest } from './routes/event-active';
 
 export interface Env {
+  REALTIME_HUB: DurableObjectNamespace;
   DB: D1Database;
   ENVIRONMENT?: string;
   ALLOWED_ORIGIN?: string;
