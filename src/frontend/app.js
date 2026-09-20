@@ -136,7 +136,12 @@ function startRealtimeConnection() {
   }
 
   try {
-    const socket = new WebSocket(url);
+    if (!state.token) {
+      scheduleRealtimeReconnect();
+      return;
+    }
+
+    const socket = new WebSocket(url, [`bearer.${state.token}`]);
     realtimeSocket = socket;
 
     socket.addEventListener("open", () => {
