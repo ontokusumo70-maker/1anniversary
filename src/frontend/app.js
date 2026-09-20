@@ -417,20 +417,8 @@ function startEventDetailSync(role, eventId) {
   if (!role || !eventId) return;
   eventDetailSyncRole = role;
   eventDetailSyncEventId = eventId;
-  eventDetailSyncTimer = window.setInterval(async () => {
-    if (role === "CUSTOMER") {
-      if ($("customerEventView")?.hidden) { stopEventDetailSync(); return; }
-    } else if (role === "STAFF") {
-      if ($("staffEventView")?.hidden) { stopEventDetailSync(); return; }
-    }
-    const data = await loadActiveEventForRole(role, eventId);
-    if (role === "CUSTOMER" && !$("customerEventView")?.hidden) {
-      renderCustomerEventInfo(data);
-    }
-    if (role === "STAFF" && !$("staffEventView")?.hidden) {
-      renderStaffEventInfo(data);
-    }
-  }, 5000);
+  eventDetailSyncRole = role;
+  eventDetailSyncEventId = eventId;
 }
 
 function isRoleDashboardVisible(role) {
@@ -465,9 +453,8 @@ function startEventSync(role) {
   stopEventSync();
   eventSyncRole = role;
   void syncRoleEvents(role);
-  eventSyncTimer = window.setInterval(() => {
-    void syncRoleEvents(role);
-  }, 5000);
+  eventSyncRole = role;
+  void syncRoleEvents(role);
 }
 
 function refreshVisibleEventSync() {
