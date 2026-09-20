@@ -506,8 +506,16 @@ function renderEventDashboardOptions(containerId, data, openHandler) {
     : (data?.event?.eventId ? [data.event] : []);
 
   const active = events.filter((event) => event.status === "ACTIVE");
-  const upcoming = events.filter((event) => event.status === "UPCOMING");
-  const ordered = [active[0], upcoming[0]].filter(Boolean);
+  const upcoming = events
+    .filter((event) => event.status === "UPCOMING")
+    .sort((a, b) => {
+      const startDiff = Date.parse(a.startsAt || "") - Date.parse(b.startsAt || "");
+      if (Number.isFinite(startDiff) && startDiff !== 0) return startDiff;
+      return String(a.eventId || "").localeCompare(String(b.eventId || ""));
+    });
+  // Show the current active event plus ALL upcoming events.
+  // Each option keeps its own eventId so detail navigation stays event-specific.
+  const ordered = [active[0], ...upcoming].filter(Boolean);
 
   container.dataset.hasEvent = ordered.length ? "true" : "false";
 
