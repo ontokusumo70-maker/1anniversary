@@ -3843,11 +3843,11 @@ body[data-role="OWNER"] #ownerEventsList .locked-event-stats{
 .screen-customer.customer-dashboard-screen .staff-event-option{
   width:100%;
   min-width:0;
-  display:flex;
-  flex-direction:row;
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) 32px;
+  grid-template-rows:auto;
   align-items:center;
-  justify-content:space-between;
-  gap:10px;
+  column-gap:10px;
   box-sizing:border-box;
   text-align:left;
   padding:9px 10px 9px 12px;
@@ -3856,7 +3856,8 @@ body[data-role="OWNER"] #ownerEventsList .locked-event-stats{
 .screen-staff .staff-event-option-copy,
 .screen-customer.customer-dashboard-screen .staff-event-option-copy{
   min-width:0;
-  flex:1 1 auto;
+  grid-column:1;
+  grid-row:1;
   display:flex;
   flex-direction:column;
   justify-content:center;
@@ -3903,7 +3904,10 @@ body[data-role="OWNER"] #ownerEventsList .locked-event-stats{
   height:32px;
   display:grid;
   place-items:center;
+  grid-column:2;
+  grid-row:1;
   align-self:center;
+  justify-self:center;
   border-radius:50%;
   background:#dff6e8;
   color:#087b59;
