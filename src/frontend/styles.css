@@ -1568,12 +1568,14 @@ body[data-role="STAFF"] .topbar{
 }
 
 .screen-staff .staff-event-card{
-  height:183px;
+  min-height:183px;
+  height:auto;
   padding:20px 28px;
 }
 
 .screen-staff .staff-event-content{
-  height:86px;
+  min-height:86px;
+  height:auto;
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:12px;
@@ -2906,13 +2908,15 @@ body[data-role="CUSTOMER"] .screen-customer.customer-dashboard-screen:not([hidde
   }
 
   .screen-customer.customer-dashboard-screen .staff-event-card{
-    height:120px;
+    min-height:120px;
+    height:auto;
     padding:14px 18px;
     border-radius:20px;
   }
 
   .screen-customer.customer-dashboard-screen .staff-event-content{
-    height:56px;
+    min-height:56px;
+    height:auto;
     margin-top:9px;
     padding:5px;
     gap:6px;
