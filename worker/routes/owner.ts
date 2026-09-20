@@ -3,6 +3,15 @@ import { requireSession } from "../auth/session-guard";
 import { writeAuditSafe } from "../audit/logger";
 import { releaseExpiredMachines } from "./machines";
 import { handleOwnerExportRequest } from "./owner-export";
+import { broadcastRealtime } from "../realtime";
+
+async function publishRealtime(env: Env, type: string, payload: unknown): Promise<void> {
+  try {
+    await broadcastRealtime(env, type, payload);
+  } catch (error) {
+    console.error("REALTIME_BROADCAST_FAILED:", type, error);
+  }
+}
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -117,6 +126,7 @@ async function handleEventImage(request: Request, env: Env, eventId: string): Pr
   if (request.method === "DELETE") {
     await env.DB.prepare(`DELETE FROM event_images WHERE event_id = ?`).bind(eventId).run();
     await writeAuditSafe(env, { entityType: "EVENT_IMAGE", entityId: eventId, action: "DELETE", actor: owner.userId, result: "SUCCESS" });
+    await publishRealtime(env, "EVENT_UPDATED", { eventId });
     return json({ ok: true });
   }
 
@@ -160,6 +170,7 @@ async function handleEventImage(request: Request, env: Env, eventId: string): Pr
   `).bind(eventId, mimeType, image, image.byteLength, nowIso, nowIso).run();
 
   await writeAuditSafe(env, { entityType: "EVENT_IMAGE", entityId: eventId, action: "UPLOAD", actor: owner.userId, result: "SUCCESS" });
+  await publishRealtime(env, "EVENT_UPDATED", { eventId });
   return json({ ok: true, eventId, byteSize: image.byteLength, mimeType });
 }
 
@@ -732,6 +743,7 @@ async function handleRewardPool(request: Request, env: Env): Promise<Response> {
       result: "SUCCESS",
     });
 
+    await publishRealtime(env, "REWARD_UPDATED", { rewardPoolId });
     return json({ ok: true });
   }
 
@@ -809,6 +821,7 @@ async function handleRewardPool(request: Request, env: Env): Promise<Response> {
       result: "SUCCESS",
     });
 
+    await publishRealtime(env, "REWARD_UPDATED", { rewardPoolId: newRewardPoolId });
     return json({ ok: true, rewardPoolId: newRewardPoolId, rewardType }, 201);
   }
 
@@ -872,6 +885,7 @@ async function handleRewardPool(request: Request, env: Env): Promise<Response> {
     result: "SUCCESS",
   });
 
+  await publishRealtime(env, "REWARD_UPDATED", { rewardPoolId });
   return json({ ok: true, rewardPoolId, rewardType });
 }
 
@@ -1037,6 +1051,7 @@ async function handleEvents(request: Request, env: Env): Promise<Response> {
       result: "SUCCESS",
     });
 
+    await publishRealtime(env, "EVENT_UPDATED", { eventId });
     return json({ ok: true });
   }
 
@@ -1275,6 +1290,7 @@ async function handleEvents(request: Request, env: Env): Promise<Response> {
       result: "SUCCESS",
     });
 
+    await publishRealtime(env, "EVENT_UPDATED", { eventId });
     return json({ ok: true, eventId }, 201);
   }
 
@@ -1417,6 +1433,7 @@ async function handleEvents(request: Request, env: Env): Promise<Response> {
     result: "SUCCESS",
   });
 
+  await publishRealtime(env, "EVENT_UPDATED", { eventId });
   return json({ ok: true, eventId });
 }
 
@@ -1613,6 +1630,7 @@ async function handleOwnerServiceSettings(request: Request, env: Env): Promise<R
     return errorResponse("INTERNAL_ERROR", "Pengaturan Layanan gagal disimpan.", 500);
   }
 
+  await publishRealtime(env, "SERVICE_SETTINGS_UPDATED", { updatedAt: nowIso });
   return readServiceSettings(env, request);
 }
 
