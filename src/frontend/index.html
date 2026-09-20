@@ -749,7 +749,21 @@
 
     <div id="ownerViewMachines" class="owner-view" hidden>
       <button type="button" class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</button>
-      <div class="owner-page-heading compact"><div class="owner-machine-heading"><h1>Status Mesin</h1><div class="owner-machine-heading-meta"><p>Monitor real-time semua mesin</p><span id="ownerMachineRealtime"></span></div></div></div>
+      <div class="owner-page-heading compact">
+        <div class="owner-machine-heading owner-machine-heading-refresh">
+          <div class="owner-machine-heading-copy">
+            <h1>Status Mesin</h1>
+            <p>Monitor real-time semua mesin</p>
+          </div>
+          <div class="owner-machine-heading-actions">
+            <button id="ownerMachineRefresh" class="owner-machine-refresh" type="button" aria-label="Refresh status mesin">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.7-4.2L4 9"/><path d="M4 4v5h5"/><path d="M4 13a8 8 0 0 0 14.7 4.2L20 15"/><path d="M20 20v-5h-5"/></svg>
+              <span>Refresh</span>
+            </button>
+            <span id="ownerMachineRealtime"></span>
+          </div>
+        </div>
+      </div>
       <div id="machineFilters" class="owner-filter-tabs machine-tabs">
         <button type="button" data-machine-filter="ALL" class="active">Semua (10)</button>
         <button type="button" data-machine-filter="WASHER">Washer (5)</button>
