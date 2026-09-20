@@ -55,11 +55,11 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
     if (requestedEventId) {
       const row = await env.DB.prepare(`
         SELECT e.event_id, e.title, e.starts_at, e.ends_at, e.reward_type,
-               e.reward_quantity, e.description,
-               rp.quota_total, rp.quota_used, rp.terms,
+               e.reward_quantity, e.reward_pool_id, e.description,
+               rp.quota_total, rp.quota_used, rp.quota_claimed, rp.terms,
                CASE WHEN i.event_id IS NULL THEN 0 ELSE 1 END AS has_image
         FROM events e
-        LEFT JOIN reward_pool rp ON rp.reward_type = e.reward_type
+        LEFT JOIN reward_pool rp ON rp.reward_pool_id = e.reward_pool_id
         LEFT JOIN event_images i ON i.event_id = e.event_id
         WHERE e.event_id = ? AND e.active = 1 AND e.ends_at > ?
         LIMIT 1
@@ -68,11 +68,11 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
     } else {
       const activeResult = await env.DB.prepare(`
         SELECT e.event_id, e.title, e.starts_at, e.ends_at, e.reward_type,
-               e.reward_quantity, e.description,
-               rp.quota_total, rp.quota_used, rp.terms,
+               e.reward_quantity, e.reward_pool_id, e.description,
+               rp.quota_total, rp.quota_used, rp.quota_claimed, rp.terms,
                CASE WHEN i.event_id IS NULL THEN 0 ELSE 1 END AS has_image
         FROM events e
-        LEFT JOIN reward_pool rp ON rp.reward_type = e.reward_type
+        LEFT JOIN reward_pool rp ON rp.reward_pool_id = e.reward_pool_id
         LEFT JOIN event_images i ON i.event_id = e.event_id
         WHERE e.active = 1 AND e.starts_at <= ? AND e.ends_at > ?
         ORDER BY e.starts_at ASC, e.event_id ASC
@@ -80,11 +80,11 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
 
       const upcomingResult = await env.DB.prepare(`
         SELECT e.event_id, e.title, e.starts_at, e.ends_at, e.reward_type,
-               e.reward_quantity, e.description,
-               rp.quota_total, rp.quota_used, rp.terms,
+               e.reward_quantity, e.reward_pool_id, e.description,
+               rp.quota_total, rp.quota_used, rp.quota_claimed, rp.terms,
                CASE WHEN i.event_id IS NULL THEN 0 ELSE 1 END AS has_image
         FROM events e
-        LEFT JOIN reward_pool rp ON rp.reward_type = e.reward_type
+        LEFT JOIN reward_pool rp ON rp.reward_pool_id = e.reward_pool_id
         LEFT JOIN event_images i ON i.event_id = e.event_id
         WHERE e.active = 1 AND e.starts_at > ? AND e.ends_at > ?
         ORDER BY e.starts_at ASC, e.event_id ASC
@@ -103,9 +103,10 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
     const events = [];
     for (const row of rows) {
       const rewardRows = await env.DB.prepare(`
-        SELECT er.reward_type, er.reward_quantity, rp.quota_total, rp.quota_used, rp.terms
+        SELECT er.reward_pool_id, er.reward_type, er.reward_quantity,
+               rp.quota_total, rp.quota_used, rp.quota_claimed, rp.terms
         FROM event_rewards er
-        LEFT JOIN reward_pool rp ON rp.reward_type = er.reward_type
+        LEFT JOIN reward_pool rp ON rp.reward_pool_id = er.reward_pool_id
         WHERE er.event_id = ?
         ORDER BY er.position ASC
       `).bind((row as any).event_id).all();
@@ -113,14 +114,14 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
       const rewards = (rewardRows.results ?? []).map((reward) => ({
         rewardType: String((reward as any).reward_type),
         rewardQuantity: Number((reward as any).reward_quantity),
-        remaining: Math.max(0, Number((reward as any).quota_total ?? 0) - Number((reward as any).quota_used ?? 0)),
+        remaining: Math.max(0, Number((reward as any).quota_used ?? 0) - Number((reward as any).quota_claimed ?? 0)),
         terms: String((reward as any).terms || "—"),
       }));
 
       if (!rewards.length) rewards.push({
         rewardType: (row as any).reward_type,
         rewardQuantity: Number((row as any).reward_quantity),
-        remaining: Math.max(0, Number((row as any).quota_total ?? 0) - Number((row as any).quota_used ?? 0)),
+        remaining: Math.max(0, Number((row as any).quota_used ?? 0) - Number((row as any).quota_claimed ?? 0)),
         terms: (row as any).terms || "—",
       });
 
