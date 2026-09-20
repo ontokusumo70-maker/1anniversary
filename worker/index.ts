@@ -7,7 +7,7 @@ import { handleClaimRequest } from './routes/claim';
 import { handleRewardRequest } from './routes/reward';
 import { handleStaffRedeemRequest } from './routes/staff-redeem';
 import { handleAuthRequest } from './routes/auth';
-import { handleOwnerRequest } from './routes/owner';
+import { cleanupExpiredEvents, handleOwnerRequest } from './routes/owner';
 import { handleAssetRequest } from './routes/assets';
 import { handleActiveEventRequest } from './routes/event-active';
 
@@ -401,6 +401,18 @@ async function handleRequest(
 }
 
 export default {
+  async scheduled(
+    _controller: any,
+    env: Env,
+    _ctx: any,
+  ): Promise<void> {
+    try {
+      await cleanupExpiredEvents(env);
+    } catch (error) {
+      console.error("Scheduled event cleanup error:", error);
+    }
+  },
+
   async fetch(
     request: Request,
     env: Env,
