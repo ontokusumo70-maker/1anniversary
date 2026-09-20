@@ -204,6 +204,10 @@ function renderRoleActiveEvent(role, data) {
   const card = $(`${prefix}ActiveEvent`);
   if (!card) return;
   revokeActiveEventImage(role);
+  if (role === "STAFF" && $("staffEventView") && !$("staffEventView").hidden) {
+    card.hidden = true;
+    return;
+  }
   if (!data?.active || !data.event) {
     card.hidden = true;
     return;
@@ -267,6 +271,39 @@ let eventSyncTimer = null;
 let eventSyncRole = null;
 let eventSyncInFlight = false;
 let eventSyncGeneration = 0;
+let eventDetailSyncTimer = null;
+let eventDetailSyncRole = null;
+let eventDetailSyncEventId = null;
+
+function stopEventDetailSync() {
+  if (eventDetailSyncTimer) {
+    window.clearInterval(eventDetailSyncTimer);
+    eventDetailSyncTimer = null;
+  }
+  eventDetailSyncRole = null;
+  eventDetailSyncEventId = null;
+}
+
+function startEventDetailSync(role, eventId) {
+  stopEventDetailSync();
+  if (!role || !eventId) return;
+  eventDetailSyncRole = role;
+  eventDetailSyncEventId = eventId;
+  eventDetailSyncTimer = window.setInterval(async () => {
+    if (role === "CUSTOMER") {
+      if ($("customerEventView")?.hidden) { stopEventDetailSync(); return; }
+    } else if (role === "STAFF") {
+      if ($("staffEventView")?.hidden) { stopEventDetailSync(); return; }
+    }
+    const data = await loadActiveEventForRole(role, eventId);
+    if (role === "CUSTOMER" && !$("customerEventView")?.hidden) {
+      renderCustomerEventInfo(data);
+    }
+    if (role === "STAFF" && !$("staffEventView")?.hidden) {
+      renderStaffEventInfo(data);
+    }
+  }, 5000);
+}
 
 function isRoleDashboardVisible(role) {
   const id = role === "STAFF" ? "staffDashboard" : "customerDashboard";
@@ -275,6 +312,7 @@ function isRoleDashboardVisible(role) {
 }
 
 function stopEventSync() {
+  stopEventDetailSync();
   if (eventSyncTimer) {
     window.clearInterval(eventSyncTimer);
     eventSyncTimer = null;
@@ -1818,10 +1856,12 @@ async function openCustomerEvent(sharedEventId = "") {
   stopCustomerMachineStatusTimer();
   await loadActiveEventForRole("CUSTOMER", requestedEventId);
   renderCustomerEventInfo(customerActiveEventData);
+  startEventDetailSync("CUSTOMER", requestedEventId);
   requestAnimationFrame(scrollCustomerTop);
 }
 
 function closeCustomerEvent() {
+  stopEventDetailSync();
   saveCustomerView("DASHBOARD");
   const cleanUrl = new URL(window.location.href);
   cleanUrl.searchParams.delete("event");
@@ -1942,11 +1982,14 @@ function openStaffEvent(eventId = "") {
   if ($("staffEventView")) $("staffEventView").hidden = false;
   renderStaffEventInfo(staffActiveEventData);
   loadActiveEventForRole("STAFF", requestedEventId).then(() => {
+    if ($("staffActiveEvent")) $("staffActiveEvent").hidden = true;
     if ($("staffEventView") && !$('staffEventView').hidden) renderStaffEventInfo(staffActiveEventData);
   });
+  startEventDetailSync("STAFF", requestedEventId);
 }
 
 function closeStaffEvent() {
+  stopEventDetailSync();
   if ($("staffEventView")) $("staffEventView").hidden = true;
   revokeStaffEventInfoImage();
   showStaffDashboard();
