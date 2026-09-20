@@ -61,7 +61,12 @@ function ownerPercentChange(current: number, previous: number): number {
   return Math.round(((current - previous) / previous) * 100);
 }
 
+const EVENT_RETENTION_DAYS = 30;
+
 async function cleanupInactiveEventImages(env: Env, nowIso: string) {
+  const nowMs = Date.parse(nowIso);
+  if (!Number.isFinite(nowMs)) return;
+  const cutoffIso = new Date(nowMs - (EVENT_RETENTION_DAYS * 86400000)).toISOString();
   await env.DB.prepare(`
     DELETE FROM event_images
     WHERE event_id IN (
@@ -69,7 +74,12 @@ async function cleanupInactiveEventImages(env: Env, nowIso: string) {
       FROM events
       WHERE active != 1 OR ends_at <= ?
     )
-  `).bind(nowIso).run();
+  `).bind(cutoffIso).run();
+}
+
+export async function cleanupExpiredEvents(env: Env, now = new Date()): Promise<void> {
+  const cutoffIso = new Date(now.getTime() - (EVENT_RETENTION_DAYS * 86400000)).toISOString();
+  await env.DB.prepare(`DELETE FROM events WHERE julianday(ends_at) <= julianday(?)`).bind(cutoffIso).run();
 }
 
 async function handleEventImage(request: Request, env: Env, eventId: string): Promise<Response> {
@@ -85,9 +95,9 @@ async function handleEventImage(request: Request, env: Env, eventId: string): Pr
 
   if (request.method === "GET") {
     const now = Date.now();
-    const startMs = Date.parse(event.starts_at);
     const endMs = Date.parse(event.ends_at);
-    if (Number(event.active) !== 1 || !Number.isFinite(startMs) || !Number.isFinite(endMs) || now < startMs || now >= endMs) {
+    const retentionUntilMs = Number.isFinite(endMs) ? endMs + (EVENT_RETENTION_DAYS * 86400000) : NaN;
+    if (Number(event.active) !== 1 || !Number.isFinite(endMs) || now >= retentionUntilMs) {
       return new Response("", { status: 404 });
     }
     const image = await env.DB.prepare(`SELECT mime_type, image_blob FROM event_images WHERE event_id = ? LIMIT 1`).bind(eventId).first<{ mime_type: string; image_blob: ArrayBuffer }>();
@@ -109,8 +119,8 @@ async function handleEventImage(request: Request, env: Env, eventId: string): Pr
   const now = Date.now();
   const startMs = Date.parse(event.starts_at);
   const endMs = Date.parse(event.ends_at);
-  if (Number(event.active) !== 1 || !Number.isFinite(startMs) || !Number.isFinite(endMs) || now < startMs || now >= endMs) {
-    return errorResponse("EVENT_NOT_ACTIVE", "Image hanya dapat disimpan untuk Event Aktif.", 409);
+  if (Number(event.active) !== 1 || !Number.isFinite(startMs) || !Number.isFinite(endMs) || now >= endMs) {
+    return errorResponse("EVENT_NOT_AVAILABLE", "Image hanya dapat disimpan untuk Event yang masih akan datang atau sedang aktif.", 409);
   }
 
   const mimeType = (request.headers.get("Content-Type") || "").split(";")[0].trim().toLowerCase();
@@ -700,23 +710,30 @@ async function handleEvents(request: Request, env: Env): Promise<Response> {
   const match = url.pathname.match(/^\/owner\/events\/([^/]+)$/);
 
   if (request.method === "GET") {
+    await cleanupExpiredEvents(env);
     await cleanupInactiveEventImages(env, new Date().toISOString());
     const rows = await env.DB.prepare(`SELECT e.event_id, e.title, e.starts_at, e.ends_at, e.reward_type, e.reward_quantity, e.description, e.active, e.created_at, e.updated_at, CASE WHEN i.event_id IS NULL THEN 0 ELSE 1 END AS has_image FROM events e LEFT JOIN event_images i ON i.event_id = e.event_id ORDER BY e.starts_at DESC, e.event_id DESC LIMIT 100`).all();
-    const rewardRows = await env.DB.prepare(`SELECT event_id, reward_type, reward_quantity, position FROM event_rewards ORDER BY event_id ASC, position ASC`).all();
-    const rewardsByEvent = new Map<string, Array<{ rewardType: string; rewardQuantity: number }>>();
+    const rewardRows = await env.DB.prepare(`
+      SELECT er.event_id, er.reward_type, er.reward_quantity, er.position, rp.terms
+      FROM event_rewards er
+      LEFT JOIN reward_pool rp ON rp.reward_type = er.reward_type
+      ORDER BY er.event_id ASC, er.position ASC
+    `).all();
+    const rewardsByEvent = new Map<string, Array<{ rewardType: string; rewardQuantity: number; terms: string }>>();
     for (const reward of (rewardRows.results ?? []) as Array<Record<string, unknown>>) {
       const eventId = String(reward.event_id);
       const list = rewardsByEvent.get(eventId) ?? [];
-      list.push({ rewardType: String(reward.reward_type), rewardQuantity: Number(reward.reward_quantity) });
+      list.push({ rewardType: String(reward.reward_type), rewardQuantity: Number(reward.reward_quantity), terms: String(reward.terms ?? "") });
       rewardsByEvent.set(eventId, list);
     }
     const now = Date.now();
     return json({ ok: true, items: (rows.results ?? []).map((row) => {
       const eventId = String((row as any).event_id);
-      const legacyRewards = [{ rewardType: String((row as any).reward_type), rewardQuantity: Number((row as any).reward_quantity) }];
+      const legacyRewards = [{ rewardType: String((row as any).reward_type), rewardQuantity: Number((row as any).reward_quantity), terms: "" }];
       const rewards = rewardsByEvent.get(eventId)?.length ? rewardsByEvent.get(eventId)! : legacyRewards;
+      const status = eventStatus(String((row as any).starts_at), String((row as any).ends_at), Number((row as any).active), now);
       return {
-        eventId, title: String((row as any).title), startsAt: String((row as any).starts_at), endsAt: String((row as any).ends_at), rewardType: rewards[0].rewardType, rewardQuantity: rewards[0].rewardQuantity, rewards, description: String((row as any).description ?? ""), active: Number((row as any).active) === 1, hasImage: Number((row as any).has_image) === 1, shareUrl: "https://1anniversary.pages.dev/customer", imageUrl: Number((row as any).has_image) === 1 && eventStatus(String((row as any).starts_at), String((row as any).ends_at), Number((row as any).active), now) === "ACTIVE" ? `/owner/events/${encodeURIComponent(eventId)}/image` : null, status: eventStatus(String((row as any).starts_at), String((row as any).ends_at), Number((row as any).active), now), createdAt: String((row as any).created_at), updatedAt: String((row as any).updated_at),
+        eventId, title: String((row as any).title), startsAt: String((row as any).starts_at), endsAt: String((row as any).ends_at), rewardType: rewards[0].rewardType, rewardQuantity: rewards[0].rewardQuantity, rewards, description: String((row as any).description ?? ""), active: Number((row as any).active) === 1, hasImage: Number((row as any).has_image) === 1, shareUrl: "https://1anniversary.pages.dev/customer", imageUrl: Number((row as any).has_image) === 1 && status !== "INACTIVE" ? `/owner/events/${encodeURIComponent(eventId)}/image` : null, status, createdAt: String((row as any).created_at), updatedAt: String((row as any).updated_at),
       };
     }) });
   }
