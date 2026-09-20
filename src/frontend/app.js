@@ -1666,7 +1666,10 @@ function formatStaffMachineElapsed(machine) {
   if (!machine?.startedAt || machine.status !== "IN_USE") return "00:00 mnt";
   const startedMs = Date.parse(machine.startedAt);
   if (!Number.isFinite(startedMs)) return "00:00 mnt";
-  const elapsed = Math.max(0, Math.floor((Date.now() - startedMs) / 1000));
+  const expectedEndMs = Date.parse(machine.expectedEndAt || "");
+  const nowMs = Date.now();
+  const endMs = Number.isFinite(expectedEndMs) ? Math.min(nowMs, expectedEndMs) : nowMs;
+  const elapsed = Math.max(0, Math.floor((endMs - startedMs) / 1000));
   const minutes = Math.floor(elapsed / 60);
   const seconds = elapsed % 60;
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")} mnt`;
@@ -3017,7 +3020,13 @@ function renderOwnerMachines() {
     const type = machine.type === "WASHER" ? "Washer" : "Dryer";
     const icon = machine.type === "WASHER" ? "washer" : "dryer";
     const elapsedSeconds = inUse && machine.startedAt
-      ? Math.max(0, Math.floor((ownerRealtimeNow() - Date.parse(machine.startedAt)) / 1000))
+      ? (() => {
+          const startedMs = Date.parse(machine.startedAt);
+          const expectedEndMs = Date.parse(machine.expectedEndAt || "");
+          const nowMs = ownerRealtimeNow();
+          const endMs = Number.isFinite(expectedEndMs) ? Math.min(nowMs, expectedEndMs) : nowMs;
+          return Number.isFinite(startedMs) ? Math.max(0, Math.floor((endMs - startedMs) / 1000)) : 0;
+        })()
       : 0;
     const time = formatDuration(elapsedSeconds);
     return `<button type="button" class="owner-machine-row ${inUse ? "is-busy" : "is-idle"}" data-owner-machine-id="${escapeHtml(machine.machineId)}"><span class="machine-row-icon">${ownerIconSvg(icon)}</span><span class="machine-row-id">${type === "Washer" ? "W" : "D"}${escapeHtml(machine.machineNumber)}</span><span class="machine-row-type">${type}</span><span class="machine-row-status ${inUse ? "busy" : "idle"}">${inUse ? "Terpakai" : "Idle"}</span><span class="machine-row-time">${time}</span><span class="machine-row-arrow">›</span></button>`;
