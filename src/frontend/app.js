@@ -531,9 +531,12 @@ function renderEventDashboardOptions(containerId, data, openHandler) {
       <div class="staff-event-group-heading">${group.label}</div>
       <div class="staff-event-group-list">
         ${group.events.map((event) => `
-          <button type="button" class="staff-event-option" data-event-id="${escapeHtml(event.eventId)}">
-            <span class="staff-event-option-title">${escapeHtml(event.title || "—")}</span>
-            <span class="staff-event-option-period">${escapeHtml(formatDateRange(event.startsAt, event.endsAt))}</span>
+          <button type="button" class="staff-event-option" data-event-id="${escapeHtml(event.eventId)}" aria-label="Lihat informasi event ${escapeHtml(event.title || "—")}">
+            <span class="staff-event-option-copy">
+              <span class="staff-event-option-title">${escapeHtml(event.title || "—")}</span>
+              <span class="staff-event-option-period">${escapeHtml(formatDateRange(event.startsAt, event.endsAt))}</span>
+            </span>
+            <span class="staff-event-option-chevron" aria-hidden="true">›</span>
           </button>
         `).join("")}
       </div>
@@ -2164,16 +2167,8 @@ if ($("staffServicesBack")) {
 }
 
 if ($("staffEventCard")) {
-  $("staffEventCard").addEventListener("click", (event) => {
-    if (event.target.closest("[data-event-id]")) return;
-    openStaffEvent();
-  });
-  $("staffEventCard").addEventListener("keydown", (event) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      openStaffEvent();
-    }
-  });
+  $("staffEventCard").removeAttribute("role");
+  $("staffEventCard").removeAttribute("tabindex");
 }
 
 if ($("staffEventBack")) $("staffEventBack").addEventListener("click", closeStaffEvent);
@@ -2226,16 +2221,8 @@ if ($("customerStatusCard")) {
   });
 }
 if ($("customerEventCard")) {
-  $("customerEventCard").addEventListener("click", (event) => {
-    if (event.target.closest("[data-event-id]")) return;
-    openCustomerEvent();
-  });
-  $("customerEventCard").addEventListener("keydown", (event) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      openCustomerEvent();
-    }
-  });
+  $("customerEventCard").removeAttribute("role");
+  $("customerEventCard").removeAttribute("tabindex");
 }
 if ($("customerMachineFilters")) {
   $("customerMachineFilters").addEventListener("click", (event) => {
