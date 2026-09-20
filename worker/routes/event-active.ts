@@ -49,33 +49,37 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
   if (request.method === "GET" && url.pathname === "/event/active") {
     await cleanupInactiveEventImages(env, nowIso);
     const requestedEventId = (url.searchParams.get("eventId") || "").trim();
-    let row: any = requestedEventId
-      ? await env.DB.prepare(`
-      SELECT e.event_id, e.title, e.starts_at, e.ends_at, e.reward_type,
-             e.reward_quantity, e.description,
-             rp.quota_total, rp.quota_used, rp.terms,
-             CASE WHEN i.event_id IS NULL THEN 0 ELSE 1 END AS has_image
-      FROM events e
-      LEFT JOIN reward_pool rp ON rp.reward_type = e.reward_type
-      LEFT JOIN event_images i ON i.event_id = e.event_id
-      WHERE e.event_id = ? AND e.active = 1 AND e.ends_at > ?
-      LIMIT 1
-    `).bind(requestedEventId, nowIso).first()
-      : await env.DB.prepare(`
-      SELECT e.event_id, e.title, e.starts_at, e.ends_at, e.reward_type,
-             e.reward_quantity, e.description,
-             rp.quota_total, rp.quota_used, rp.terms,
-             CASE WHEN i.event_id IS NULL THEN 0 ELSE 1 END AS has_image
-      FROM events e
-      LEFT JOIN reward_pool rp ON rp.reward_type = e.reward_type
-      LEFT JOIN event_images i ON i.event_id = e.event_id
-      WHERE e.active = 1 AND e.starts_at <= ? AND e.ends_at > ?
-      ORDER BY e.starts_at DESC, e.event_id DESC
-      LIMIT 1
-    `).bind(nowIso, nowIso).first();
 
-    if (!row && !requestedEventId) {
-      row = await env.DB.prepare(`
+    let rows: any[] = [];
+
+    if (requestedEventId) {
+      const row = await env.DB.prepare(`
+        SELECT e.event_id, e.title, e.starts_at, e.ends_at, e.reward_type,
+               e.reward_quantity, e.description,
+               rp.quota_total, rp.quota_used, rp.terms,
+               CASE WHEN i.event_id IS NULL THEN 0 ELSE 1 END AS has_image
+        FROM events e
+        LEFT JOIN reward_pool rp ON rp.reward_type = e.reward_type
+        LEFT JOIN event_images i ON i.event_id = e.event_id
+        WHERE e.event_id = ? AND e.active = 1 AND e.ends_at > ?
+        LIMIT 1
+      `).bind(requestedEventId, nowIso).first();
+      if (row) rows = [row];
+    } else {
+      const activeResult = await env.DB.prepare(`
+        SELECT e.event_id, e.title, e.starts_at, e.ends_at, e.reward_type,
+               e.reward_quantity, e.description,
+               rp.quota_total, rp.quota_used, rp.terms,
+               CASE WHEN i.event_id IS NULL THEN 0 ELSE 1 END AS has_image
+        FROM events e
+        LEFT JOIN reward_pool rp ON rp.reward_type = e.reward_type
+        LEFT JOIN event_images i ON i.event_id = e.event_id
+        WHERE e.active = 1 AND e.starts_at <= ? AND e.ends_at > ?
+        ORDER BY e.starts_at DESC, e.event_id DESC
+        LIMIT 1
+      `).bind(nowIso, nowIso).all();
+
+      const upcomingResult = await env.DB.prepare(`
         SELECT e.event_id, e.title, e.starts_at, e.ends_at, e.reward_type,
                e.reward_quantity, e.description,
                rp.quota_total, rp.quota_used, rp.terms,
@@ -86,44 +90,64 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
         WHERE e.active = 1 AND e.starts_at > ? AND e.ends_at > ?
         ORDER BY e.starts_at ASC, e.event_id ASC
         LIMIT 1
-      `).bind(nowIso, nowIso).first();
+      `).bind(nowIso, nowIso).all();
+
+      const activeRow = activeResult.results?.[0];
+      const upcomingRow = upcomingResult.results?.[0];
+      if (activeRow) rows.push(activeRow);
+      if (upcomingRow && (!activeRow || (upcomingRow as any).event_id !== (activeRow as any).event_id)) {
+        rows.push(upcomingRow);
+      }
     }
 
-    if (!row) return json({ ok: true, active: false });
+    if (!rows.length) return json({ ok: true, active: false, events: [] });
 
-    const rewardRows = await env.DB.prepare(`
-      SELECT er.reward_type, er.reward_quantity, rp.quota_total, rp.quota_used, rp.terms
-      FROM event_rewards er
-      LEFT JOIN reward_pool rp ON rp.reward_type = er.reward_type
-      WHERE er.event_id = ?
-      ORDER BY er.position ASC
-    `).bind(row.event_id).all();
-    const rewards = (rewardRows.results ?? []).map((reward) => ({
-      rewardType: String((reward as any).reward_type),
-      rewardQuantity: Number((reward as any).reward_quantity),
-      remaining: Math.max(0, Number((reward as any).quota_total ?? 0) - Number((reward as any).quota_used ?? 0)),
-      terms: String((reward as any).terms || "—"),
-    }));
-    if (!rewards.length) rewards.push({
-      rewardType: row.reward_type,
-      rewardQuantity: Number(row.reward_quantity),
-      remaining: Math.max(0, Number(row.quota_total ?? 0) - Number(row.quota_used ?? 0)),
-      terms: row.terms || "—",
-    });
+    const events = [];
+    for (const row of rows) {
+      const rewardRows = await env.DB.prepare(`
+        SELECT er.reward_type, er.reward_quantity, rp.quota_total, rp.quota_used, rp.terms
+        FROM event_rewards er
+        LEFT JOIN reward_pool rp ON rp.reward_type = er.reward_type
+        WHERE er.event_id = ?
+        ORDER BY er.position ASC
+      `).bind((row as any).event_id).all();
+
+      const rewards = (rewardRows.results ?? []).map((reward) => ({
+        rewardType: String((reward as any).reward_type),
+        rewardQuantity: Number((reward as any).reward_quantity),
+        remaining: Math.max(0, Number((reward as any).quota_total ?? 0) - Number((reward as any).quota_used ?? 0)),
+        terms: String((reward as any).terms || "—"),
+      }));
+
+      if (!rewards.length) rewards.push({
+        rewardType: (row as any).reward_type,
+        rewardQuantity: Number((row as any).reward_quantity),
+        remaining: Math.max(0, Number((row as any).quota_total ?? 0) - Number((row as any).quota_used ?? 0)),
+        terms: (row as any).terms || "—",
+      });
+
+      const startsAt = String((row as any).starts_at);
+      const endsAt = String((row as any).ends_at);
+      events.push({
+        eventId: (row as any).event_id,
+        title: (row as any).title,
+        startsAt,
+        endsAt,
+        description: (row as any).description || "",
+        rewards,
+        status: Date.parse(startsAt) > Date.parse(nowIso) ? "UPCOMING" : "ACTIVE",
+        imageUrl: Number((row as any).has_image) === 1
+          ? `/event/active/image?eventId=${encodeURIComponent(String((row as any).event_id))}`
+          : null,
+      });
+    }
 
     return json({
       ok: true,
-      active: true,
-      event: {
-        eventId: row.event_id,
-        title: row.title,
-        startsAt: row.starts_at,
-        endsAt: row.ends_at,
-        description: row.description || "",
-        rewards,
-        status: Date.parse(row.starts_at) > Date.parse(nowIso) ? "UPCOMING" : "ACTIVE",
-        imageUrl: Number(row.has_image) === 1 ? `/event/active/image${requestedEventId ? `?eventId=${encodeURIComponent(row.event_id)}` : ""}` : null,
-      },
+      active: events.length > 0,
+      events,
+      // Backward compatibility: existing detail/dashboard code can still use event.
+      event: events[0] || null,
     });
   }
 
@@ -175,4 +199,3 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
 
   return errorResponse("NOT_FOUND", "Active event endpoint not found.", 404);
 }
-
