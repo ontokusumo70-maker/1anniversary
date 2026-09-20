@@ -2133,6 +2133,7 @@ let selectedRewardType = null;
 let selectedEventId = null;
 let eventRewardRows = [];
 let eventImageObjectUrl = null;
+let ownerEventDetailObjectUrl = null;
 
 function formatDateTime(value) {
   if (!value) return "—";
