@@ -142,10 +142,16 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
       });
     }
 
+    const activeEvent = events.find((event) => event.status === "ACTIVE") || null;
+    const upcomingEvent = events.find((event) => event.status === "UPCOMING") || null;
+
     return json({
       ok: true,
+      serverNow: nowIso,
       active: events.length > 0,
       events,
+      activeEvent,
+      upcomingEvent,
       // Backward compatibility: existing detail/dashboard code can still use event.
       event: events[0] || null,
     });
