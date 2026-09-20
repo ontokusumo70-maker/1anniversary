@@ -159,7 +159,12 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
 
     if (!row?.image_blob) return new Response("", { status: 404 });
 
-    return new Response(row.image_blob, {
+    const imageBytes = row.image_blob instanceof ArrayBuffer
+      ? new Uint8Array(row.image_blob)
+      : row.image_blob instanceof Uint8Array
+        ? row.image_blob
+        : new Uint8Array(row.image_blob as any);
+    return new Response(imageBytes, {
       status: 200,
       headers: {
         "Content-Type": row.mime_type,
