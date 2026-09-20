@@ -1,5 +1,6 @@
 import type { Env } from "../index";
 import { writeAuditSafe } from "../audit/logger";
+import { broadcastRealtime } from "../realtime";
 import { requireSession } from "../auth/session-guard";
 
 type MachineType =
@@ -55,6 +56,21 @@ function errorResponse(
     },
     status,
   );
+}
+
+async function broadcastMachineUpdated(
+  env: Env,
+  machine: unknown,
+): Promise<void> {
+  try {
+    await broadcastRealtime(
+      env,
+      "MACHINE_UPDATED",
+      { machine },
+    );
+  } catch {
+    // Realtime delivery is best-effort and must not break machine operations.
+  }
 }
 
 
@@ -208,6 +224,22 @@ export async function releaseExpiredMachines(
       )
       .bind(machine.machine_id, endedAt)
       .run();
+
+    await broadcastMachineUpdated(
+      env,
+      {
+        machineId: machine.machine_id,
+        type: machine.machine_type,
+        machineNumber: machine.machine_number,
+        status: "IDLE",
+        statusLabel: "IDLE",
+        durationMinutes: durationMinutes(machine.machine_type),
+        startedAt: null,
+        expectedEndAt: null,
+        remainingSeconds: 0,
+        activatedBy: null,
+      },
+    );
   }
 }
 
@@ -445,6 +477,22 @@ export async function handleStaffActivateMachine(
       action: "UPDATE",
       actor: staffSession.userId,
       result: "SUCCESS",
+    },
+  );
+
+  await broadcastMachineUpdated(
+    env,
+    {
+      machineId: machine.machine_id,
+      type: machine.machine_type,
+      machineNumber: machine.machine_number,
+      status: "IN_USE",
+      statusLabel: "TERPAKAI",
+      durationMinutes: durationMinutes(machine.machine_type),
+      startedAt: startedAtIso,
+      expectedEndAt: expectedEndIso,
+      remainingSeconds: durationMinutes(machine.machine_type) * 60,
+      activatedBy: staffSession.userId,
     },
   );
 
