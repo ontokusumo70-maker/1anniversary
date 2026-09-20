@@ -21,7 +21,7 @@ async function requireEventViewer(request: Request, env: Env) {
 
 const EVENT_IMAGE_RETENTION_DAYS = 30;
 
-async function cleanupInactiveEventImages(env: Env, nowIso: string) {
+export async function cleanupInactiveEventImages(env: Env, nowIso: string) {
   const nowMs = Date.parse(nowIso);
   if (!Number.isFinite(nowMs)) return;
   const cutoffIso = new Date(nowMs - (EVENT_IMAGE_RETENTION_DAYS * 86400000)).toISOString();
@@ -47,7 +47,6 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
   const nowIso = new Date().toISOString();
 
   if (request.method === "GET" && url.pathname === "/event/active") {
-    await cleanupInactiveEventImages(env, nowIso);
     const requestedEventId = (url.searchParams.get("eventId") || "").trim();
 
     let rows: any[] = [];
@@ -161,7 +160,6 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
   }
 
   if (request.method === "GET" && url.pathname === "/event/active/image") {
-    await cleanupInactiveEventImages(env, nowIso);
     const requestedEventId = (url.searchParams.get("eventId") || "").trim();
     let row: any = requestedEventId
       ? await env.DB.prepare(`
