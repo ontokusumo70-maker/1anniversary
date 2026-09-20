@@ -3189,12 +3189,20 @@ async function loadOwnerEventDetailImage(event) {
     const blob = await apiBlob(imagePath);
     if ($("eventDetailView")?.hidden) return;
     revokeOwnerEventDetailImage();
-    ownerEventDetailObjectUrl = URL.createObjectURL(blob);
+    if (!blob.type || !/^image\/(jpeg|webp)$/i.test(blob.type)) throw new Error("Invalid event image response");
+    const probeUrl = URL.createObjectURL(blob);
+    const probe = new Image();
+    probe.src = probeUrl;
+    await probe.decode();
+    revokeOwnerEventDetailImage();
+    ownerEventDetailObjectUrl = probeUrl;
     image.src = ownerEventDetailObjectUrl;
     image.hidden = false;
     const placeholder = image.parentElement?.querySelector(".owner-event-detail-image-placeholder");
     if (placeholder) placeholder.hidden = true;
   } catch {
+    revokeOwnerEventDetailImage();
+    image.removeAttribute("src");
     image.hidden = true;
   }
 }
@@ -3228,12 +3236,12 @@ function openEventDetail(eventId) {
       </div>
     </div>
     <section class="owner-event-detail-section">
-      <h3>Reward</h3>
-      <div class="owner-event-detail-rewards">${rewardHtml}</div>
-    </section>
-    <section class="owner-event-detail-section">
       <h3>Deskripsi Event</h3>
       <p>${escapeHtml(String(event.description || "").trim() || "—")}</p>
+    </section>
+    <section class="owner-event-detail-section">
+      <h3>Reward</h3>
+      <div class="owner-event-detail-rewards">${rewardHtml}</div>
     </section>`;
   msg("eventDetailMsg", "");
   loadOwnerEventDetailImage(event);
@@ -3314,10 +3322,16 @@ async function loadOwnerEventImage(eventId) {
   try {
     const blob = await apiBlob(`/owner/events/${encodeURIComponent(eventId)}/image`);
     revokeEventImagePreview();
-    eventImageObjectUrl = URL.createObjectURL(blob);
+    if (!blob.type || !/^image\/(jpeg|webp)$/i.test(blob.type)) throw new Error("Invalid event image response");
+    const probeUrl = URL.createObjectURL(blob);
+    const probe = new Image();
+    probe.src = probeUrl;
+    await probe.decode();
+    eventImageObjectUrl = probeUrl;
     setEventImagePreview(eventImageObjectUrl);
   } catch {
-    // No image is a valid state.
+    revokeEventImagePreview();
+    // No valid image is a valid state.
   }
 }
 
