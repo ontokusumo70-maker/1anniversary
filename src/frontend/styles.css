@@ -3528,7 +3528,7 @@ body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-delete-row 
 }
 
 body[data-role="CUSTOMER"] #customerEventInfoStatus{
-  display:none !important;
+  display:inline-flex !important;
 }
 
 
