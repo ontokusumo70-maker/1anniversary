@@ -3151,7 +3151,14 @@ function renderOwnerEvents(items = []) {
   $("completedEventCount") && ($("completedEventCount").textContent = String(completed.length));
   const rows = ({ ACTIVE: active, UPCOMING: upcoming, COMPLETED: completed })[ownerEventFilter] || active;
   target.innerHTML = rows.length ? rows.map(renderEventCard).join("") : `<div class="locked-empty">Tidak ada event pada filter ini.</div>`;
-  target.querySelectorAll("[data-open-event]").forEach((button) => button.onclick = () => openEventDetail(button.dataset.openEvent));
+  target.querySelectorAll("[data-open-event]").forEach((button) => {
+    button.onclick = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const eventId = button.getAttribute("data-open-event");
+      if (eventId) openEventDetail(eventId);
+    };
+  });
 }
 
 async function loadOwnerEvents() {
@@ -3768,8 +3775,9 @@ $("removeEventImageButton")?.addEventListener("click", async () => {
     msg("eventImageMsg", error.message);
   }
 });
-$("cancelEventTop")?.addEventListener("click", (event) => {
+$("cancelEventTop") && ($("cancelEventTop").onclick = (event) => {
   event.preventDefault();
+  event.stopPropagation();
   closeEventViews();
   setOwnerView("events");
 });
@@ -3789,7 +3797,32 @@ $("rewardUnitPrice")?.addEventListener("input", (event) => {
   updateRewardBudget();
 });
 $("saveRewardButton")?.addEventListener("click", saveReward);
-$("eventDetailBack")?.addEventListener("click", () => { closeEventViews(); setOwnerView("events"); });
+$("eventDetailBack") && ($("eventDetailBack").onclick = (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  closeEventViews();
+  setOwnerView("events");
+});
+
+// EVENT NAVIGATION SAFETY — only Event list/detail/form navigation.
+document.addEventListener("click", (event) => {
+  const target = event.target instanceof Element ? event.target : null;
+  if (!target) return;
+  const openButton = target.closest("[data-open-event]");
+  if (openButton) {
+    event.preventDefault();
+    event.stopPropagation();
+    const eventId = openButton.getAttribute("data-open-event");
+    if (eventId) openEventDetail(eventId);
+    return;
+  }
+  if (target.closest("#cancelEventTop") || target.closest("#eventDetailBack")) {
+    event.preventDefault();
+    event.stopPropagation();
+    closeEventViews();
+    setOwnerView("events");
+  }
+}, true);
 $("editEventButton")?.addEventListener("click", () => { if (selectedEventId) openEventForm(selectedEventId); });
 $("deleteEventButton")?.addEventListener("click", deleteEvent);
 $("loadOwner")?.addEventListener("click", loadOwnerData);
