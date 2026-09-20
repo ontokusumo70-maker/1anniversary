@@ -13,13 +13,6 @@ binding = "DB"
 database_name = "1anniversary"
 database_id = "2065718c-46e5-4004-8acb-e0e7ece5b970"
 
-[[durable_objects.bindings]]
-name = "REALTIME_HUB"
-class_name = "RealtimeHub"
-
-[[migrations]]
-tag = "v1"
-new_sqlite_classes = ["RealtimeHub"]
 
 [observability]
 enabled = true
