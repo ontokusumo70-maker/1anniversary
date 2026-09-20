@@ -1574,10 +1574,12 @@ body[data-role="STAFF"] .topbar{
 
 .screen-staff .staff-event-content{
   height:86px;
-  display:flex;
-  align-items:center;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  align-items:stretch;
   margin-top:15px;
-  padding:0 27px;
+  padding:10px;
   border:1px solid #e0e7e3;
   border-radius:20px;
   background:#fff;
@@ -1586,8 +1588,46 @@ body[data-role="STAFF"] .topbar{
   line-height:1.3;
 }
 
-.screen-staff .staff-event-content span:first-child{
+.staff-event-option{
+  min-width:0;
+  border:1px solid #e0e7e3;
+  border-radius:12px;
+  background:#f8fbf9;
+  color:#23342e;
+  padding:8px 12px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  text-align:left;
+  cursor:pointer;
+  overflow:hidden;
+}
+
+.staff-event-option-label{
   display:block;
+  color:#17845f;
+  font-size:11px;
+  font-weight:800;
+  line-height:1.1;
+  margin-bottom:5px;
+}
+
+.staff-event-option-title{
+  display:block;
+  width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#23342e;
+  font-size:16px;
+  line-height:1.15;
+}
+
+.staff-event-empty{
+  grid-column:1 / -1;
+  align-self:center;
+  padding:0 12px;
 }
 
 .screen-staff .staff-tools{
@@ -1730,9 +1770,24 @@ body[data-role="STAFF"] .topbar{
   .screen-staff .staff-event-content{
     height:43px;
     margin-top:7px;
-    padding:0 14px;
+    padding:4px;
+    gap:5px;
     border-radius:10px;
     font-size:12.5px;
+  }
+
+  .staff-event-option{
+    padding:4px 7px;
+    border-radius:7px;
+  }
+
+  .staff-event-option-label{
+    font-size:7px;
+    margin-bottom:2px;
+  }
+
+  .staff-event-option-title{
+    font-size:9px;
   }
 }
 
@@ -2859,9 +2914,24 @@ body[data-role="CUSTOMER"] .screen-customer.customer-dashboard-screen:not([hidde
   .screen-customer.customer-dashboard-screen .staff-event-content{
     height:56px;
     margin-top:9px;
-    padding:0 18px;
+    padding:5px;
+    gap:6px;
     border-radius:14px;
     font-size:16px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-event-option{
+    padding:5px 9px;
+    border-radius:9px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-event-option-label{
+    font-size:8px;
+    margin-bottom:3px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-event-option-title{
+    font-size:11px;
   }
 }
 
@@ -3002,9 +3072,24 @@ body[data-role="CUSTOMER"] .screen-customer.customer-dashboard-screen:not([hidde
   .screen-customer.customer-dashboard-screen .staff-event-content{
     height:43px;
     margin-top:7px;
-    padding:0 14px;
+    padding:4px;
+    gap:5px;
     border-radius:10px;
     font-size:12.5px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-event-option{
+    padding:4px 7px;
+    border-radius:7px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-event-option-label{
+    font-size:7px;
+    margin-bottom:2px;
+  }
+
+  .screen-customer.customer-dashboard-screen .staff-event-option-title{
+    font-size:9px;
   }
 }
 
