@@ -513,24 +513,32 @@ function renderEventDashboardOptions(containerId, data, openHandler) {
       if (Number.isFinite(startDiff) && startDiff !== 0) return startDiff;
       return String(a.eventId || "").localeCompare(String(b.eventId || ""));
     });
-  // Show ALL current active events plus ALL upcoming events.
-  // Each option keeps its own eventId so detail navigation stays event-specific.
-  const ordered = [...active, ...upcoming];
 
-  container.dataset.hasEvent = ordered.length ? "true" : "false";
+  // Keep every active/upcoming event, but group each status into one compact visual card.
+  const groups = [];
+  if (active.length) groups.push({ key: "ACTIVE", label: "Event Aktif", events: active });
+  if (upcoming.length) groups.push({ key: "UPCOMING", label: "Akan Datang", events: upcoming });
 
-  if (!ordered.length) {
+  container.dataset.hasEvent = groups.length ? "true" : "false";
+
+  if (!groups.length) {
     container.innerHTML = `<span class="staff-event-empty">Belum ada event</span>`;
     return;
   }
 
-  container.innerHTML = ordered.map((event) => {
-    const label = event.status === "ACTIVE" ? "Event Aktif" : "Akan Datang";
-    return `<button type="button" class="staff-event-option" data-event-id="${escapeHtml(event.eventId)}">
-      <span class="staff-event-option-label">${label}</span>
-      <strong class="staff-event-option-title">${escapeHtml(event.title || "—")}</strong>
-    </button>`;
-  }).join("");
+  container.innerHTML = groups.map((group) => `
+    <section class="staff-event-group staff-event-group-${group.key.toLowerCase()}">
+      <div class="staff-event-group-heading">${group.label}</div>
+      <div class="staff-event-group-list">
+        ${group.events.map((event) => `
+          <button type="button" class="staff-event-option" data-event-id="${escapeHtml(event.eventId)}">
+            <span class="staff-event-option-title">${escapeHtml(event.title || "—")}</span>
+            <span class="staff-event-option-period">${escapeHtml(formatDateRange(event.startsAt, event.endsAt))}</span>
+          </button>
+        `).join("")}
+      </div>
+    </section>
+  `).join("");
 
   container.querySelectorAll("[data-event-id]").forEach((button) => {
     button.addEventListener("click", (event) => {
