@@ -3831,3 +3831,72 @@ body[data-role="OWNER"] #ownerEventsList .locked-event-stats{
     font-size:8px !important;
   }
 }
+
+
+/* EVENT DASHBOARD V19 — only individual event rows are clickable. */
+.screen-staff .staff-event-card .staff-section-chevron,
+.screen-customer.customer-dashboard-screen .staff-event-card .staff-section-chevron{
+  display:none !important;
+}
+
+.screen-staff .staff-event-option,
+.screen-customer.customer-dashboard-screen .staff-event-option{
+  width:100%;
+  min-width:0;
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  box-sizing:border-box;
+  text-align:left;
+  padding:9px 10px 9px 12px;
+}
+
+.screen-staff .staff-event-option-copy,
+.screen-customer.customer-dashboard-screen .staff-event-option-copy{
+  min-width:0;
+  flex:1 1 auto;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:4px;
+}
+
+.screen-staff .staff-event-option-period,
+.screen-customer.customer-dashboard-screen .staff-event-option-period{
+  display:block;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#687970;
+  font-size:11px;
+  line-height:1.2;
+  font-weight:700;
+}
+
+.screen-staff .staff-event-option-chevron,
+.screen-customer.customer-dashboard-screen .staff-event-option-chevron{
+  flex:0 0 32px;
+  width:32px;
+  height:32px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:#dff6e8;
+  color:#087b59;
+  font-size:29px;
+  line-height:1;
+  font-weight:700;
+}
+
+.screen-staff .staff-event-card,
+.screen-customer.customer-dashboard-screen .staff-event-card{
+  cursor:default !important;
+}
+
+.screen-staff .staff-event-option,
+.screen-customer.customer-dashboard-screen .staff-event-option{
+  cursor:pointer !important;
+}
