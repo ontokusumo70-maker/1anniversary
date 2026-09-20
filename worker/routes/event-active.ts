@@ -75,8 +75,7 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
         LEFT JOIN reward_pool rp ON rp.reward_type = e.reward_type
         LEFT JOIN event_images i ON i.event_id = e.event_id
         WHERE e.active = 1 AND e.starts_at <= ? AND e.ends_at > ?
-        ORDER BY e.starts_at DESC, e.event_id DESC
-        LIMIT 1
+        ORDER BY e.starts_at ASC, e.event_id ASC
       `).bind(nowIso, nowIso).all();
 
       const upcomingResult = await env.DB.prepare(`
@@ -91,10 +90,10 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
         ORDER BY e.starts_at ASC, e.event_id ASC
       `).bind(nowIso, nowIso).all();
 
-      const activeRow = activeResult.results?.[0];
-      const upcomingRow = upcomingResult.results?.[0];
-      if (activeRow) rows.push(activeRow);
-      if (upcomingRow && (!activeRow || (upcomingRow as any).event_id !== (activeRow as any).event_id)) {
+      for (const activeRow of (activeResult.results ?? [])) {
+        rows.push(activeRow);
+      }
+      for (const upcomingRow of (upcomingResult.results ?? [])) {
         rows.push(upcomingRow);
       }
     }
@@ -141,14 +140,18 @@ export async function handleActiveEventRequest(request: Request, env: Env): Prom
       });
     }
 
-    const activeEvent = events.find((event) => event.status === "ACTIVE") || null;
-    const upcomingEvent = events.find((event) => event.status === "UPCOMING") || null;
+    const activeEvents = events.filter((event) => event.status === "ACTIVE");
+    const upcomingEvents = events.filter((event) => event.status === "UPCOMING");
+    const activeEvent = activeEvents[0] || null;
+    const upcomingEvent = upcomingEvents[0] || null;
 
     return json({
       ok: true,
       serverNow: nowIso,
       active: events.length > 0,
       events,
+      activeEvents,
+      upcomingEvents,
       activeEvent,
       upcomingEvent,
       // Backward compatibility: existing detail/dashboard code can still use event.
