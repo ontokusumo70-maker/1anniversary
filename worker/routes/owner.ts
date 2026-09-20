@@ -102,7 +102,11 @@ async function handleEventImage(request: Request, env: Env, eventId: string): Pr
     }
     const image = await env.DB.prepare(`SELECT mime_type, image_blob FROM event_images WHERE event_id = ? LIMIT 1`).bind(eventId).first<{ mime_type: string; image_blob: ArrayBuffer }>();
     if (!image?.image_blob) return new Response("", { status: 404 });
-    const imageBytes = image.image_blob instanceof ArrayBuffer ? new Uint8Array(image.image_blob) : image.image_blob;
+    const imageBytes = image.image_blob instanceof ArrayBuffer
+      ? new Uint8Array(image.image_blob)
+      : image.image_blob instanceof Uint8Array
+        ? image.image_blob
+        : new Uint8Array(image.image_blob as any);
     return new Response(imageBytes, {
       status: 200,
       headers: { "Content-Type": image.mime_type, "Cache-Control": "no-store" },
