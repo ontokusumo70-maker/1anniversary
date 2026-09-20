@@ -4143,6 +4143,21 @@ for (const button of document.querySelectorAll("#machineFilters [data-machine-fi
   });
 }
 
+async function refreshOwnerMachineStatus() {
+  const button = $("ownerMachineRefresh");
+  if (!button || button.disabled) return;
+  button.disabled = true;
+  button.classList.add("is-refreshing");
+  try {
+    await loadOwnerData();
+  } finally {
+    button.disabled = false;
+    button.classList.remove("is-refreshing");
+  }
+}
+
+$("ownerMachineRefresh")?.addEventListener("click", refreshOwnerMachineStatus);
+
 $("ownerMachineDetailClose")?.addEventListener("click", closeOwnerMachineDetail);
 $("ownerMachineDetailModal")?.querySelector("[data-close-owner-machine-detail]")?.addEventListener("click", closeOwnerMachineDetail);
 
