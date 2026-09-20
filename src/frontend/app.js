@@ -1666,9 +1666,16 @@ function formatStaffMachineElapsed(machine) {
   if (!machine?.startedAt || machine.status !== "IN_USE") return "00:00 mnt";
   const startedMs = Date.parse(machine.startedAt);
   if (!Number.isFinite(startedMs)) return "00:00 mnt";
+  const durationMinutes = Number(
+    machine.durationMinutes ||
+    (machine.type === "DRYER" ? 50 : 32),
+  );
   const expectedEndMs = Date.parse(machine.expectedEndAt || "");
+  const fallbackEndMs = startedMs + Math.max(0, durationMinutes) * 60 * 1000;
   const nowMs = Date.now();
-  const endMs = Number.isFinite(expectedEndMs) ? Math.min(nowMs, expectedEndMs) : nowMs;
+  const endMs = Number.isFinite(expectedEndMs)
+    ? Math.min(nowMs, expectedEndMs)
+    : Math.min(nowMs, fallbackEndMs);
   const elapsed = Math.max(0, Math.floor((endMs - startedMs) / 1000));
   const minutes = Math.floor(elapsed / 60);
   const seconds = elapsed % 60;
@@ -3055,9 +3062,16 @@ function renderOwnerMachines() {
     const elapsedSeconds = inUse && machine.startedAt
       ? (() => {
           const startedMs = Date.parse(machine.startedAt);
+          const durationMinutes = Number(
+            machine.durationMinutes ||
+            (machine.type === "DRYER" ? 50 : 32),
+          );
           const expectedEndMs = Date.parse(machine.expectedEndAt || "");
+          const fallbackEndMs = startedMs + Math.max(0, durationMinutes) * 60 * 1000;
           const nowMs = ownerRealtimeNow();
-          const endMs = Number.isFinite(expectedEndMs) ? Math.min(nowMs, expectedEndMs) : nowMs;
+          const endMs = Number.isFinite(expectedEndMs)
+            ? Math.min(nowMs, expectedEndMs)
+            : Math.min(nowMs, fallbackEndMs);
           return Number.isFinite(startedMs) ? Math.max(0, Math.floor((endMs - startedMs) / 1000)) : 0;
         })()
       : 0;
