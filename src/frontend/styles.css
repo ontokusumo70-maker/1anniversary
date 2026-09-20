@@ -3698,3 +3698,136 @@ body[data-role="OWNER"] #ownerEventsList .locked-event-thumbnail,
 body[data-role="OWNER"] #ownerEventsList .locked-event-stats{
   display:none !important;
 }
+
+/* EVENT DASHBOARD V17 — COMPACT GROUPED STATUS CARDS (STAFF + CUSTOMER) */
+.screen-staff .staff-event-card,
+.screen-customer.customer-dashboard-screen .staff-event-card{
+  height:auto !important;
+  min-height:0 !important;
+}
+
+.screen-staff .staff-event-content,
+.screen-customer.customer-dashboard-screen .staff-event-content{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:stretch !important;
+  grid-template-columns:none !important;
+  gap:7px !important;
+  height:auto !important;
+  min-height:0 !important;
+  padding:7px !important;
+  overflow:visible !important;
+}
+
+.staff-event-group{
+  min-width:0;
+  padding:8px;
+  border:1px solid #dfe8e3;
+  border-radius:11px;
+  background:#fbfdfc;
+}
+
+.staff-event-group-heading{
+  margin:0 2px 6px;
+  color:#187c5c;
+  font-size:10px;
+  line-height:1.1;
+  font-weight:900;
+}
+
+.staff-event-group-list{
+  display:grid;
+  gap:5px;
+}
+
+.staff-event-option{
+  width:100%;
+  min-width:0;
+  min-height:0;
+  margin:0;
+  padding:7px 9px !important;
+  border:1px solid #e1e9e5 !important;
+  border-radius:8px !important;
+  background:#fff !important;
+  color:#23342e;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:flex-start !important;
+  justify-content:center !important;
+  gap:3px !important;
+  text-align:left !important;
+  box-sizing:border-box;
+}
+
+.staff-event-option-title{
+  min-width:0;
+  width:100%;
+  margin:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#23342e;
+  font-size:11px !important;
+  line-height:1.2 !important;
+  font-weight:800;
+}
+
+.staff-event-option-period{
+  display:block;
+  width:100%;
+  min-width:0;
+  margin:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#68756f;
+  font-size:9px !important;
+  line-height:1.2 !important;
+  font-weight:650;
+}
+
+.staff-event-empty{
+  display:block;
+  padding:9px 10px;
+  color:#737b80;
+  font-size:12px;
+  line-height:1.3;
+}
+
+@media(max-width:600px){
+  .screen-staff .staff-event-content,
+  .screen-customer.customer-dashboard-screen .staff-event-content{
+    gap:6px !important;
+    padding:5px !important;
+    border-radius:10px;
+  }
+
+  .staff-event-group{
+    padding:6px;
+    border-radius:8px;
+  }
+
+  .staff-event-group-heading{
+    margin:0 2px 5px;
+    font-size:8px;
+  }
+
+  .staff-event-group-list{
+    gap:4px;
+  }
+
+  .staff-event-option{
+    min-height:0;
+    padding:6px 8px !important;
+    border-radius:7px !important;
+    gap:2px !important;
+  }
+
+  .staff-event-option-title{
+    font-size:10px !important;
+  }
+
+  .staff-event-option-period{
+    font-size:8px !important;
+  }
+}
