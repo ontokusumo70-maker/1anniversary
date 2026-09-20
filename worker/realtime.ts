@@ -2,11 +2,10 @@ import type { Env } from './index';
 
 /**
  * RealtimeHub is the Durable Object endpoint for the application's
- * future event-driven WebSocket layer.
+ * WebSocket realtime layer.
  *
- * Stage 1 intentionally does not broadcast application data yet.
- * It only establishes a Hibernation-compatible WebSocket endpoint so
- * the Durable Object can be deployed safely before frontend integration.
+ * Stage 3A adds server-side broadcast support only.
+ * No application event is emitted yet; existing routes are unchanged.
  */
 export class RealtimeHub {
   constructor(
@@ -15,6 +14,86 @@ export class RealtimeHub {
   ) {}
 
   async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url);
+
+    if (request.method === 'POST' && url.pathname === '/broadcast') {
+      let body: {
+        type?: unknown;
+        payload?: unknown;
+      };
+
+      try {
+        body = await request.json();
+      } catch {
+        return new Response(
+          JSON.stringify({
+            ok: false,
+            error: 'INVALID_JSON',
+          }),
+          {
+            status: 400,
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+              'Cache-Control': 'no-store',
+            },
+          },
+        );
+      }
+
+      const type =
+        typeof body.type === 'string'
+          ? body.type.trim()
+          : '';
+
+      if (!type || type.length > 64) {
+        return new Response(
+          JSON.stringify({
+            ok: false,
+            error: 'INVALID_BROADCAST_TYPE',
+          }),
+          {
+            status: 400,
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+              'Cache-Control': 'no-store',
+            },
+          },
+        );
+      }
+
+      const message = JSON.stringify({
+        type,
+        payload: body.payload ?? null,
+        ts: Date.now(),
+      });
+
+      const sockets = this.state.getWebSockets();
+      let delivered = 0;
+
+      for (const socket of sockets) {
+        try {
+          socket.send(message);
+          delivered += 1;
+        } catch {
+          // A stale socket is ignored. Hibernation lifecycle hooks handle close/error.
+        }
+      }
+
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          delivered,
+        }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'no-store',
+          },
+        },
+      );
+    }
+
     if (request.headers.get('Upgrade')?.toLowerCase() !== 'websocket') {
       return new Response(
         JSON.stringify({
@@ -44,9 +123,7 @@ export class RealtimeHub {
   }
 
   webSocketMessage(_ws: WebSocket, _message: string | ArrayBuffer): void {
-    // Stage 1: no application messages are accepted or generated.
-    // Application broadcast logic is introduced only after the endpoint
-    // is deployed and verified independently.
+    // Server-push only. Client application messages are not accepted.
   }
 
   webSocketClose(
@@ -55,11 +132,37 @@ export class RealtimeHub {
     _reason: string,
     _wasClean: boolean,
   ): void {
-    // Hibernation-compatible close hook. No application state is changed.
+    // Hibernation lifecycle hook.
   }
 
   webSocketError(_ws: WebSocket, _error: unknown): void {
-    // Intentionally empty in Stage 1.
+    // Hibernation lifecycle hook.
   }
 }
 
+export async function broadcastRealtime(
+  env: Env,
+  type: string,
+  payload: unknown = null,
+): Promise<void> {
+  const id = env.REALTIME_HUB.idFromName('global');
+  const stub = env.REALTIME_HUB.get(id);
+
+  const response = await stub.fetch(
+    'https://realtime.internal/broadcast',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+      },
+      body: JSON.stringify({
+        type,
+        payload,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Realtime broadcast failed: ${response.status}`);
+  }
+}
