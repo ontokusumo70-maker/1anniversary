@@ -3126,15 +3126,12 @@ function eventStatusLabel(category) {
 }
 
 function renderEventCard(event) {
-  const category = eventCategory(event);
-  const rewards = Array.isArray(event.rewards) && event.rewards.length ? event.rewards : [{ rewardType: event.rewardType, rewardQuantity: event.rewardQuantity }];
+  const description = String(event.description || "").trim();
   return `<button class="locked-event-card" type="button" data-open-event="${escapeHtml(event.eventId)}">
-    <span class="locked-event-icon">${ownerIconSvg("calendar")}</span>
     <span class="locked-event-copy">
-      <span class="locked-card-title-row"><b>${escapeHtml(event.title)}</b><em class="locked-status ${category === "ACTIVE" ? "active" : "inactive"}">${eventStatusLabel(category)}</em></span>
-      <small class="locked-event-line">${ownerIconSvg("calendar")} ${escapeHtml(formatOwnerShortDate(event.startsAt))} – ${escapeHtml(formatOwnerShortDate(event.endsAt))}</small>
-      <small class="locked-event-line">${ownerIconSvg("gift")} Reward: ${escapeHtml(rewards.map((reward) => reward.rewardType).join(", ") || "—")}</small>
-      <small class="locked-event-line">${ownerIconSvg("gift")} Jumlah Reward: ${escapeHtml(rewards.map((reward) => Number(reward.rewardQuantity || 0).toLocaleString("id-ID")).join(", "))}</small>
+      <span class="locked-card-title-row"><b>${escapeHtml(event.title)}</b></span>
+      <span class="locked-event-line">${ownerIconSvg("calendar")}<span>${escapeHtml(formatOwnerShortDate(event.startsAt))} – ${escapeHtml(formatOwnerShortDate(event.endsAt))}</span></span>
+      <span class="locked-event-description${description ? "" : " muted"}">${escapeHtml(description || "Event Teras Laundry")}</span>
     </span>
     <span class="locked-card-arrow">›</span>
   </button>`;
@@ -3173,30 +3170,75 @@ function toDateInput(value) {
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
+function revokeOwnerEventDetailImage() {
+  if (ownerEventDetailObjectUrl) {
+    URL.revokeObjectURL(ownerEventDetailObjectUrl);
+    ownerEventDetailObjectUrl = null;
+  }
+}
+
+async function loadOwnerEventDetailImage(event) {
+  const image = $("ownerEventDetailImage");
+  if (!image || !event?.imageUrl) return;
+  try {
+    const blob = await apiBlob(event.imageUrl);
+    if ($("eventDetailView")?.hidden) return;
+    revokeOwnerEventDetailImage();
+    ownerEventDetailObjectUrl = URL.createObjectURL(blob);
+    image.src = ownerEventDetailObjectUrl;
+    image.hidden = false;
+    const placeholder = image.parentElement?.querySelector(".owner-event-detail-image-placeholder");
+    if (placeholder) placeholder.hidden = true;
+  } catch {
+    image.hidden = true;
+  }
+}
+
 function openEventDetail(eventId) {
   const event = (ownerData?.events || []).find((row) => row.eventId === eventId);
   if (!event) return;
   selectedEventId = eventId;
+  revokeOwnerEventDetailImage();
   $("eventListView").hidden = true;
   $("eventDetailView").hidden = false;
   const category = eventCategory(event);
-  const rewards = Array.isArray(event.rewards) && event.rewards.length ? event.rewards : [{ rewardType: event.rewardType, rewardQuantity: event.rewardQuantity }];
-  $("eventDetailCard").innerHTML = `<div class="locked-detail-rows">
-    <div><span>Nama Event</span><b>${escapeHtml(event.title)}</b></div>
-    <div><span>Periode Event</span><b>${escapeHtml(formatOwnerShortDate(event.startsAt))} – ${escapeHtml(formatOwnerShortDate(event.endsAt))}</b></div>
-    <div><span>Reward</span><b>${escapeHtml(rewards.map((reward) => reward.rewardType).join(", ") || "—")}</b></div>
-    <div><span>Jumlah Reward</span><b>${escapeHtml(rewards.map((reward) => Number(reward.rewardQuantity || 0).toLocaleString("id-ID")).join(", "))}</b></div>
-    <div><span>Deskripsi</span><b>${escapeHtml(event.description || "—")}</b></div>
-    <div><span>Status</span><b><em class="locked-status ${category === "ACTIVE" ? "active" : "inactive"}">${eventStatusLabel(category)}</em></b></div>
-  </div>
-  <div class="event-share-actions">
-    <button type="button" class="owner-outline-button" id="copyEventLinkButton">${ownerIconSvg("link")} Copy Link</button>
-    <button type="button" class="owner-green-button" id="shareEventButton">${ownerIconSvg("share")} Share</button>
-  </div>`;
+  const rewards = Array.isArray(event.rewards) && event.rewards.length ? event.rewards : [{ rewardType: event.rewardType, rewardQuantity: event.rewardQuantity, terms: "" }];
+  const rewardHtml = rewards.map((reward, index) => {
+    const terms = String(reward.terms || "").trim();
+    return `<section class="owner-event-detail-reward">
+      <div class="owner-event-detail-reward-head"><b>${index + 1}. ${escapeHtml(reward.rewardType || "—")}</b><strong>${escapeHtml(Number(reward.rewardQuantity || 0).toLocaleString("id-ID"))}</strong></div>
+      <div class="owner-event-detail-terms"><span>Syarat &amp; Ketentuan</span><p>${escapeHtml(terms || "—")}</p></div>
+    </section>`;
+  }).join("");
+  $("eventDetailCard").innerHTML = `
+    <div class="owner-event-detail-status"><span>Status Event</span><em class="locked-status ${category === "ACTIVE" ? "active" : category === "UPCOMING" ? "upcoming" : "completed"}">${eventStatusLabel(category)}</em></div>
+    <div class="owner-event-detail-hero">
+      <div class="owner-event-detail-image-frame">
+        <img id="ownerEventDetailImage" alt="Image ${escapeHtml(event.title)}" hidden>
+        <span class="owner-event-detail-image-placeholder">${ownerIconSvg("calendar")}</span>
+      </div>
+      <div class="owner-event-detail-main">
+        <h2>${escapeHtml(event.title)}</h2>
+        <p class="owner-event-detail-period">${escapeHtml(formatOwnerShortDate(event.startsAt))} – ${escapeHtml(formatOwnerShortDate(event.endsAt))}</p>
+      </div>
+    </div>
+    <section class="owner-event-detail-section">
+      <h3>Reward</h3>
+      <div class="owner-event-detail-rewards">${rewardHtml}</div>
+    </section>
+    <section class="owner-event-detail-section">
+      <h3>Deskripsi Event</h3>
+      <p>${escapeHtml(String(event.description || "").trim() || "—")}</p>
+    </section>`;
   const shareUrl = "https://1anniversary.pages.dev/customer";
+  const actions = document.createElement("div");
+  actions.className = "event-share-actions";
+  actions.innerHTML = `<button type="button" class="owner-outline-button" id="copyEventLinkButton">${ownerIconSvg("link")} Copy Link</button><button type="button" class="owner-green-button" id="shareEventButton">${ownerIconSvg("share")} Share</button>`;
+  $("eventDetailCard")?.appendChild(actions);
   $("copyEventLinkButton")?.addEventListener("click", () => copyOwnerEventLink(shareUrl));
   $("shareEventButton")?.addEventListener("click", () => shareOwnerEvent(shareUrl, event.title));
   msg("eventDetailMsg", "");
+  loadOwnerEventDetailImage(event);
 }
 
 async function copyOwnerEventLink(url) {
@@ -3231,6 +3273,7 @@ async function shareOwnerEvent(url, title) {
 }
 
 function closeEventViews() {
+  revokeOwnerEventDetailImage();
   $("eventDetailView").hidden = true;
   $("eventFormCard").hidden = true;
   $("eventListView").hidden = false;
