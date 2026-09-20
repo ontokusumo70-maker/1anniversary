@@ -2,6 +2,7 @@ import type { Env } from "../index";
 import { requireSession } from "../auth/session-guard";
 import { writeAuditSafe } from "../audit/logger";
 import { releaseExpiredMachines } from "./machines";
+import { handleOwnerExportRequest } from "./owner-export";
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -1419,6 +1420,202 @@ async function handleEvents(request: Request, env: Env): Promise<Response> {
   return json({ ok: true, eventId });
 }
 
+
+
+const SERVICE_SETTINGS_DEFAULT_PHOTO = "/assets/background/laundry/Laundry-area.jpg";
+const SERVICE_SETTINGS_MAX_PHOTO_BYTES = 1048576;
+
+function serviceSettingsImageUrl(request: Request): string {
+  return new URL("/service-settings/image", request.url).toString();
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function serviceImageBytesValid(bytes: Uint8Array, mimeType: string): boolean {
+  if (mimeType === "image/jpeg") {
+    return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  }
+  if (mimeType === "image/png") {
+    return bytes.length >= 8 &&
+      bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47 &&
+      bytes[4] === 0x0d && bytes[5] === 0x0a && bytes[6] === 0x1a && bytes[7] === 0x0a;
+  }
+  if (mimeType === "image/webp") {
+    return bytes.length >= 12 &&
+      bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+      bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50;
+  }
+  return false;
+}
+
+async function readServiceSettings(env: Env, request: Request): Promise<Response> {
+  try {
+    const row = await env.DB.prepare(`
+      SELECT data_json, photo_mime, photo_blob
+      FROM service_settings
+      WHERE id = 1
+      LIMIT 1
+    `).first<{ data_json: string; photo_mime: string | null; photo_blob: ArrayBuffer | Uint8Array | null }>();
+
+    if (!row?.data_json) {
+      return json({
+        ok: true,
+        settings: {},
+        photoUrl: SERVICE_SETTINGS_DEFAULT_PHOTO,
+      });
+    }
+
+    let settings: unknown;
+    try {
+      settings = JSON.parse(row.data_json);
+    } catch {
+      return errorResponse("SERVICE_SETTINGS_CORRUPT", "Data Pengaturan Layanan tidak valid.", 500);
+    }
+
+    if (!isPlainObject(settings)) {
+      return errorResponse("SERVICE_SETTINGS_CORRUPT", "Data Pengaturan Layanan tidak valid.", 500);
+    }
+
+    return json({
+      ok: true,
+      settings,
+      photoUrl: row.photo_blob && row.photo_mime ? serviceSettingsImageUrl(request) : SERVICE_SETTINGS_DEFAULT_PHOTO,
+    });
+  } catch (error) {
+    console.error("SERVICE_SETTINGS_READ_FAILED:", error);
+    return errorResponse("INTERNAL_ERROR", "Pengaturan Layanan gagal dimuat.", 500);
+  }
+}
+
+async function handlePublicServiceSettings(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+
+  if (url.pathname === "/service-settings/image") {
+    if (request.method !== "GET") return errorResponse("NOT_FOUND", "Service image endpoint not found.", 404);
+    try {
+      const row = await env.DB.prepare(`
+        SELECT photo_mime, photo_blob
+        FROM service_settings
+        WHERE id = 1
+        LIMIT 1
+      `).first<{ photo_mime: string | null; photo_blob: ArrayBuffer | Uint8Array | null }>();
+      if (!row?.photo_blob || !row.photo_mime) return new Response("", { status: 404 });
+      const bytes = row.photo_blob instanceof ArrayBuffer
+        ? new Uint8Array(row.photo_blob)
+        : row.photo_blob instanceof Uint8Array
+          ? row.photo_blob
+          : new Uint8Array(row.photo_blob as any);
+      return new Response(bytes, {
+        status: 200,
+        headers: {
+          "Content-Type": row.photo_mime,
+          "Cache-Control": "no-store",
+        },
+      });
+    } catch (error) {
+      console.error("SERVICE_SETTINGS_IMAGE_READ_FAILED:", error);
+      return errorResponse("INTERNAL_ERROR", "Foto area laundry gagal dimuat.", 500);
+    }
+  }
+
+  if (request.method !== "GET") return errorResponse("NOT_FOUND", "Service settings endpoint not found.", 404);
+  return readServiceSettings(env, request);
+}
+
+async function handleOwnerServiceSettings(request: Request, env: Env): Promise<Response> {
+  const owner = await requireOwner(request, env);
+  if (!owner) return errorResponse("UNAUTHORIZED", "Owner authentication is required.", 401);
+
+  if (request.method === "GET") {
+    return readServiceSettings(env, request);
+  }
+
+  if (request.method !== "PUT") {
+    return errorResponse("NOT_FOUND", "Service settings endpoint not found.", 404);
+  }
+
+  let form: FormData;
+  try {
+    form = await request.formData();
+  } catch {
+    return errorResponse("INVALID_REQUEST", "Data Pengaturan Layanan tidak valid.", 400);
+  }
+
+  const settingsText = form.get("settings");
+  if (typeof settingsText !== "string" || settingsText.trim().length === 0 || settingsText.length > 65536) {
+    return errorResponse("INVALID_SETTINGS", "Data Pengaturan Layanan tidak valid.", 400);
+  }
+
+  let settings: unknown;
+  try {
+    settings = JSON.parse(settingsText);
+  } catch {
+    return errorResponse("INVALID_SETTINGS", "Data Pengaturan Layanan tidak valid.", 400);
+  }
+  if (!isPlainObject(settings)) {
+    return errorResponse("INVALID_SETTINGS", "Data Pengaturan Layanan tidak valid.", 400);
+  }
+
+  const removePhoto = form.get("removePhoto") === "1";
+  const photoEntry = form.get("photo");
+  const photo = photoEntry instanceof File && photoEntry.size > 0 ? photoEntry : null;
+
+  if (photo && photo.size > SERVICE_SETTINGS_MAX_PHOTO_BYTES) {
+    return errorResponse("IMAGE_TOO_LARGE", "Ukuran foto maksimal 1 MB.", 413);
+  }
+
+  let photoMime: string | null | undefined;
+  let photoBlob: ArrayBuffer | null | undefined;
+
+  if (removePhoto) {
+    photoMime = null;
+    photoBlob = null;
+  } else if (photo) {
+    const mimeType = photo.type.toLowerCase();
+    if (mimeType !== "image/jpeg" && mimeType !== "image/png" && mimeType !== "image/webp") {
+      return errorResponse("INVALID_IMAGE_TYPE", "Foto harus JPG, PNG, atau WebP.", 400);
+    }
+    const bytes = new Uint8Array(await photo.arrayBuffer());
+    if (!serviceImageBytesValid(bytes, mimeType)) {
+      return errorResponse("INVALID_IMAGE", "Isi file foto tidak valid.", 400);
+    }
+    photoMime = mimeType;
+    photoBlob = bytes.buffer;
+  }
+
+  const nowIso = new Date().toISOString();
+  try {
+    if (photoMime !== undefined) {
+      await env.DB.prepare(`
+        INSERT INTO service_settings (id, data_json, photo_mime, photo_blob, updated_at, updated_by)
+        VALUES (1, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          data_json = excluded.data_json,
+          photo_mime = excluded.photo_mime,
+          photo_blob = excluded.photo_blob,
+          updated_at = excluded.updated_at,
+          updated_by = excluded.updated_by
+      `).bind(JSON.stringify(settings), photoMime, photoBlob, nowIso, owner.userId).run();
+    } else {
+      await env.DB.prepare(`
+        INSERT INTO service_settings (id, data_json, updated_at, updated_by)
+        VALUES (1, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          data_json = excluded.data_json,
+          updated_at = excluded.updated_at,
+          updated_by = excluded.updated_by
+      `).bind(JSON.stringify(settings), nowIso, owner.userId).run();
+    }
+  } catch (error) {
+    console.error("SERVICE_SETTINGS_SAVE_FAILED:", error);
+    return errorResponse("INTERNAL_ERROR", "Pengaturan Layanan gagal disimpan.", 500);
+  }
+
+  return readServiceSettings(env, request);
+}
+
 export async function handleOwnerRequest(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   if (url.pathname === "/service-settings" || url.pathname === "/service-settings/image") {
@@ -1427,7 +1624,7 @@ export async function handleOwnerRequest(request: Request, env: Env): Promise<Re
   if (url.pathname === "/owner/service-settings" && (request.method === "GET" || request.method === "PUT")) {
     return handleOwnerServiceSettings(request, env);
   }
-  if (url.pathname === "/owner/export" && request.method === "GET") return handleOwnerExport(request, env);
+  if (url.pathname === "/owner/export" && request.method === "GET") return handleOwnerExportRequest(request, env);
   if (url.pathname === "/owner/overview" && request.method === "GET") return handleOwnerOverview(request, env);
   const customerDeleteMatch = url.pathname.match(/^\/owner\/customers\/([^/]+)$/);
   if (customerDeleteMatch && request.method === "DELETE") {
