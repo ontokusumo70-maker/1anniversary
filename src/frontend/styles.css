@@ -3860,20 +3860,40 @@ body[data-role="OWNER"] #ownerEventsList .locked-event-stats{
   display:flex;
   flex-direction:column;
   justify-content:center;
-  gap:4px;
+  gap:3px;
 }
 
 .screen-staff .staff-event-option-period,
 .screen-customer.customer-dashboard-screen .staff-event-option-period{
-  display:block;
+  display:flex;
+  align-items:center;
+  gap:5px;
   min-width:0;
   overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
   color:#687970;
   font-size:11px;
   line-height:1.2;
   font-weight:700;
+}
+
+.screen-staff .staff-event-option-period svg,
+.screen-customer.customer-dashboard-screen .staff-event-option-period svg{
+  width:14px;
+  height:14px;
+  flex:0 0 auto;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.7;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.screen-staff .staff-event-option-period > span,
+.screen-customer.customer-dashboard-screen .staff-event-option-period > span{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
 }
 
 .screen-staff .staff-event-option-chevron,
@@ -3883,6 +3903,7 @@ body[data-role="OWNER"] #ownerEventsList .locked-event-stats{
   height:32px;
   display:grid;
   place-items:center;
+  align-self:center;
   border-radius:50%;
   background:#dff6e8;
   color:#087b59;
@@ -3900,3 +3921,19 @@ body[data-role="OWNER"] #ownerEventsList .locked-event-stats{
 .screen-customer.customer-dashboard-screen .staff-event-option{
   cursor:pointer !important;
 }
+@media(max-width:600px){
+  .screen-staff .staff-event-option-period svg,
+  .screen-customer.customer-dashboard-screen .staff-event-option-period svg{
+    width:13px;
+    height:13px;
+  }
+
+  .screen-staff .staff-event-option-chevron,
+  .screen-customer.customer-dashboard-screen .staff-event-option-chevron{
+    flex-basis:30px;
+    width:30px;
+    height:30px;
+    font-size:27px;
+  }
+}
+
