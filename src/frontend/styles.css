@@ -1568,13 +1568,18 @@ body[data-role="STAFF"] .topbar{
 }
 
 .screen-staff .staff-event-card{
+  height:auto !important;
+  min-height:0 !important;
+}
+
+.screen-staff .staff-event-card{
   min-height:183px;
   height:auto;
   padding:20px 28px;
 }
 
 .screen-staff .staff-event-content{
-  min-height:86px;
+  min-height:0;
   height:auto;
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -1764,18 +1769,21 @@ body[data-role="STAFF"] .topbar{
   }
 
   .screen-staff .staff-event-card{
-    height:92px;
+    height:auto;
+    min-height:92px;
     padding:10px 14px;
     border-radius:14px;
   }
 
   .screen-staff .staff-event-content{
-    height:43px;
+    height:auto;
+    min-height:0;
     margin-top:7px;
     padding:4px;
     gap:5px;
     border-radius:10px;
     font-size:12.5px;
+    grid-template-columns:1fr;
   }
 
   .staff-event-option{
@@ -3068,18 +3076,21 @@ body[data-role="CUSTOMER"] .screen-customer.customer-dashboard-screen:not([hidde
   }
 
   .screen-customer.customer-dashboard-screen .staff-event-card{
-    height:92px;
+    height:auto;
+    min-height:92px;
     padding:10px 14px;
     border-radius:14px;
   }
 
   .screen-customer.customer-dashboard-screen .staff-event-content{
-    height:43px;
+    height:auto;
+    min-height:0;
     margin-top:7px;
     padding:4px;
     gap:5px;
     border-radius:10px;
     font-size:12.5px;
+    grid-template-columns:1fr;
   }
 
   .screen-customer.customer-dashboard-screen .staff-event-option{
