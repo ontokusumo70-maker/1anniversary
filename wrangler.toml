@@ -16,3 +16,6 @@ database_id = "2065718c-46e5-4004-8acb-e0e7ece5b970"
 
 [observability]
 enabled = true
+
+[triggers]
+crons = ["0 17 * * *"]
