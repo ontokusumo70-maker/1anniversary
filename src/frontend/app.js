@@ -37,6 +37,133 @@ let assetBasePath = "/assets/";
 const ownerActiveEventObjectUrls = new Map();
 const activeEventObjectUrls = new Map();
 
+let realtimeSocket = null;
+let realtimeReconnectTimer = null;
+let realtimeReconnectAttempt = 0;
+let realtimeWanted = false;
+
+function stopRealtimeConnection() {
+  realtimeWanted = false;
+  if (realtimeReconnectTimer) {
+    window.clearTimeout(realtimeReconnectTimer);
+    realtimeReconnectTimer = null;
+  }
+  realtimeReconnectAttempt = 0;
+  if (realtimeSocket) {
+    try { realtimeSocket.close(1000, "client-stop"); } catch {}
+    realtimeSocket = null;
+  }
+}
+
+function realtimeSocketUrl() {
+  try {
+    const url = new URL(apiBase);
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    url.pathname = "/realtime";
+    url.search = "";
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return "";
+  }
+}
+
+function handleRealtimeMessage(message) {
+  if (!message || typeof message !== "object") return;
+  const type = message.type;
+  if (!["EVENT_UPDATED", "REWARD_UPDATED", "SERVICE_SETTINGS_UPDATED", "MACHINE_UPDATED"].includes(type)) return;
+
+  const role = state.role;
+  if (role !== "CUSTOMER" && role !== "STAFF") return;
+
+  if (type === "MACHINE_UPDATED") {
+    if (role === "CUSTOMER") {
+      void refreshCustomerDashboardMachines();
+    } else {
+      void refreshStaffMachines();
+    }
+    return;
+  }
+
+  if (type === "SERVICE_SETTINGS_UPDATED") {
+    void loadServiceSettings();
+    return;
+  }
+
+  const detailOpen = role === "CUSTOMER"
+    ? $("customerEventView") && !$("customerEventView").hidden
+    : $("staffEventView") && !$("staffEventView").hidden;
+  const detailEventId = role === "CUSTOMER"
+    ? eventDetailSyncRole === "CUSTOMER" ? eventDetailSyncEventId : null
+    : eventDetailSyncRole === "STAFF" ? eventDetailSyncEventId : null;
+
+  if (detailOpen && detailEventId) {
+    void loadActiveEventForRole(role, detailEventId).then((data) => {
+      if (role === "CUSTOMER" && $("customerEventView") && !$("customerEventView").hidden) {
+        renderCustomerEventInfo(data);
+      }
+      if (role === "STAFF" && $("staffEventView") && !$("staffEventView").hidden) {
+        renderStaffEventInfo(data);
+      }
+    });
+    return;
+  }
+
+  if (isRoleDashboardVisible(role)) {
+    void syncRoleEvents(role);
+  }
+}
+
+function scheduleRealtimeReconnect() {
+  if (!realtimeWanted || realtimeReconnectTimer) return;
+  const delay = Math.min(30000, 1000 * (2 ** Math.min(realtimeReconnectAttempt, 5)));
+  realtimeReconnectAttempt += 1;
+  realtimeReconnectTimer = window.setTimeout(() => {
+    realtimeReconnectTimer = null;
+    startRealtimeConnection();
+  }, delay);
+}
+
+function startRealtimeConnection() {
+  if (state.role !== "CUSTOMER" && state.role !== "STAFF") return;
+  realtimeWanted = true;
+  if (realtimeSocket && (realtimeSocket.readyState === WebSocket.OPEN || realtimeSocket.readyState === WebSocket.CONNECTING)) return;
+
+  const url = realtimeSocketUrl();
+  if (!url) {
+    scheduleRealtimeReconnect();
+    return;
+  }
+
+  try {
+    const socket = new WebSocket(url);
+    realtimeSocket = socket;
+
+    socket.addEventListener("open", () => {
+      if (realtimeSocket !== socket) return;
+      realtimeReconnectAttempt = 0;
+    });
+
+    socket.addEventListener("message", (event) => {
+      try {
+        handleRealtimeMessage(JSON.parse(event.data));
+      } catch {}
+    });
+
+    socket.addEventListener("close", () => {
+      if (realtimeSocket === socket) realtimeSocket = null;
+      scheduleRealtimeReconnect();
+    });
+
+    socket.addEventListener("error", () => {
+      try { socket.close(); } catch {}
+    });
+  } catch {
+    realtimeSocket = null;
+    scheduleRealtimeReconnect();
+  }
+}
+
 async function api(path, options = {}) {
   const headers = {
     "Content-Type": "application/json",
@@ -103,6 +230,7 @@ function saveSession() {
 }
 
 function clearSession() {
+  stopRealtimeConnection();
   localStorage.removeItem(SESSION_KEY);
 
   state.token = null;
@@ -379,6 +507,7 @@ function renderStaffDashboardDate() {
 }
 
 function showStaffDashboard() {
+  startRealtimeConnection();
   if ($("staffDashboard")) {
     $("staffDashboard").hidden = false;
   }
@@ -417,6 +546,7 @@ function renderCustomerDashboardDate() {
 }
 
 function showCustomerDashboard() {
+  startRealtimeConnection();
   if ($("customerDashboard")) $("customerDashboard").hidden = false;
   startEventSync("CUSTOMER");
   renderCustomerDashboardDate();
