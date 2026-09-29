@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Test Antrean Self-Service</title>
+<style>
+  body { font-family: -apple-system, system-ui, sans-serif; margin: 0; padding: 16px; background: #f3f4f6; color: #111827; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .warn { background: #fef3c7; border: 1px solid #f59e0b; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+  .card { background: #fff; border-radius: 10px; padding: 14px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .card h2 { font-size: 14px; margin: 0 0 8px; color: #2563eb; }
+  label { display: block; font-size: 12px; color: #6b7280; margin-top: 8px; }
+  input, select { width: 100%; padding: 8px; font-size: 14px; border: 1px solid #d1d5db; border-radius: 6px; margin-top: 2px; box-sizing: border-box; }
+  button { width: 100%; padding: 10px; margin-top: 10px; font-size: 14px; font-weight: 600; border: none; border-radius: 6px; background: #2563eb; color: #fff; }
+  button:active { background: #1d4ed8; }
+  pre { background: #111827; color: #d1fae5; padding: 10px; border-radius: 6px; font-size: 11px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; margin-top: 10px; }
+  .session-info { font-size: 13px; margin-bottom: 12px; }
+  .session-info b { color: #059669; }
+</style>
+</head>
+<body>
+
+<h1>Test Antrean Self-Service</h1>
+<div class="warn">Halaman internal untuk testing. Hapus setelah Fase 2 selesai diuji. Login dulu di aplikasi utama sebelum membuka halaman ini.</div>
+
+<div class="card">
+  <h2>Sesi Login Saat Ini</h2>
+  <div class="session-info" id="sessionInfo">Memuat...</div>
+</div>
+
+<div class="card">
+  <h2>1. Papan Antrean (semua role)</h2>
+  <button onclick="callApi('GET', '/queue/self-service/board')">Lihat Papan Antrean</button>
+</div>
+
+<div class="card">
+  <h2>2. Customer — Ambil Nomor Antrean</h2>
+  <label>Jenis Mesin</label>
+  <select id="joinType">
+    <option value="WASHER">Washer (Cuci)</option>
+    <option value="DRYER">Dryer (Kering)</option>
+  </select>
+  <label>Mesin Pilihan (opsional, contoh: W3)</label>
+  <input id="joinPreferred" placeholder="Kosongkan jika mesin mana saja" />
+  <button onclick="joinQueue()">Ambil Nomor</button>
+</div>
+
+<div class="card">
+  <h2>3. Customer — Tiket Saya</h2>
+  <button onclick="callApi('GET', '/queue/self-service/mine')">Lihat Tiket Saya</button>
+</div>
+
+<div class="card">
+  <h2>4. Staff — Daftar Antrean</h2>
+  <button onclick="callApi('GET', '/staff/queue/self-service')">Lihat Daftar Antrean</button>
+</div>
+
+<div class="card">
+  <h2>5. Staff — Panggil / No-Show / Aktivasi</h2>
+  <label>Ticket ID (salin dari hasil no. 4)</label>
+  <input id="ticketId" placeholder="ticket_id..." />
+  <button onclick="callTicket('call')">Panggil (Call)</button>
+  <button onclick="callTicket('no-show')" style="background:#dc2626;">Tandai No-Show</button>
+  <label>Machine ID untuk Aktivasi (contoh: W3)</label>
+  <input id="machineId" placeholder="W3" />
+  <button onclick="activateTicket()" style="background:#059669;">Aktivasi Mesin</button>
+</div>
+
+<div class="card">
+  <h2>Hasil</h2>
+  <pre id="result">Belum ada request.</pre>
+</div>
+
+<script>
+const API = 'https://1anniversary.ontokusumo70.workers.dev';
+const SESSION_KEY = 'teras_laundry_auth_session';
+
+function getSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function showSessionInfo() {
+  const s = getSession();
+  const el = document.getElementById('sessionInfo');
+  if (!s || !s.token) {
+    el.innerHTML = '<span style="color:#dc2626">Tidak ada sesi login ditemukan. Buka aplikasi utama, login dulu, baru kembali ke halaman ini.</span>';
+    return;
+  }
+  el.innerHTML = `Role: <b>${s.role}</b><br>User ID: <span style="font-size:11px">${s.userId}</span>`;
+}
+
+function headers() {
+  const s = getSession();
+  return {
+    'Content-Type': 'application/json',
+    ...(s && s.token ? { Authorization: `Bearer ${s.token}` } : {}),
+  };
+}
+
+async function showResult(promise) {
+  const resultEl = document.getElementById('result');
+  resultEl.textContent = 'Memuat...';
+  try {
+    const res = await promise;
+    const data = await res.json();
+    resultEl.textContent = `HTTP ${res.status}\n` + JSON.stringify(data, null, 2);
+  } catch (err) {
+    resultEl.textContent = 'ERROR: ' + err.message;
+  }
+}
+
+function callApi(method, path, body) {
+  return showResult(fetch(API + path, {
+    method,
+    headers: headers(),
+    body: body ? JSON.stringify(body) : undefined,
+  }));
+}
+
+function joinQueue() {
+  const machineType = document.getElementById('joinType').value;
+  const preferred = document.getElementById('joinPreferred').value.trim().toUpperCase();
+  const body = { machineType };
+  if (preferred) body.preferredMachineId = preferred;
+  callApi('POST', '/queue/self-service/join', body);
+}
+
+function callTicket(action) {
+  const ticketId = document.getElementById('ticketId').value.trim();
+  if (!ticketId) { alert('Isi Ticket ID dulu.'); return; }
+  callApi('POST', `/staff/queue/self-service/${encodeURIComponent(ticketId)}/${action}`);
+}
+
+function activateTicket() {
+  const ticketId = document.getElementById('ticketId').value.trim();
+  const machineId = document.getElementById('machineId').value.trim().toUpperCase();
+  if (!ticketId || !machineId) { alert('Isi Ticket ID dan Machine ID dulu.'); return; }
+  callApi('POST', `/staff/queue/self-service/${encodeURIComponent(ticketId)}/activate`, { machineId });
+}
+
+showSessionInfo();
+</script>
+
+</body>
+</html>
