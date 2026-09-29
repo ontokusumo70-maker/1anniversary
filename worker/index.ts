@@ -9,6 +9,7 @@ import { handleRewardRequest } from './routes/reward';
 import { handleStaffRedeemRequest } from './routes/staff-redeem';
 import { handleMemberRequest } from './routes/member';
 import { handleDropoffRequest } from './routes/dropoff';
+import { handleSelfServiceQueueRequest } from './routes/self-service-queue';
 import { handleAuthRequest } from './routes/auth';
 import { cleanupExpiredEvents, handleOwnerRequest } from './routes/owner';
 import { handleAssetRequest } from './routes/assets';
@@ -427,6 +428,19 @@ async function handleRequest(
     404
   ) {
     return withCors(dropoffResponse, origin);
+  }
+
+  const selfServiceQueueResponse =
+    await handleSelfServiceQueueRequest(
+      request,
+      env,
+    );
+
+  if (
+    selfServiceQueueResponse.status !==
+    404
+  ) {
+    return withCors(selfServiceQueueResponse, origin);
   }
 
   return json(
