@@ -13,7 +13,8 @@ export type AuditEntityType =
   | "EVENT_IMAGE"
   | "MEMBER_PURCHASE"
   | "MEMBER_REWARD"
-  | "DROPOFF_ORDER";
+  | "DROPOFF_ORDER"
+  | "SELF_SERVICE_TICKET";
 
 export type AuditAction =
   | "START"
@@ -32,7 +33,11 @@ export type AuditAction =
   | "REVOKE"
   | "FULFILL"
   | "COMPLETE"
-  | "PICKUP";
+  | "PICKUP"
+  | "CALL"
+  | "ACTIVATE"
+  | "NO_SHOW"
+  | "CANCEL";
 
 export type AuditResult =
   | "SUCCESS"
