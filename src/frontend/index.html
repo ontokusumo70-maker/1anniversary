@@ -186,6 +186,53 @@
           <span id="customerDashboardEventPeriod" hidden>—</span>
         </div>
       </section>
+
+      <section id="customerQueueCard" class="staff-dashboard-card">
+        <div class="staff-section-heading">
+          <h2>Antrean Self-Service</h2>
+        </div>
+        <div class="staff-machine-summary-grid">
+          <div class="staff-machine-summary">
+            <div class="staff-machine-summary-copy">
+              <strong>Washer</strong>
+              <div><b>Menunggu</b><em id="customerQueueWasherWaiting">0</em></div>
+            </div>
+          </div>
+          <div class="staff-machine-summary">
+            <div class="staff-machine-summary-copy">
+              <strong>Dryer</strong>
+              <div><b>Menunggu</b><em id="customerQueueDryerWaiting">0</em></div>
+            </div>
+          </div>
+        </div>
+        <div id="customerQueueMyTickets" class="customer-queue-tickets"></div>
+        <div class="customer-queue-actions">
+          <button id="customerQueueJoinWasher" type="button" class="primary-button">Ambil Nomor Washer</button>
+          <button id="customerQueueJoinDryer" type="button" class="primary-button">Ambil Nomor Dryer</button>
+        </div>
+        <p id="customerQueueMsg" class="msg status-msg"></p>
+      </section>
+
+      <section id="customerDropoffCard" class="staff-dashboard-card" hidden>
+        <div class="staff-section-heading">
+          <h2>Laundry Saya</h2>
+        </div>
+        <div id="customerDropoffContent" class="customer-dropoff-content"></div>
+      </section>
+
+      <section id="customerMemberCard" class="staff-dashboard-card">
+        <div class="staff-section-heading">
+          <h2>Member Reward</h2>
+        </div>
+        <div id="customerMemberContent" class="customer-member-content">Memuat...</div>
+      </section>
+
+      <section id="customerPickupCard" class="staff-dashboard-card" hidden>
+        <div class="staff-section-heading">
+          <h2>Antar / Jemput Laundry</h2>
+        </div>
+        <div id="customerPickupContent" class="customer-pickup-content"></div>
+      </section>
     </section>
 
     
@@ -462,6 +509,42 @@
           <span id="staffDashboardEventTitle">Belum ada event</span>
           <span id="staffDashboardEventPeriod" hidden>—</span>
         </div>
+      </section>
+
+      <section id="staffQueueCard" class="staff-dashboard-card">
+        <div class="staff-section-heading">
+          <h2>Antrean Self-Service</h2>
+        </div>
+        <div id="staffQueueList" class="staff-queue-list">Memuat...</div>
+        <p id="staffQueueMsg" class="msg status-msg"></p>
+      </section>
+
+      <section id="staffDropoffCard" class="staff-dashboard-card">
+        <div class="staff-section-heading">
+          <h2>Drop-off</h2>
+        </div>
+        <div id="staffDropoffList" class="staff-dropoff-list">Memuat...</div>
+        <div class="staff-dropoff-receive">
+          <h3>Terima Cucian Baru</h3>
+          <label>No. HP Customer<input id="staffDropoffPhone" inputmode="tel" maxlength="32" placeholder="08xxxxxxxxxx"></label>
+          <label>Berat (kg)<input id="staffDropoffWeight" type="number" step="0.1" min="0.1" placeholder="Contoh: 3.5"></label>
+          <button id="staffDropoffReceiveButton" type="button" class="primary-button">Terima Cucian</button>
+        </div>
+        <p id="staffDropoffMsg" class="msg status-msg"></p>
+      </section>
+
+      <section id="staffMemberCard" class="staff-dashboard-card">
+        <div class="staff-section-heading">
+          <h2>Member</h2>
+        </div>
+        <label>No. HP Customer<input id="staffMemberPhone" inputmode="tel" maxlength="32" placeholder="08xxxxxxxxxx"></label>
+        <div class="staff-member-purchase-row">
+          <label>Jumlah Koin Dibeli<input id="staffMemberCoins" type="number" min="1" placeholder="Contoh: 10"></label>
+          <button id="staffMemberSaveButton" type="button" class="primary-button">Simpan Pembelian</button>
+        </div>
+        <button id="staffMemberLookupButton" type="button" class="secondary-button">Cek Reward (tanpa input koin)</button>
+        <div id="staffMemberResult" class="staff-member-result"></div>
+        <p id="staffMemberMsg" class="msg status-msg"></p>
       </section>
     </section>
 
@@ -961,6 +1044,19 @@
           <h2>Tarif Layanan</h2>
           <div id="ownerServiceTariffRows" class="owner-service-tariff-rows"></div>
           <button id="ownerServiceAddTariff" class="owner-service-add-button" type="button">+ Tambah Layanan &amp; Tarif</button>
+        </section>
+        <section class="owner-settings-card">
+          <h2>Antar / Jemput Laundry</h2>
+          <label class="owner-settings-check"><input id="servicePickupEnabled" type="checkbox"> Aktifkan layanan Antar/Jemput di dashboard Customer</label>
+          <label>Area Layanan <span class="owner-settings-help">Teks bebas, contoh: Area 1, Area 2</span><input id="servicePickupAreas" maxlength="200"></label>
+          <div class="owner-settings-grid-2">
+            <label>Jam Mulai<input id="servicePickupHoursStart" type="time"></label>
+            <label>Jam Selesai<input id="servicePickupHoursEnd" type="time"></label>
+          </div>
+          <label>Minimum Order (kg) <span class="owner-settings-help">Kosongkan jika tidak ada minimum</span><input id="servicePickupMinKg" type="number" min="0" step="0.1"></label>
+          <label>Tarif <span class="owner-settings-help">Teks bebas, contoh: Rp10.000 / 7 kg</span><input id="servicePickupTariff" maxlength="120"></label>
+          <label>Catatan Tambahan <span class="owner-settings-help">Opsional</span><textarea id="servicePickupNote" rows="3"></textarea></label>
+          <label>Nomor WhatsApp <span class="owner-settings-help">Format: 628xxxxxxxxxx</span><input id="servicePickupWhatsapp" inputmode="tel" maxlength="20"></label>
         </section>
         <section class="owner-settings-card">
           <h2>Sosial Media</h2>
