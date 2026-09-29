@@ -354,6 +354,23 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
     FROM reward_pool ORDER BY reward_type ASC
   `);
 
+  // Ringkasan Antrean Self-Service & Drop-off untuk Owner (view-only).
+  // "today" (variabel di atas) sudah dihitung sesuai WIB, sama persis
+  // dengan queue_date yang dipakai worker/routes/self-service-queue.ts,
+  // sehingga hitungan di sini konsisten dengan yang dilihat Staff.
+  const queueWaiting = env.DB.prepare(`
+    SELECT machine_type, COUNT(*) AS n
+    FROM self_service_tickets
+    WHERE queue_date = ? AND status = 'WAITING'
+    GROUP BY machine_type
+  `).bind(today);
+
+  const dropoffActive = env.DB.prepare(`
+    SELECT COUNT(*) AS n
+    FROM dropoff_orders
+    WHERE status IN ('RECEIVED', 'COMPLETED')
+  `);
+
   const machines = env.DB.prepare(`
     SELECT machine_id, machine_type, machine_number, status, started_at, expected_end_at
     FROM machines
@@ -401,7 +418,7 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
     LIMIT 50
   `);
 
-  const [metricResult, rewardResult, poolResult, machineResult, daily, weekly, monthly, yearly, eventResult] =
+  const [metricResult, rewardResult, poolResult, machineResult, daily, weekly, monthly, yearly, eventResult, queueWaitingResult, dropoffActiveResult] =
     await env.DB.batch([
       metrics,
       rewardStatus,
@@ -409,7 +426,17 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
       machines,
       ...operations,
       events,
+      queueWaiting,
+      dropoffActive,
     ]);
+
+  let opsWasherWaiting = 0;
+  let opsDryerWaiting = 0;
+  for (const row of (queueWaitingResult.results ?? []) as Array<{ machine_type: string; n: number }>) {
+    if (row.machine_type === "WASHER") opsWasherWaiting = Number(row.n);
+    if (row.machine_type === "DRYER") opsDryerWaiting = Number(row.n);
+  }
+  const opsDropoffActive = Number((dropoffActiveResult.results?.[0] as { n?: number } | undefined)?.n ?? 0);
 
   const metric = metricResult.results?.[0] as Record<string, number> | undefined;
   const statusMap = new Map<string, number>();
@@ -490,6 +517,11 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
       used: Number(metric?.used_count ?? statusMap.get("USED") ?? 0),
       unclaimed: Number(metric?.unclaimed_count ?? 0),
       errorRetry: Number(metric?.error_retry_count ?? 0),
+    },
+    ops: {
+      washerWaiting: opsWasherWaiting,
+      dryerWaiting: opsDryerWaiting,
+      dropoffActive: opsDropoffActive,
     },
     rewardPool: (poolResult.results ?? []).map((row) => ({
       rewardType: row.reward_type,
