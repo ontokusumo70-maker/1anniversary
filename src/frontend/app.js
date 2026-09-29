@@ -71,7 +71,11 @@ function realtimeSocketUrl() {
 function handleRealtimeMessage(message) {
   if (!message || typeof message !== "object") return;
   const type = message.type;
-  if (!["EVENT_UPDATED", "REWARD_UPDATED", "SERVICE_SETTINGS_UPDATED", "MACHINE_UPDATED"].includes(type)) return;
+  if (![
+    "EVENT_UPDATED", "REWARD_UPDATED", "SERVICE_SETTINGS_UPDATED", "MACHINE_UPDATED",
+    "SELF_SERVICE_QUEUE_UPDATED", "DROPOFF_ORDER_UPDATED",
+    "MEMBER_PROGRESS_UPDATED", "MEMBER_REWARD_FULFILLED",
+  ].includes(type)) return;
 
   const role = state.role;
   if (role !== "CUSTOMER" && role !== "STAFF") return;
@@ -85,8 +89,35 @@ function handleRealtimeMessage(message) {
     return;
   }
 
+  if (type === "SELF_SERVICE_QUEUE_UPDATED") {
+    if (role === "CUSTOMER") {
+      void refreshCustomerQueueBoard();
+      void refreshCustomerMyTickets();
+    } else {
+      void refreshStaffQueueList();
+    }
+    return;
+  }
+
+  if (type === "DROPOFF_ORDER_UPDATED") {
+    if (role === "CUSTOMER") {
+      void refreshCustomerDropoff();
+    } else {
+      void refreshStaffDropoffList();
+    }
+    return;
+  }
+
+  if (type === "MEMBER_PROGRESS_UPDATED" || type === "MEMBER_REWARD_FULFILLED") {
+    if (role === "CUSTOMER") {
+      void refreshCustomerMember();
+    }
+    return;
+  }
+
   if (type === "SERVICE_SETTINGS_UPDATED") {
     void loadServiceSettings();
+    if (role === "CUSTOMER") void refreshCustomerPickupInfo();
     return;
   }
 
@@ -519,6 +550,8 @@ function showStaffDashboard() {
       renderStaffDashboardDate();
     }
   }, 1000);
+
+  initStaffQueueDropoffMember();
 }
 
 let customerDashboardClockTimer = null;
@@ -548,6 +581,8 @@ function showCustomerDashboard() {
       renderCustomerDashboardDate();
     }
   }, 1000);
+
+  initCustomerQueueDropoffMember();
 }
 
 function renderCustomerDashboardMachineSummary(machines) {
@@ -2630,6 +2665,15 @@ function fillServiceSettingsForm(data = serviceSettingsData) {
   const settings = data?.settings || DEFAULT_SERVICE_SETTINGS;
   const ids = ["description","address1","address2","phone","mapUrl","instagram","tiktok","facebook","selfStart","selfEnd","dropStart","dropEnd"];
   ids.forEach((key) => { const node = $(`service${key[0].toUpperCase()}${key.slice(1)}`); if (node) node.value = settings[key] ?? ""; });
+
+  if ($("servicePickupEnabled")) $("servicePickupEnabled").checked = !!settings.pickupDeliveryEnabled;
+  if ($("servicePickupAreas")) $("servicePickupAreas").value = settings.pickupDeliveryAreas || "";
+  if ($("servicePickupHoursStart")) $("servicePickupHoursStart").value = settings.pickupDeliveryHoursStart || "";
+  if ($("servicePickupHoursEnd")) $("servicePickupHoursEnd").value = settings.pickupDeliveryHoursEnd || "";
+  if ($("servicePickupMinKg")) $("servicePickupMinKg").value = settings.pickupDeliveryMinOrderKg ?? "";
+  if ($("servicePickupTariff")) $("servicePickupTariff").value = settings.pickupDeliveryTariffLabel || "";
+  if ($("servicePickupNote")) $("servicePickupNote").value = settings.pickupDeliveryNote || "";
+  if ($("servicePickupWhatsapp")) $("servicePickupWhatsapp").value = settings.pickupDeliveryWhatsapp || "";
   renderOwnerServiceTariffRows(Array.isArray(settings.services) ? settings.services : [
     { label: settings.coinLabel || "", price: settings.coinPrice || "" },
     { label: settings.dropLabel || "", price: settings.dropPrice || "" },
@@ -2660,6 +2704,14 @@ function collectServiceSettingsForm() {
     facilitiesMain: serviceLines($("serviceFacilitiesMain")?.value),
     facilitiesSupport: serviceLines($("serviceFacilitiesSupport")?.value),
     facilitiesFnb: serviceLines($("serviceFacilitiesFnb")?.value),
+    pickupDeliveryEnabled: $("servicePickupEnabled")?.checked || false,
+    pickupDeliveryAreas: get("servicePickupAreas"),
+    pickupDeliveryHoursStart: get("servicePickupHoursStart"),
+    pickupDeliveryHoursEnd: get("servicePickupHoursEnd"),
+    pickupDeliveryMinOrderKg: $("servicePickupMinKg")?.value ? parseFloat($("servicePickupMinKg").value) : null,
+    pickupDeliveryTariffLabel: get("servicePickupTariff"),
+    pickupDeliveryNote: get("servicePickupNote"),
+    pickupDeliveryWhatsapp: get("servicePickupWhatsapp"),
   };
 }
 
@@ -2770,30 +2822,37 @@ function renderOwnerMetrics() {
     ? Math.round((redeemed / totalRewardSupplied) * 100)
     : 0;
 
+  const ops = ownerData?.ops || {};
   const items = [
     ["Total Customer", data.participants, "user", data.participantsChangePct, true, "active-event-customer"],
     ["Reward Claimed", claimed, "gift", claimedPercentage, false, "active-event-reward"],
     ["Reward Redeemed", redeemed, "percent", redeemedPercentage, false, ""],
+    ["Antrean Washer", ops.washerWaiting, "washer", null, false, ""],
+    ["Antrean Dryer", ops.dryerWaiting, "dryer", null, false, ""],
+    ["Drop-off Aktif", ops.dropoffActive, "gift", null, false, ""],
   ];
 
   target.innerHTML = items.map(([label, value, icon, percentage, vsPrevious, actionName]) => {
+    const hasPercentage = percentage !== null && percentage !== undefined;
     const numericPercentage = Number(percentage || 0);
     const arrow = vsPrevious
       ? (numericPercentage > 0 ? "↑" : numericPercentage < 0 ? "↓" : "→")
       : "";
-    const percentageText = vsPrevious
-      ? (label === "Total Customer"
-        ? `${Math.abs(numericPercentage)}%`
-        : `${arrow} ${Math.abs(numericPercentage)}%`)
-      : `${Math.abs(numericPercentage)}%`;
-    const note = (vsPrevious || label === "Reward Claimed" || label === "Reward Redeemed") ? `<span class="owner-metric-note">vs sebelumnya</span>` : "";
+    const percentageText = !hasPercentage
+      ? ""
+      : vsPrevious
+        ? (label === "Total Customer"
+          ? `${Math.abs(numericPercentage)}%`
+          : `${arrow} ${Math.abs(numericPercentage)}%`)
+        : `${Math.abs(numericPercentage)}%`;
+    const note = hasPercentage && (vsPrevious || label === "Reward Claimed" || label === "Reward Redeemed") ? `<span class="owner-metric-note">vs sebelumnya</span>` : "";
     const action = actionName ? ` data-owner-metric-action="${actionName}" role="button" tabindex="0"` : "";
     const aria = actionName === "active-event-customer"
       ? ` aria-label="Lihat customer aktif event"`
       : actionName === "active-event-reward"
         ? ` aria-label="Lihat detail reward event aktif"`
         : "";
-    return `<div class="owner-metric-card${actionName ? " clickable" : ""}"${action}${aria}><span class="owner-metric-icon ${icon}">${ownerIconSvg(icon)}</span><small>${label}</small><b>${Number(value || 0).toLocaleString("id-ID")}</b><em>${percentageText}</em>${note}</div>`;
+    return `<div class="owner-metric-card${actionName ? " clickable" : ""}"${action}${aria}><span class="owner-metric-icon ${icon}">${ownerIconSvg(icon)}</span><small>${label}</small><b>${Number(value || 0).toLocaleString("id-ID")}</b>${percentageText ? `<em>${percentageText}</em>` : ""}${note}</div>`;
   }).join("");
 
   const activeCustomerCard = target.querySelector('[data-owner-metric-action="active-event-customer"]');
@@ -4854,6 +4913,473 @@ async function initialize() {
   // Unknown non-root paths never inherit the Customer or another role UI.
   await loadConfig();
   showRootLanding();
+}
+
+/* ============================================================
+ * FASE 1-3: Member Reward, Drop-off, Antrean Self-Service
+ * ============================================================
+ * Semua fungsi di bawah ini memakai ulang helper global yang sudah
+ * ada di atas: api(), $(), state, apiBase. Tidak mengubah alur
+ * login/realtime/render yang sudah berjalan, hanya menambah.
+ */
+
+function qdmEsc(text) {
+  const div = document.createElement("div");
+  div.textContent = text == null ? "" : String(text);
+  return div.innerHTML;
+}
+
+function qdmWhatsappHref(number, message) {
+  const digits = String(number || "").replace(/\D/g, "");
+  if (!digits) return null;
+  const text = message ? `?text=${encodeURIComponent(message)}` : "";
+  return `https://wa.me/${digits}${text}`;
+}
+
+function qdmFormatDateTime(iso) {
+  if (!iso) return "";
+  try {
+    return new Intl.DateTimeFormat("id-ID", {
+      day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
+      hour12: false, timeZone: "Asia/Jakarta",
+    }).format(new Date(iso)) + " WIB";
+  } catch {
+    return iso;
+  }
+}
+
+/* ---------------------------------------------------------- *
+ * CUSTOMER
+ * ---------------------------------------------------------- */
+
+let customerQueueDropoffMemberInitialized = false;
+let customerQueueDropoffMemberTimer = null;
+
+function initCustomerQueueDropoffMember() {
+  if (!customerQueueDropoffMemberInitialized) {
+    customerQueueDropoffMemberInitialized = true;
+
+    const joinWasher = $("customerQueueJoinWasher");
+    const joinDryer = $("customerQueueJoinDryer");
+    if (joinWasher) joinWasher.addEventListener("click", () => customerJoinQueue("WASHER"));
+    if (joinDryer) joinDryer.addEventListener("click", () => customerJoinQueue("DRYER"));
+  }
+
+  refreshCustomerQueueBoard();
+  refreshCustomerMyTickets();
+  refreshCustomerDropoff();
+  refreshCustomerMember();
+  refreshCustomerPickupInfo();
+
+  if (customerQueueDropoffMemberTimer) window.clearInterval(customerQueueDropoffMemberTimer);
+  customerQueueDropoffMemberTimer = window.setInterval(() => {
+    if (state.role !== "CUSTOMER" || !$("customerDashboard") || $("customerDashboard").hidden) return;
+    refreshCustomerQueueBoard();
+    refreshCustomerMyTickets();
+    refreshCustomerDropoff();
+  }, 20000);
+}
+
+async function refreshCustomerQueueBoard() {
+  try {
+    const data = await api("/queue/self-service/board");
+    const w = $("customerQueueWasherWaiting");
+    const d = $("customerQueueDryerWaiting");
+    if (w) w.textContent = String(data.washer.waitingCount);
+    if (d) d.textContent = String(data.dryer.waitingCount);
+  } catch {
+    /* papan antrean bersifat pelengkap; diamkan jika gagal */
+  }
+}
+
+async function refreshCustomerMyTickets() {
+  const el = $("customerQueueMyTickets");
+  if (!el) return;
+  try {
+    const data = await api("/queue/self-service/mine");
+    const tickets = data.tickets || [];
+    if (!tickets.length) {
+      el.innerHTML = "";
+      return;
+    }
+    el.innerHTML = tickets.map((t) => {
+      const statusLabel = t.status === "CALLED" ? "Sedang dipanggil, silakan ke outlet" : `Menunggu, posisi ${t.position}`;
+      return `
+        <div class="customer-queue-ticket">
+          <div>
+            <b>${qdmEsc(t.displayCode)}</b>
+            <span>${qdmEsc(statusLabel)}</span>
+          </div>
+          <button type="button" data-qdm-cancel-ticket="${qdmEsc(t.ticketId)}">Batal</button>
+        </div>`;
+    }).join("");
+    el.querySelectorAll("[data-qdm-cancel-ticket]").forEach((btn) => {
+      btn.addEventListener("click", () => customerCancelTicket(btn.getAttribute("data-qdm-cancel-ticket")));
+    });
+  } catch {
+    el.innerHTML = "";
+  }
+}
+
+async function customerJoinQueue(machineType) {
+  const msg = $("customerQueueMsg");
+  if (msg) msg.textContent = "Memproses...";
+  try {
+    const data = await api("/queue/self-service/join", {
+      method: "POST",
+      body: JSON.stringify({ machineType }),
+    });
+    if (msg) {
+      msg.textContent = data.alreadyQueued
+        ? `Anda sudah antre dengan nomor ${data.ticket.displayCode}.`
+        : `Nomor antrean Anda: ${data.ticket.displayCode}.`;
+    }
+    await refreshCustomerMyTickets();
+    await refreshCustomerQueueBoard();
+  } catch (error) {
+    if (msg) msg.textContent = "Gagal ambil nomor: " + error.message;
+  }
+}
+
+async function customerCancelTicket(ticketId) {
+  const msg = $("customerQueueMsg");
+  try {
+    await api(`/queue/self-service/${encodeURIComponent(ticketId)}/cancel`, { method: "POST" });
+    await refreshCustomerMyTickets();
+    await refreshCustomerQueueBoard();
+  } catch (error) {
+    if (msg) msg.textContent = "Gagal membatalkan: " + error.message;
+  }
+}
+
+async function refreshCustomerDropoff() {
+  const card = $("customerDropoffCard");
+  const content = $("customerDropoffContent");
+  if (!card || !content) return;
+  try {
+    const data = await api("/dropoff/mine");
+    const order = data.order;
+    if (!order) {
+      card.hidden = true;
+      return;
+    }
+    card.hidden = false;
+    const statusLabel = order.status === "RECEIVED" ? "Diterima, sedang dikerjakan" : "Selesai, siap diambil";
+    const due = order.status === "COMPLETED" && order.pickup_due_at
+      ? `<div class="customer-dropoff-due">Ambil sebelum ${qdmEsc(qdmFormatDateTime(order.pickup_due_at))}</div>`
+      : "";
+    content.innerHTML = `
+      <div class="customer-dropoff-order">
+        <b>${qdmEsc(order.order_id)}</b> · ${qdmEsc(order.weight_kg)} kg
+        <div>${qdmEsc(statusLabel)}</div>
+        ${due}
+      </div>`;
+  } catch {
+    card.hidden = true;
+  }
+}
+
+async function refreshCustomerMember() {
+  const content = $("customerMemberContent");
+  if (!content) return;
+  try {
+    const data = await api("/member/progress");
+    const bonusLeft = 10 - data.coinMilestoneProgress;
+    const bagLeft = 40 - data.bagMilestoneProgress;
+    const available = data.availableRewards || [];
+    content.innerHTML = `
+      <div class="customer-member-progress">Total koin dibeli: ${qdmEsc(data.totalCoinsPurchased)}</div>
+      <div class="customer-member-hint">${qdmEsc(bonusLeft)} koin lagi menuju Bonus Koin · ${qdmEsc(bagLeft)} koin lagi menuju Laundry Bag</div>
+      ${available.map((r) => `
+        <div class="customer-member-reward">
+          🎁 ${r.reward_type === "BONUS_COIN" ? "Bonus 1 Koin" : "1 Laundry Bag"} tersedia (milestone ${qdmEsc(r.milestone_number)}) — tunjukkan halaman ini ke Staff
+        </div>`).join("")}
+    `;
+  } catch {
+    content.textContent = "Belum ada data member.";
+  }
+}
+
+async function refreshCustomerPickupInfo() {
+  const card = $("customerPickupCard");
+  const content = $("customerPickupContent");
+  if (!card || !content) return;
+  try {
+    const data = await api("/service-settings");
+    const s = data.settings || {};
+    if (!s.pickupDeliveryEnabled) {
+      card.hidden = true;
+      return;
+    }
+    card.hidden = false;
+    const wa = qdmWhatsappHref(s.pickupDeliveryWhatsapp, "Halo, saya mau pakai layanan antar/jemput laundry.");
+    content.innerHTML = `
+      ${s.pickupDeliveryAreas ? `<div class="customer-pickup-row">📍 Area: ${qdmEsc(s.pickupDeliveryAreas)}</div>` : ""}
+      ${s.pickupDeliveryHoursStart ? `<div class="customer-pickup-row">🕐 Jam: ${qdmEsc(s.pickupDeliveryHoursStart)} – ${qdmEsc(s.pickupDeliveryHoursEnd || "")}</div>` : ""}
+      ${s.pickupDeliveryMinOrderKg ? `<div class="customer-pickup-row">⚖️ Minimum: ${qdmEsc(s.pickupDeliveryMinOrderKg)} kg</div>` : ""}
+      ${s.pickupDeliveryTariffLabel ? `<div class="customer-pickup-row">💰 Tarif: ${qdmEsc(s.pickupDeliveryTariffLabel)}</div>` : ""}
+      ${s.pickupDeliveryNote ? `<div class="customer-pickup-note">${qdmEsc(s.pickupDeliveryNote)}</div>` : ""}
+      ${wa ? `<a class="customer-pickup-wa" href="${wa}" target="_blank" rel="noopener noreferrer">Hubungi via WhatsApp</a>` : ""}
+    `;
+  } catch {
+    card.hidden = true;
+  }
+}
+
+/* ---------------------------------------------------------- *
+ * STAFF
+ * ---------------------------------------------------------- */
+
+let staffQueueDropoffMemberInitialized = false;
+let staffQueueDropoffMemberTimer = null;
+
+function initStaffQueueDropoffMember() {
+  if (!staffQueueDropoffMemberInitialized) {
+    staffQueueDropoffMemberInitialized = true;
+
+    const receiveBtn = $("staffDropoffReceiveButton");
+    if (receiveBtn) receiveBtn.addEventListener("click", staffReceiveDropoff);
+
+    const saveBtn = $("staffMemberSaveButton");
+    if (saveBtn) saveBtn.addEventListener("click", staffSaveMemberPurchase);
+
+    const lookupBtn = $("staffMemberLookupButton");
+    if (lookupBtn) lookupBtn.addEventListener("click", staffLookupMember);
+  }
+
+  refreshStaffQueueList();
+  refreshStaffDropoffList();
+
+  if (staffQueueDropoffMemberTimer) window.clearInterval(staffQueueDropoffMemberTimer);
+  staffQueueDropoffMemberTimer = window.setInterval(() => {
+    if (state.role !== "STAFF" || !$("staffDashboard") || $("staffDashboard").hidden) return;
+    refreshStaffQueueList();
+    refreshStaffDropoffList();
+  }, 15000);
+}
+
+async function refreshStaffQueueList() {
+  const el = $("staffQueueList");
+  if (!el) return;
+  try {
+    const data = await api("/staff/queue/self-service");
+    const tickets = data.tickets || [];
+    if (!tickets.length) {
+      el.innerHTML = '<p class="staff-card-note">Tidak ada antrean saat ini.</p>';
+      return;
+    }
+    el.innerHTML = tickets.map((t) => {
+      const code = `${t.machine_type === "WASHER" ? "C" : "K"}-${String(t.queue_number).padStart(2, "0")}`;
+      const canCall = t.status === "WAITING";
+      const canNoShow = t.status === "CALLED";
+      return `
+        <div class="staff-queue-row">
+          <div class="staff-queue-row-top">
+            <b>${qdmEsc(code)}</b>
+            <span class="staff-queue-row-meta">${qdmEsc(t.phone_masked || "")} · ${qdmEsc(t.status)}</span>
+          </div>
+          <div class="staff-queue-row-actions">
+            ${canCall ? `<button type="button" class="staff-call-button" data-qdm-call="${qdmEsc(t.ticket_id)}">Panggil</button>` : ""}
+            ${canNoShow ? `<button type="button" class="staff-noshow-button" data-qdm-noshow="${qdmEsc(t.ticket_id)}">No-Show</button>` : ""}
+            <input type="text" class="staff-queue-machine-input" placeholder="${t.machine_type === "WASHER" ? "W3" : "D3"}" maxlength="2" data-qdm-machine-input="${qdmEsc(t.ticket_id)}">
+            <button type="button" class="staff-activate-button" data-qdm-activate="${qdmEsc(t.ticket_id)}">Aktivasi</button>
+          </div>
+        </div>`;
+    }).join("");
+
+    el.querySelectorAll("[data-qdm-call]").forEach((b) => b.addEventListener("click", () => staffCallTicket(b.getAttribute("data-qdm-call"))));
+    el.querySelectorAll("[data-qdm-noshow]").forEach((b) => b.addEventListener("click", () => staffNoShowTicket(b.getAttribute("data-qdm-noshow"))));
+    el.querySelectorAll("[data-qdm-activate]").forEach((b) => b.addEventListener("click", () => {
+      const ticketId = b.getAttribute("data-qdm-activate");
+      const input = el.querySelector(`[data-qdm-machine-input="${ticketId}"]`);
+      staffActivateTicket(ticketId, input ? input.value.trim() : "");
+    }));
+  } catch (error) {
+    el.innerHTML = `<p class="staff-card-note">Gagal memuat antrean: ${qdmEsc(error.message)}</p>`;
+  }
+}
+
+async function staffCallTicket(ticketId) {
+  const msg = $("staffQueueMsg");
+  try {
+    await api(`/staff/queue/self-service/${encodeURIComponent(ticketId)}/call`, { method: "POST" });
+    if (msg) msg.textContent = "";
+    await refreshStaffQueueList();
+  } catch (error) {
+    if (msg) msg.textContent = error.message;
+  }
+}
+
+async function staffNoShowTicket(ticketId) {
+  const msg = $("staffQueueMsg");
+  try {
+    await api(`/staff/queue/self-service/${encodeURIComponent(ticketId)}/no-show`, { method: "POST" });
+    if (msg) msg.textContent = "";
+    await refreshStaffQueueList();
+  } catch (error) {
+    if (msg) msg.textContent = error.message;
+  }
+}
+
+async function staffActivateTicket(ticketId, machineId) {
+  const msg = $("staffQueueMsg");
+  if (!machineId) {
+    if (msg) msg.textContent = "Isi kode mesin dulu, contoh: W3.";
+    return;
+  }
+  try {
+    await api(`/staff/queue/self-service/${encodeURIComponent(ticketId)}/activate`, {
+      method: "POST",
+      body: JSON.stringify({ machineId: machineId.toUpperCase() }),
+    });
+    if (msg) msg.textContent = "Mesin diaktifkan.";
+    await refreshStaffQueueList();
+    await refreshStaffMachines();
+  } catch (error) {
+    if (msg) msg.textContent = error.message;
+  }
+}
+
+async function refreshStaffDropoffList() {
+  const el = $("staffDropoffList");
+  if (!el) return;
+  try {
+    const data = await api("/staff/dropoff/active");
+    const orders = data.orders || [];
+    if (!orders.length) {
+      el.innerHTML = '<p class="staff-card-note">Tidak ada pesanan aktif.</p>';
+      return;
+    }
+    el.innerHTML = orders.map((o) => {
+      const action = o.status === "RECEIVED"
+        ? `<button type="button" class="staff-dropoff-action-button" data-qdm-complete="${qdmEsc(o.order_id)}">Selesai</button>`
+        : `<button type="button" class="staff-dropoff-action-button" data-qdm-pickup="${qdmEsc(o.order_id)}">Sudah Diambil</button>`;
+      return `
+        <div class="staff-dropoff-row">
+          <div class="staff-dropoff-row-top">
+            <b>${qdmEsc(o.order_id)}</b>
+            ${action}
+          </div>
+          <div class="staff-dropoff-row-meta">${qdmEsc(o.phone_masked)} · ${qdmEsc(o.weight_kg)} kg · ${qdmEsc(o.status)}</div>
+        </div>`;
+    }).join("");
+
+    el.querySelectorAll("[data-qdm-complete]").forEach((b) => b.addEventListener("click", () => staffDropoffAction(b.getAttribute("data-qdm-complete"), "complete")));
+    el.querySelectorAll("[data-qdm-pickup]").forEach((b) => b.addEventListener("click", () => staffDropoffAction(b.getAttribute("data-qdm-pickup"), "pickup")));
+  } catch (error) {
+    el.innerHTML = `<p class="staff-card-note">Gagal memuat: ${qdmEsc(error.message)}</p>`;
+  }
+}
+
+async function staffDropoffAction(orderId, action) {
+  const msg = $("staffDropoffMsg");
+  try {
+    await api(`/staff/dropoff/${encodeURIComponent(orderId)}/${action}`, { method: "POST" });
+    if (msg) msg.textContent = "";
+    await refreshStaffDropoffList();
+  } catch (error) {
+    if (msg) msg.textContent = error.message;
+  }
+}
+
+async function staffReceiveDropoff() {
+  const msg = $("staffDropoffMsg");
+  const phoneInput = $("staffDropoffPhone");
+  const weightInput = $("staffDropoffWeight");
+  const phone = phoneInput ? phoneInput.value.trim() : "";
+  const weightKg = weightInput ? parseFloat(weightInput.value) : NaN;
+
+  if (!phone || !weightKg || weightKg <= 0) {
+    if (msg) msg.textContent = "Isi No. HP dan berat yang valid dulu.";
+    return;
+  }
+
+  if (msg) msg.textContent = "Memproses...";
+  try {
+    const data = await api("/staff/dropoff/receive", {
+      method: "POST",
+      body: JSON.stringify({ phone, weightKg }),
+    });
+    if (msg) msg.textContent = `Diterima: ${data.order.order_id}. Tandai keranjang dengan nomor ini.`;
+    if (phoneInput) phoneInput.value = "";
+    if (weightInput) weightInput.value = "";
+    await refreshStaffDropoffList();
+  } catch (error) {
+    if (msg) msg.textContent = error.message;
+  }
+}
+
+function renderStaffMemberResult(data) {
+  const el = $("staffMemberResult");
+  if (!el) return;
+  const available = data.availableRewards || [];
+  el.innerHTML = `
+    <div class="customer-member-progress">Total koin: ${qdmEsc(data.totalCoinsPurchased)}</div>
+    ${available.length
+      ? available.map((r) => `
+        <div class="staff-member-reward-row">
+          <span>${r.reward_type === "BONUS_COIN" ? "Bonus 1 Koin" : "1 Laundry Bag"} (milestone ${qdmEsc(r.milestone_number)})</span>
+          <button type="button" data-qdm-fulfill="${qdmEsc(r.reward_id)}">Sudah Diberikan</button>
+        </div>`).join("")
+      : '<p class="staff-card-note">Tidak ada reward tersedia.</p>'}
+  `;
+  el.querySelectorAll("[data-qdm-fulfill]").forEach((b) => b.addEventListener("click", () => staffFulfillReward(b.getAttribute("data-qdm-fulfill"))));
+}
+
+async function staffFulfillReward(rewardId) {
+  const msg = $("staffMemberMsg");
+  try {
+    await api(`/staff/member/reward/${encodeURIComponent(rewardId)}/fulfill`, { method: "POST" });
+    if (msg) msg.textContent = "Reward ditandai sudah diberikan.";
+    await staffLookupMember();
+  } catch (error) {
+    if (msg) msg.textContent = error.message;
+  }
+}
+
+async function staffLookupMember() {
+  const msg = $("staffMemberMsg");
+  const phoneInput = $("staffMemberPhone");
+  const phone = phoneInput ? phoneInput.value.trim() : "";
+  if (!phone) {
+    if (msg) msg.textContent = "Isi No. HP dulu.";
+    return;
+  }
+  if (msg) msg.textContent = "Memuat...";
+  try {
+    const data = await api(`/staff/member/lookup?phone=${encodeURIComponent(phone)}`);
+    renderStaffMemberResult(data);
+    if (msg) msg.textContent = "";
+  } catch (error) {
+    if (msg) msg.textContent = error.message;
+  }
+}
+
+async function staffSaveMemberPurchase() {
+  const msg = $("staffMemberMsg");
+  const phoneInput = $("staffMemberPhone");
+  const coinsInput = $("staffMemberCoins");
+  const phone = phoneInput ? phoneInput.value.trim() : "";
+  const quantity = coinsInput ? parseInt(coinsInput.value, 10) : NaN;
+
+  if (!phone || !quantity || quantity <= 0) {
+    if (msg) msg.textContent = "Isi No. HP dan jumlah koin yang valid dulu.";
+    return;
+  }
+
+  if (msg) msg.textContent = "Menyimpan...";
+  try {
+    const purchaseId = crypto.randomUUID();
+    const data = await api("/staff/member/purchase", {
+      method: "POST",
+      body: JSON.stringify({ phone, quantity, purchaseId }),
+    });
+    if (msg) msg.textContent = `Tersimpan. Total koin sekarang: ${data.totalCoinsPurchased}.`;
+    if (coinsInput) coinsInput.value = "";
+    renderStaffMemberResult({ totalCoinsPurchased: data.totalCoinsPurchased, availableRewards: data.newRewards });
+  } catch (error) {
+    if (msg) msg.textContent = error.message;
+  }
 }
 
 initialize();
