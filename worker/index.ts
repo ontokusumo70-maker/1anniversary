@@ -7,6 +7,8 @@ import {
 import { handleClaimRequest } from './routes/claim';
 import { handleRewardRequest } from './routes/reward';
 import { handleStaffRedeemRequest } from './routes/staff-redeem';
+import { handleMemberRequest } from './routes/member';
+import { handleDropoffRequest } from './routes/dropoff';
 import { handleAuthRequest } from './routes/auth';
 import { cleanupExpiredEvents, handleOwnerRequest } from './routes/owner';
 import { handleAssetRequest } from './routes/assets';
@@ -399,6 +401,32 @@ async function handleRequest(
     404
   ) {
     return staffResponse;
+  }
+
+  const memberResponse =
+    await handleMemberRequest(
+      request,
+      env,
+    );
+
+  if (
+    memberResponse.status !==
+    404
+  ) {
+    return withCors(memberResponse, origin);
+  }
+
+  const dropoffResponse =
+    await handleDropoffRequest(
+      request,
+      env,
+    );
+
+  if (
+    dropoffResponse.status !==
+    404
+  ) {
+    return withCors(dropoffResponse, origin);
   }
 
   return json(
