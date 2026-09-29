@@ -10,7 +10,10 @@ export type AuditEntityType =
   | "EXPORT"
   | "TRACE"
   | "EVENT"
-  | "EVENT_IMAGE";
+  | "EVENT_IMAGE"
+  | "MEMBER_PURCHASE"
+  | "MEMBER_REWARD"
+  | "DROPOFF_ORDER";
 
 export type AuditAction =
   | "START"
@@ -26,7 +29,10 @@ export type AuditAction =
   | "TRACE"
   | "EVENT"
   | "UPLOAD"
-  | "REVOKE";
+  | "REVOKE"
+  | "FULFILL"
+  | "COMPLETE"
+  | "PICKUP";
 
 export type AuditResult =
   | "SUCCESS"
