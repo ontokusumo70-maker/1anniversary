@@ -28,6 +28,7 @@ import { handleStaffActivateMachine } from "./machines";
  */
 
 const NO_SHOW_MINUTES = 10;
+const ACTIVATED_NOTICE_MINUTES = 30;
 
 type MachineType = "WASHER" | "DRYER";
 
@@ -125,6 +126,25 @@ async function broadcastQueueUpdated(env: Env, machineType: MachineType, queueDa
 }
 
 /** Atomically allocates the next queue number for (date, machineType). */
+/** Notifikasi realtime untuk customer pemilik tiket (dashboard customer). */
+async function broadcastTicketEvent(
+  env: Env,
+  type: "SELF_SERVICE_TICKET_CALLED" | "SELF_SERVICE_TICKET_ACTIVATED",
+  ticket: TicketRow,
+  machineId: string | null,
+): Promise<void> {
+  try {
+    await broadcastRealtime(env, type, {
+      customerId: ticket.customer_id,
+      displayCode: displayCode(ticket.machine_type, ticket.queue_number),
+      machineType: ticket.machine_type,
+      machineId,
+    });
+  } catch {
+    // Realtime best-effort; dashboard juga polling /queue/self-service/mine.
+  }
+}
+
 async function allocateQueueNumber(env: Env, queueDate: string, machineType: MachineType): Promise<number> {
   await env.DB.prepare(`
     INSERT OR IGNORE INTO self_service_counters (queue_date, machine_type, next_number)
@@ -259,7 +279,7 @@ async function computePosition(env: Env, ticket: TicketRow): Promise<number | nu
 
   const row = await env.DB.prepare(`
     SELECT COUNT(*) AS ahead FROM self_service_tickets
-    WHERE machine_type = ? AND queue_date = ? AND status = 'WAITING' AND queue_number < ?
+    WHERE machine_type = ? AND queue_date = ? AND status IN ('WAITING', 'CALLED') AND queue_number < ?
   `).bind(ticket.machine_type, ticket.queue_date, ticket.queue_number).first<{ ahead: number }>();
 
   return (row?.ahead ?? 0) + 1;
@@ -291,7 +311,17 @@ async function handleMine(request: Request, env: Env): Promise<Response> {
     }),
   );
 
-  return json({ ok: true, tickets });
+  // Notifikasi dashboard: tiket yang baru diaktifkan Staff (30 menit terakhir).
+  const sinceIso = new Date(Date.now() - ACTIVATED_NOTICE_MINUTES * 60 * 1000).toISOString();
+  const activatedResult = await env.DB.prepare(`
+    SELECT * FROM self_service_tickets
+    WHERE customer_id = ? AND queue_date = ? AND status = 'ACTIVATED' AND activated_at >= ?
+    ORDER BY activated_at DESC
+    LIMIT 3
+  `).bind(session.userId, queueDate, sinceIso).all<TicketRow>();
+  const recentActivated = (activatedResult.results ?? []).map((ticket) => ticketResponse(ticket, null));
+
+  return json({ ok: true, tickets, recentActivated });
 }
 
 /*
@@ -390,7 +420,7 @@ async function handleStaffList(request: Request, env: Env): Promise<Response> {
   const queueDate = jakartaDateString();
 
   const result = await env.DB.prepare(`
-    SELECT t.*, c.phone_masked
+    SELECT t.*, c.phone_masked, c.phone, c.name AS customer_name
     FROM self_service_tickets t
     JOIN customers c ON c.customer_id = t.customer_id
     WHERE t.queue_date = ? AND t.status IN ('WAITING', 'CALLED')
@@ -446,6 +476,7 @@ async function handleCall(request: Request, env: Env, ticketId: string): Promise
   });
 
   await broadcastQueueUpdated(env, ticket.machine_type, ticket.queue_date);
+  await broadcastTicketEvent(env, "SELF_SERVICE_TICKET_CALLED", ticket, null);
 
   return json({ ok: true, idempotent: false, ticket: ticketResponse(ticket, null) });
 }
@@ -557,6 +588,23 @@ async function handleActivate(request: Request, env: Env, ticketId: string): Pro
     );
   }
 
+  // FIFO: tiket hanya boleh diaktifkan bila tidak ada tiket aktif lain yang
+  // lebih kecil nomornya (jenis mesin sama, hari sama). Bila customer di depan
+  // tidak hadir, Staff harus menandainya "Tidak hadir" (setelah 10 menit) dulu.
+  const earlier = await env.DB.prepare(`
+    SELECT queue_number FROM self_service_tickets
+    WHERE machine_type = ? AND queue_date = ? AND status IN ('WAITING', 'CALLED') AND queue_number < ?
+    ORDER BY queue_number ASC
+    LIMIT 1
+  `).bind(ticket.machine_type, ticket.queue_date, ticket.queue_number).first<{ queue_number: number }>();
+  if (earlier) {
+    return errorResponse(
+      "OUT_OF_ORDER",
+      `Masih ada antrean sebelumnya (${displayCode(ticket.machine_type, earlier.queue_number)}). Layani sesuai urutan.`,
+      409,
+    );
+  }
+
   // Reuse the existing, already-atomic machine activation endpoint.
   // It does not read the request body, so passing the same `request`
   // through (after we already consumed its JSON above) is safe.
@@ -594,6 +642,7 @@ async function handleActivate(request: Request, env: Env, ticketId: string): Pro
   });
 
   await broadcastQueueUpdated(env, ticket.machine_type, ticket.queue_date);
+  await broadcastTicketEvent(env, "SELF_SERVICE_TICKET_ACTIVATED", ticket, machineId);
 
   return json({ ok: true, machine: activateData.machine, ticketId, ticketLinked: update.meta.changes === 1 });
 }
