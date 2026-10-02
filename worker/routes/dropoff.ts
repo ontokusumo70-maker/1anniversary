@@ -4,6 +4,7 @@ import type { AuthSession } from "../auth/session-guard";
 import { writeAuditSafe } from "../audit/logger";
 import { broadcastRealtime } from "../realtime";
 import { isPhone, findOrCreateCustomerByPhone } from "../lib/customer-lookup";
+import { readProgramSettings } from "../lib/program-settings";
 
 /*
  * ============================================================
@@ -38,6 +39,9 @@ type OrderRow = {
   pickup_due_at: string | null;
   picked_up_at: string | null;
   picked_up_by: string | null;
+  item_count: number;
+  item_unit: "BASKET" | "BAG";
+  est_done_at: string | null;
 };
 
 function json(data: unknown, status = 200): Response {
@@ -98,7 +102,16 @@ async function handleReceive(request: Request, env: Env): Promise<Response> {
     return errorResponse("UNAUTHORIZED", "Staff authentication is required.", 401);
   }
 
-  let body: { phone?: unknown; weightKg?: unknown; notes?: unknown };
+  let body: {
+    phone?: unknown;
+    weightKg?: unknown;
+    notes?: unknown;
+    name?: unknown;
+    address?: unknown;
+    itemCount?: unknown;
+    itemUnit?: unknown;
+    estimateHours?: unknown;
+  };
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -113,16 +126,51 @@ async function handleReceive(request: Request, env: Env): Promise<Response> {
   }
 
   const notes = typeof body.notes === "string" ? body.notes.trim().slice(0, 200) : "";
+
+  const itemCount = typeof body.itemCount === "number" ? body.itemCount : 1;
+  if (!Number.isInteger(itemCount) || itemCount < 1 || itemCount > 99) {
+    return errorResponse("INVALID_REQUEST", "itemCount must be an integer between 1 and 99.", 400);
+  }
+  const itemUnit = body.itemUnit === "BAG"
+    ? "BAG"
+    : body.itemUnit === "BASKET" || body.itemUnit === undefined
+      ? "BASKET"
+      : null;
+  if (!itemUnit) {
+    return errorResponse("INVALID_REQUEST", "itemUnit must be BASKET or BAG.", 400);
+  }
+
+  const settings = await readProgramSettings(env);
+  const hours = typeof body.estimateHours === "number" && Number.isFinite(body.estimateHours) &&
+    body.estimateHours >= 1 && body.estimateHours <= 720
+    ? body.estimateHours
+    : settings.dropoff.estimateHours;
+
+  const name = typeof body.name === "string" ? body.name.trim().replace(/\s+/g, " ").slice(0, 60) : "";
+  const address = typeof body.address === "string" ? body.address.trim().slice(0, 250) : "";
+
   const { customerId } = await findOrCreateCustomerByPhone(env, body.phone);
+
+  // Nama/alamat yang diisi Staff disimpan ke profil customer (diisi manual
+  // bila customer belum ada, atau diperbarui bila Staff mengubahnya).
+  if (name) {
+    await env.DB.prepare(`UPDATE customers SET name = ? WHERE customer_id = ?`).bind(name, customerId).run();
+  }
+  if (address) {
+    await env.DB.prepare(`UPDATE customers SET address = ? WHERE customer_id = ?`).bind(address, customerId).run();
+  }
+
   const orderId = await allocateOrderId(env);
   const nowIso = new Date().toISOString();
+  const estDoneAt = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
 
   await env.DB.prepare(`
     INSERT INTO dropoff_orders (
-      order_id, customer_id, weight_kg, notes, status, received_at, received_by
+      order_id, customer_id, weight_kg, notes, status, received_at, received_by,
+      item_count, item_unit, est_done_at
     )
-    VALUES (?, ?, ?, ?, 'RECEIVED', ?, ?)
-  `).bind(orderId, customerId, body.weightKg, notes, nowIso, session.userId).run();
+    VALUES (?, ?, ?, ?, 'RECEIVED', ?, ?, ?, ?, ?)
+  `).bind(orderId, customerId, body.weightKg, notes, nowIso, session.userId, itemCount, itemUnit, estDoneAt).run();
 
   const order: OrderRow = {
     order_id: orderId,
@@ -137,6 +185,9 @@ async function handleReceive(request: Request, env: Env): Promise<Response> {
     pickup_due_at: null,
     picked_up_at: null,
     picked_up_by: null,
+    item_count: itemCount,
+    item_unit: itemUnit,
+    est_done_at: estDoneAt,
   };
 
   await writeAuditSafe(env, {
@@ -264,7 +315,7 @@ async function handleActiveList(request: Request, env: Env): Promise<Response> {
   }
 
   const orders = await env.DB.prepare(`
-    SELECT o.*, c.phone_masked
+    SELECT o.*, c.phone_masked, c.phone, c.name AS customer_name, c.address AS customer_address
     FROM dropoff_orders o
     JOIN customers c ON c.customer_id = o.customer_id
     WHERE o.status IN ('RECEIVED', 'COMPLETED')
@@ -287,14 +338,25 @@ async function handleMyOrder(request: Request, env: Env): Promise<Response> {
     return errorResponse("UNAUTHORIZED", "Customer authentication is required.", 401);
   }
 
-  const order = await env.DB.prepare(`
+  const result = await env.DB.prepare(`
     SELECT * FROM dropoff_orders
     WHERE customer_id = ? AND status IN ('RECEIVED', 'COMPLETED')
     ORDER BY received_at DESC
-    LIMIT 1
-  `).bind(session.userId).first<OrderRow>();
+    LIMIT 20
+  `).bind(session.userId).all<OrderRow>();
+  const orders = result.results ?? [];
 
-  return json({ ok: true, order: order ?? null });
+  const customer = await env.DB.prepare(`
+    SELECT name, phone FROM customers WHERE customer_id = ? LIMIT 1
+  `).bind(session.userId).first<{ name: string | null; phone: string | null }>();
+
+  return json({
+    ok: true,
+    order: orders[0] ?? null,
+    orders,
+    activeCount: orders.length,
+    customer: customer ? { name: customer.name ?? "", phone: customer.phone ?? "" } : null,
+  });
 }
 
 export async function handleDropoffRequest(request: Request, env: Env): Promise<Response> {
