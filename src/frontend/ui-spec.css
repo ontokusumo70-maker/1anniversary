@@ -1,0 +1,661 @@
+/* ==========================================================================
+   TERAS LAUNDRY — STANDAR UI v1.0
+   Dashboard Staff & Customer, halaman Request Antar/Jemput, Event.
+   Dimuat SETELAH styles.css (override memakai selector #id agar menang).
+   Satuan dp/pt pada kanvas 390 x 693 (9:16). Font Poppins 400/500/700.
+   ========================================================================== */
+
+:root {
+  --td-g: #0B7A53;
+  --td-ink: #10281D;
+  --td-mut: #5B6F64;
+  --td-mint: #E1F2E8;
+  --td-mints: #F1F9F4;
+  --td-amb: #E8A900;
+  --td-ambs: #FDEECB;
+  --td-ambt: #8A5A00;
+  --td-line: rgba(11, 122, 83, .14);
+  --td-in: rgba(11, 122, 83, .28);
+  --td-err: #C0392B;
+  --td-grey: #E6ECE8;
+  --td-surface: rgba(255, 255, 255, .9);
+  --td-scrim: rgba(238, 249, 242, .72);
+  --td-w: min(100vw, 520px);
+  --td-font: "Poppins", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --td-safe-t: env(safe-area-inset-top, 0px);
+  --td-safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+/* --------------------------------------------------------------------------
+   1. BACKGROUND (rasio 9:16, lebar penuh, tanpa zoom/stretch)
+   Staff   : rata atas, warna isi #E4F4EA
+   Customer: rata bawah, warna isi #CEFBDA
+   -------------------------------------------------------------------------- */
+body[data-role="STAFF"]:has(#staffDashboard:not([hidden])) {
+  background: #E4F4EA url("/assets/background/staff/staff-bg-clean.png") top center / var(--td-w) auto no-repeat fixed;
+}
+
+body[data-role="CUSTOMER"]:has(#customerDashboard:not([hidden])) {
+  background: #CEFBDA url("/assets/background/customer/customer-bg-clean.png") bottom center / var(--td-w) auto no-repeat fixed;
+}
+
+body[data-role="STAFF"]:has(#staffDashboard:not([hidden])) .app-shell,
+body[data-role="CUSTOMER"]:has(#customerDashboard:not([hidden])) .app-shell {
+  width: 100% !important;
+  max-width: 520px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  overflow: visible !important;
+}
+
+body[data-role="STAFF"] #staff.screen-staff,
+body[data-role="CUSTOMER"] #customer.screen-customer.customer-dashboard-screen {
+  background: transparent !important;
+  overflow: visible !important;
+}
+
+body[data-role="CUSTOMER"] .customer-dashboard-bg { display: none !important; }
+
+/* --------------------------------------------------------------------------
+   2. KONTEN DASHBOARD
+   Konten mulai y = 190 (27,4% tinggi background) agar logo tidak tertutup.
+   -------------------------------------------------------------------------- */
+:is(#staffDashboard, #customerDashboard) {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  width: 100% !important;
+  max-width: 520px !important;
+  min-height: 100svh !important;
+  margin: 0 auto !important;
+  padding: calc(var(--td-w) * .487) 16px calc(32px + var(--td-safe-b)) !important;
+  overflow: visible !important;
+  background: transparent !important;
+  transform: none !important;
+  font-family: var(--td-font);
+  color: var(--td-ink);
+}
+
+:is(#staffDashboard, #customerDashboard)[hidden] { display: none !important; }
+
+:is(#staffDashboard, #customerDashboard) > * { margin: 0 !important; }
+
+/* urutan: header, status mesin, antrean, menu, request, event, layanan */
+:is(#staffDashboard, #customerDashboard) .staff-dashboard-topline { order: 0; }
+:is(#staffDashboard, #customerDashboard) .staff-status-card { order: 1; }
+:is(#staffDashboard, #customerDashboard) .td-queue { order: 2; }
+:is(#staffDashboard, #customerDashboard) .td-menu { order: 3; }
+:is(#staffDashboard, #customerDashboard) .td-req { order: 4; }
+:is(#staffDashboard, #customerDashboard) .staff-event-card { order: 5; }
+:is(#staffDashboard, #customerDashboard) .staff-services-card { order: 6; }
+
+/* card lama yang kini dibuka lewat halaman sendiri */
+#staffDashboard > #staffQueueCard,
+#staffDashboard > #staffDropoffCard,
+#staffDashboard > #staffMemberCard,
+#customerDashboard > #customerQueueCard,
+#customerDashboard > #customerDropoffCard,
+#customerDashboard > #customerMemberCard,
+#customerDashboard > #customerPickupCard { display: none !important; }
+
+/* logo branding customer: tengah, 111 x 111 pada lebar 390 */
+#customerDashboard .customer-dashboard-brand {
+  position: absolute !important;
+  left: 50% !important;
+  top: calc(var(--td-w) * .123) !important;
+  width: calc(var(--td-w) * .2846) !important;
+  height: auto !important;
+  transform: translateX(-50%) !important;
+  margin: 0 !important;
+  pointer-events: none;
+}
+#customerDashboard .customer-dashboard-brand img { width: 100%; height: auto; display: block; }
+
+/* header: tanggal + logout */
+:is(#staffDashboard, #customerDashboard) .staff-dashboard-topline {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  height: 40px !important;
+  padding: 0 !important;
+  position: static !important;
+}
+:is(#staffDashboard, #customerDashboard) .staff-dashboard-update,
+:is(#staffDashboard, #customerDashboard) .staff-logout {
+  height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  border-radius: 14px !important;
+  background: var(--td-surface) !important;
+  border: 1px solid var(--td-line) !important;
+  box-shadow: 0 1px 4px rgba(11, 90, 60, .08) !important;
+  font: 700 13px/18px var(--td-font) !important;
+  color: var(--td-ink) !important;
+  backdrop-filter: blur(6px);
+}
+:is(#staffDashboard, #customerDashboard) .staff-dashboard-update { flex: 1; padding: 0 12px !important; }
+:is(#staffDashboard, #customerDashboard) .staff-logout {
+  width: auto !important;
+  padding: 0 12px !important;
+  gap: 6px;
+  color: var(--td-g) !important;
+}
+:is(#staffDashboard, #customerDashboard) .staff-logout-icon svg { width: 18px; height: 18px; stroke: var(--td-g); }
+
+/* card standar: 14 radius, padding 10/12, border 1, shadow 0 1 4 */
+:is(#staffDashboard, #customerDashboard) :is(.staff-dashboard-card, .td-card, .staff-services-card) {
+  min-height: 0 !important;
+  padding: 10px 12px !important;
+  border-radius: 14px !important;
+  background: var(--td-surface) !important;
+  border: 1px solid var(--td-line) !important;
+  box-shadow: 0 1px 4px rgba(11, 90, 60, .08) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  font-family: var(--td-font);
+  text-align: left;
+}
+
+:is(#staffDashboard, #customerDashboard) .staff-section-heading {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px;
+  height: 20px;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+:is(#staffDashboard, #customerDashboard) .staff-section-heading h2 {
+  margin: 0 !important;
+  font: 700 14px/20px var(--td-font) !important;
+  color: var(--td-ink) !important;
+  flex: 1;
+}
+:is(#staffDashboard, #customerDashboard) :is(.staff-section-chevron, .staff-services-chevron, .td-chev) {
+  font-size: 0 !important;
+  width: 18px;
+  height: 18px;
+  flex: none;
+  background: no-repeat center / 18px 18px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235B6F64' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 5l7 7-7 7'/%3E%3C/svg%3E");
+}
+
+/* Status Mesin: minicard Washer & Dryer compact (2 kolom, 48 tinggi) */
+:is(#staffDashboard, #customerDashboard) .staff-machine-summary-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 8px !important;
+  margin: 8px 0 0 !important;
+}
+:is(#staffDashboard, #customerDashboard) .staff-status-card .staff-machine-summary {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  height: 48px;
+  min-height: 0 !important;
+  padding: 0 10px !important;
+  border-radius: 10px !important;
+  background: var(--td-mints) !important;
+  border: 1px solid var(--td-line) !important;
+  box-shadow: none !important;
+}
+:is(#staffDashboard, #customerDashboard) .staff-status-card .staff-machine-icon {
+  width: 28px !important;
+  height: 28px !important;
+  flex: none;
+  display: grid !important;
+  place-items: center;
+  border-radius: 8px !important;
+  background: var(--td-mint) !important;
+}
+:is(#staffDashboard, #customerDashboard) .staff-status-card .staff-machine-icon svg {
+  width: 18px !important;
+  height: 18px !important;
+  fill: none;
+  stroke: var(--td-g);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+:is(#staffDashboard, #customerDashboard) .staff-status-card .staff-machine-summary-copy {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 0;
+  min-width: 0;
+}
+:is(#staffDashboard, #customerDashboard) .staff-status-card .staff-machine-summary-copy > strong {
+  flex-basis: 100%;
+  font: 500 12px/16px var(--td-font) !important;
+  color: var(--td-ink) !important;
+}
+:is(#staffDashboard, #customerDashboard) .staff-status-card .staff-machine-summary-copy > div {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 4px;
+  font: 500 11px/14px var(--td-font) !important;
+  margin: 0 !important;
+}
+:is(#staffDashboard, #customerDashboard) .staff-status-card .staff-machine-summary-copy > div b { display: none !important; }
+:is(#staffDashboard, #customerDashboard) .staff-status-card .staff-machine-summary-copy em {
+  font: 500 11px/14px var(--td-font) !important;
+  font-style: normal;
+  color: var(--td-ink);
+}
+:is(#staffDashboard, #customerDashboard) .staff-status-dot {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50%;
+}
+
+/* Antrean Self-Service: hanya nomor antrean Washer & Dryer */
+.td-queue { cursor: pointer; }
+.td-queue h2 { margin: 0; font: 700 14px/20px var(--td-font); color: var(--td-ink); }
+.td-queue-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.td-queue-cell {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: var(--td-mints);
+  border: 1px solid var(--td-line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font: 500 12px/16px var(--td-font);
+}
+.td-queue-cell em { font: 700 20px/24px var(--td-font); font-style: normal; color: var(--td-g); }
+
+/* Menu: Drop-off & Member (175 x 56) */
+.td-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.td-menu-item {
+  height: 56px;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: var(--td-surface);
+  border: 1px solid var(--td-line);
+  box-shadow: 0 1px 4px rgba(11, 90, 60, .08);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--td-font);
+  color: var(--td-ink);
+  cursor: pointer;
+  text-align: left;
+  min-width: 0;
+}
+.td-ib {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--td-mint);
+}
+.td-ib svg, .td-ico {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: var(--td-g);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+.td-txt { min-width: 0; flex: 1; }
+.td-txt b { display: block; font: 700 14px/20px var(--td-font); }
+.td-txt small { display: block; font: 400 11px/14px var(--td-font); color: var(--td-mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Request Antar/Jemput (358 x 56) */
+.td-req {
+  height: 56px;
+  width: 100%;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: var(--td-surface);
+  border: 1px solid var(--td-line);
+  box-shadow: 0 1px 4px rgba(11, 90, 60, .08);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--td-font);
+  color: var(--td-ink);
+  cursor: pointer;
+  text-align: left;
+}
+.td-req[hidden], .td-menu-item[hidden] { display: none !important; }
+
+/* badge */
+.td-badge {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--td-ambs);
+  color: var(--td-ambt);
+  font: 700 12px/22px var(--td-font);
+  text-align: center;
+  flex: none;
+}
+.td-badge.m { background: var(--td-mint); color: var(--td-g); }
+.td-badge.g { background: var(--td-grey); color: var(--td-mut); }
+.td-badge.r { background: #FBE3E0; color: var(--td-err); }
+.td-badge[hidden] { display: none !important; }
+
+/* Event: judul bold seragam, badge jumlah, panah kanan (358 x 44) */
+:is(#staffDashboard, #customerDashboard) .staff-event-card {
+  height: 44px;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  padding: 0 12px !important;
+}
+:is(#staffDashboard, #customerDashboard) .staff-event-card .staff-section-heading { width: 100%; gap: 8px; }
+:is(#staffDashboard, #customerDashboard) .staff-event-card .staff-event-content { display: none !important; }
+:is(#staffDashboard, #customerDashboard) .staff-event-card .td-badge { order: 1; }
+:is(#staffDashboard, #customerDashboard) .staff-event-card .staff-section-heading h2 { flex: 1; order: 0; }
+:is(#staffDashboard, #customerDashboard) .staff-event-card .staff-section-chevron { order: 2; }
+
+/* Layanan & Fasilitas (fitur lama): dibuat compact agar seragam */
+:is(#staffDashboard, #customerDashboard) .staff-services-card {
+  height: 44px;
+  width: 100%;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+:is(#staffDashboard, #customerDashboard) .staff-services-card strong { flex: 1; font: 700 14px/20px var(--td-font) !important; text-align: left; color: var(--td-ink) !important; }
+:is(#staffDashboard, #customerDashboard) .staff-services-icon { width: 28px !important; height: 28px !important; display: grid; place-items: center; border-radius: 8px !important; background: var(--td-mint) !important; }
+:is(#staffDashboard, #customerDashboard) .staff-services-icon svg { width: 18px !important; height: 18px !important; fill: none; stroke: var(--td-g); stroke-width: 2; }
+
+/* --------------------------------------------------------------------------
+   3. HALAMAN DALAM (overlay): Request, Event, Antrean, Drop-off, Member
+   Bar atas tetap pada y = 54, konten dapat digulir mulai y = 102.
+   -------------------------------------------------------------------------- */
+html.td-lock, html.td-lock body { overflow: hidden !important; }
+
+.td-page {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--td-font);
+  color: var(--td-ink);
+  background: #E4F4EA url("/assets/background/staff/staff-bg-clean.png") top center / var(--td-w) auto no-repeat;
+}
+.td-page.td-customer {
+  background: #CEFBDA url("/assets/background/customer/customer-bg-clean.png") bottom center / var(--td-w) auto no-repeat;
+}
+.td-page[hidden] { display: none !important; }
+.td-page::before { content: ""; position: absolute; inset: 0; background: var(--td-scrim); pointer-events: none; }
+.td-page > * { position: relative; }
+
+.td-bar {
+  flex: none;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: calc(max(var(--td-safe-t), 47px) + 7px) 16px 8px;
+  display: flex;
+  gap: 8px;
+}
+.td-back, .td-title {
+  height: 40px;
+  border-radius: 14px;
+  background: var(--td-surface);
+  border: 1px solid var(--td-line);
+  box-shadow: 0 1px 4px rgba(11, 90, 60, .08);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+}
+.td-back { width: 40px; justify-content: center; padding: 0; flex: none; cursor: pointer; }
+.td-back svg { transform: rotate(180deg); }
+.td-title { flex: 1; margin: 0; padding: 0 12px; font: 700 14px/20px var(--td-font); color: var(--td-ink); }
+
+.td-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+.td-inner {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 16px calc(16px + var(--td-safe-b));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.td-page.has-sticky .td-inner { padding-bottom: calc(96px + var(--td-safe-b)); }
+
+.td-sticky {
+  position: absolute !important;
+  left: 0; right: 0; bottom: 0;
+  padding: 24px 16px calc(16px + var(--td-safe-b));
+  background: linear-gradient(rgba(238, 249, 242, 0), rgba(238, 249, 242, .95) 55%);
+  pointer-events: none;
+}
+.td-sticky[hidden] { display: none !important; }
+.td-sticky > * { max-width: 688px; margin: 0 auto; pointer-events: auto; }
+
+.td-btn {
+  height: 44px;
+  width: 100%;
+  border-radius: 12px;
+  background: var(--td-g);
+  color: #fff;
+  border: 0;
+  font: 700 14px/20px var(--td-font);
+  box-shadow: 0 2px 8px rgba(11, 90, 60, .25);
+  cursor: pointer;
+}
+.td-btn:disabled { opacity: .6; }
+
+/* kartu */
+.td-c {
+  background: var(--td-surface);
+  border: 1px solid var(--td-line);
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(11, 90, 60, .08);
+  backdrop-filter: blur(6px);
+  padding: 12px;
+  min-width: 0;
+}
+.td-c h2 { margin: 0; font: 700 14px/20px var(--td-font); color: var(--td-ink); }
+.td-note { font: 400 11px/14px var(--td-font); color: var(--td-mut); margin: 4px 0 0; }
+.td-note a { color: var(--td-g); font-weight: 500; }
+
+/* form */
+.td-fs { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.td-g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.td-f > label, .td-lb { display: block; margin: 0 0 4px; font: 500 12px/16px var(--td-font); color: var(--td-ink); }
+.td-req-star { color: var(--td-err); font-weight: 700; margin-left: 2px; }
+.td-opt { color: var(--td-mut); font-weight: 400; }
+.td-in, .td-ta {
+  display: block;
+  width: 100%;
+  height: 40px;
+  margin: 0;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--td-in);
+  background: #fff;
+  color: var(--td-ink);
+  font: 400 13px/18px var(--td-font);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.td-ta { height: auto; min-height: 64px; padding: 10px 12px; resize: none; }
+.td-ta.s { min-height: 56px; }
+.td-in:focus, .td-ta:focus { border-color: var(--td-g); box-shadow: 0 0 0 1.5px var(--td-g); }
+.td-in::placeholder, .td-ta::placeholder { color: var(--td-mut); }
+.td-f.err .td-in, .td-f.err .td-ta { border-color: var(--td-err); }
+.td-e { display: none; margin: 2px 0 0; font: 400 11px/14px var(--td-font); color: var(--td-err); }
+.td-f.err .td-e { display: block; }
+.td-suffix { position: relative; }
+.td-suffix .td-in { padding-right: 36px; }
+.td-suffix span { position: absolute; right: 12px; top: 0; line-height: 40px; font: 400 11px/40px var(--td-font); color: var(--td-mut); }
+
+.td-seg {
+  height: 36px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--td-mints);
+  border: 1px solid var(--td-line);
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 3px;
+}
+.td-seg button {
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--td-mut);
+  font: 500 12px/16px var(--td-font);
+  cursor: pointer;
+  padding: 0;
+}
+.td-seg button[aria-pressed="true"] { background: var(--td-g); color: #fff; font-weight: 700; }
+
+.td-stp {
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--td-in);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.td-stp button { width: 40px; height: 38px; border: 0; background: transparent; display: grid; place-items: center; cursor: pointer; padding: 0; }
+.td-stp button:disabled { opacity: .35; }
+.td-stp output { font: 700 14px/20px var(--td-font); }
+
+/* kartu request (staff) */
+.td-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 0 0 2px; }
+.td-chips::-webkit-scrollbar { display: none; }
+.td-chip {
+  flex: none;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--td-line);
+  background: rgba(255, 255, 255, .92);
+  color: var(--td-ink);
+  font: 500 12px/16px var(--td-font);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+.td-chip i { font-style: normal; font-weight: 700; font-size: 11px; opacity: .75; }
+.td-chip[aria-pressed="true"] { background: var(--td-g); border-color: var(--td-g); color: #fff; }
+
+.td-list { display: flex; flex-direction: column; gap: 8px; }
+.td-rq-top { display: flex; align-items: center; justify-content: space-between; height: 22px; margin-bottom: 2px; }
+.td-ir { display: flex; align-items: flex-start; gap: 6px; margin-top: 4px; font: 400 12px/16px var(--td-font); word-break: break-word; }
+.td-ir .td-ico { width: 14px; height: 14px; margin-top: 1px; }
+.td-ir.g3 { gap: 12px; flex-wrap: wrap; }
+.td-ir.g3 span { display: inline-flex; align-items: center; gap: 4px; }
+.td-ir.mu { color: var(--td-mut); }
+.td-ir a { color: inherit; text-decoration: none; }
+.td-act { display: flex; gap: 8px; margin-top: 10px; }
+.td-act button {
+  flex: 1;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--td-in);
+  background: #fff;
+  color: var(--td-ink);
+  font: 700 12px/16px var(--td-font);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 0;
+}
+.td-act .p { background: var(--td-g); border-color: var(--td-g); color: #fff; }
+.td-act .p svg { stroke: #fff; }
+.td-act .d { color: var(--td-err); border-color: rgba(192, 57, 43, .35); }
+.td-act button:disabled { opacity: .55; }
+.td-done { margin-top: 10px; display: flex; align-items: center; gap: 6px; font: 500 11px/14px var(--td-font); color: var(--td-g); }
+
+/* kartu event (view only) */
+.td-ev-row { display: flex; align-items: center; gap: 10px; }
+.td-ev-row .td-txt small { white-space: normal; }
+.td-ev-ds { margin: 8px 0 0; font: 400 12px/16px var(--td-font); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.td-evc { width: 100%; text-align: left; cursor: pointer; font-family: var(--td-font); color: var(--td-ink); }
+.td-foot { text-align: center; padding: 4px 16px; font: 400 11px/14px var(--td-font); color: var(--td-mut); }
+
+.td-empty { text-align: center; padding: 16px; font: 400 12px/16px var(--td-font); color: var(--td-mut); }
+
+/* kartu lama yang dipindahkan ke halaman */
+.td-page .staff-dashboard-card {
+  display: block !important;
+  min-height: 0 !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 12px !important;
+  border-radius: 14px !important;
+  background: var(--td-surface) !important;
+  border: 1px solid var(--td-line) !important;
+  box-shadow: 0 1px 4px rgba(11, 90, 60, .08) !important;
+  backdrop-filter: blur(6px);
+}
+.td-page #customerDropoffCard[hidden] { display: none !important; }
+.td-page #customerQueueCard .staff-machine-summary-grid { display: none !important; }
+.td-page .staff-section-heading { height: 20px; margin: 0 0 8px; padding: 0; }
+.td-page .staff-section-heading h2 { margin: 0; font: 700 14px/20px var(--td-font) !important; }
+.td-page .staff-section-chevron { display: none; }
+
+/* toast */
+.td-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + var(--td-safe-b));
+  transform: translateX(-50%);
+  z-index: 1100;
+  max-width: min(92vw, 420px);
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: var(--td-ink);
+  color: #fff;
+  font: 500 12px/16px var(--td-font);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .25);
+}
+
+/* --------------------------------------------------------------------------
+   4. LANDSCAPE / TABLET (>= 600 dp lebar atau layar pendek) -> 2 kolom
+   Background: cover rata tengah (tanpa stretch).
+   -------------------------------------------------------------------------- */
+@media (orientation: landscape), (min-width: 600px) {
+  .td-page,
+  .td-page.td-customer { background-size: cover; background-position: center 30%; }
+
+  .td-bar { padding-top: max(12px, var(--td-safe-t)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .td-inner { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+  .td-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: start; grid-template-areas: "a c" "b c"; }
+  .td-form .ca { grid-area: a; }
+  .td-form .cb { grid-area: b; }
+  .td-form .cc { grid-area: c; }
+  .td-list, .td-evs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: start; }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  body[data-role="STAFF"]:has(#staffDashboard:not([hidden])),
+  body[data-role="CUSTOMER"]:has(#customerDashboard:not([hidden])) { background-size: cover; background-position: center 30%; }
+  :is(#staffDashboard, #customerDashboard) { padding-top: 24px !important; }
+  #customerDashboard .customer-dashboard-brand { position: static !important; transform: none !important; width: 88px !important; margin: 0 auto !important; }
+}
+
+@media (prefers-reduced-motion: reduce) { .td-page * { transition: none !important; animation: none !important; } }
