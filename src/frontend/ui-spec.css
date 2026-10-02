@@ -27,232 +27,129 @@
 }
 
 /* --------------------------------------------------------------------------
-   1. BACKGROUND (rasio 9:16, lebar penuh, tanpa zoom/stretch)
-   Staff   : rata atas, warna isi #E4F4EA
-   Customer: rata bawah, warna isi #CEFBDA
+   1. DASHBOARD (layer baru #tdDash) — Standar UI v1.0
+   Dashboard lama (#staffDashboard / #customerDashboard) disembunyikan; data
+   tetap diambil dari elemen lama oleh delivery.js.
+   Kanvas = background 9:16 (lebar --Wc, tinggi --Wc x 16/9). Semua ukuran
+   di bawah memakai dp pada lebar 390.
    -------------------------------------------------------------------------- */
-body[data-role="STAFF"]:has(#staffDashboard:not([hidden])) {
-  background: #E4F4EA url("/assets/background/staff/staff-bg-clean.png") top center / var(--td-w) auto no-repeat fixed;
-}
+#staffDashboard,
+#customerDashboard { display: none !important; }
 
-body[data-role="CUSTOMER"]:has(#customerDashboard:not([hidden])) {
-  background: #CEFBDA url("/assets/background/customer/customer-bg-clean.png") bottom center / var(--td-w) auto no-repeat fixed;
-}
+.td-dash, .td-dash *, .td-dash *::before, .td-dash *::after,
+.td-page, .td-page *, .td-page *::before, .td-page *::after { box-sizing: border-box; }
+.td-dash button, .td-page button { font-family: var(--td-font); }
 
-body[data-role="STAFF"]:has(#staffDashboard:not([hidden])) .app-shell,
-body[data-role="CUSTOMER"]:has(#customerDashboard:not([hidden])) .app-shell {
-  width: 100% !important;
-  max-width: 520px !important;
-  padding: 0 !important;
-  background: transparent !important;
-  overflow: visible !important;
-}
+html.td-dash-on, html.td-dash-on body { overflow: hidden !important; }
 
-body[data-role="STAFF"] #staff.screen-staff,
-body[data-role="CUSTOMER"] #customer.screen-customer.customer-dashboard-screen {
-  background: transparent !important;
-  overflow: visible !important;
-}
-
-body[data-role="CUSTOMER"] .customer-dashboard-bg { display: none !important; }
-
-/* --------------------------------------------------------------------------
-   2. KONTEN DASHBOARD
-   Konten mulai y = 190 (27,4% tinggi background) agar logo tidak tertutup.
-   -------------------------------------------------------------------------- */
-:is(#staffDashboard, #customerDashboard) {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 8px !important;
-  width: 100% !important;
-  max-width: 520px !important;
-  min-height: 100svh !important;
-  margin: 0 auto !important;
-  padding: calc(var(--td-w) * .487) 16px calc(32px + var(--td-safe-b)) !important;
-  overflow: visible !important;
-  background: transparent !important;
-  transform: none !important;
+.td-dash {
+  --Wc: min(100vw, 520px);
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   font-family: var(--td-font);
   color: var(--td-ink);
+  background: #E4F4EA;
+}
+.td-dash[hidden] { display: none !important; }
+.td-dash.td-d-customer { background: #CEFBDA; }
+
+.td-d-wrap {
+  min-height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+.td-d-customer .td-d-wrap { align-items: flex-end; }
+
+.td-canvas {
+  position: relative;
+  flex: none;
+  width: var(--Wc);
+  min-height: calc(var(--Wc) * 16 / 9);
+  background: url("/assets/background/staff/staff-bg-clean.png") top center / 100% auto no-repeat #E4F4EA;
+}
+.td-d-customer .td-canvas {
+  background: url("/assets/background/customer/customer-bg-clean.png") bottom center / 100% auto no-repeat #CEFBDA;
 }
 
-:is(#staffDashboard, #customerDashboard)[hidden] { display: none !important; }
-
-:is(#staffDashboard, #customerDashboard) > * { margin: 0 !important; }
-
-/* urutan: header, status mesin, antrean, menu, request, event, layanan */
-:is(#staffDashboard, #customerDashboard) .staff-dashboard-topline { order: 0; }
-:is(#staffDashboard, #customerDashboard) .staff-status-card { order: 1; }
-:is(#staffDashboard, #customerDashboard) .td-queue { order: 2; }
-:is(#staffDashboard, #customerDashboard) .td-menu { order: 3; }
-:is(#staffDashboard, #customerDashboard) .td-req { order: 4; }
-:is(#staffDashboard, #customerDashboard) .staff-event-card { order: 5; }
-:is(#staffDashboard, #customerDashboard) .staff-services-card { order: 6; }
-
-/* card lama yang kini dibuka lewat halaman sendiri */
-#staffDashboard > #staffQueueCard,
-#staffDashboard > #staffDropoffCard,
-#staffDashboard > #staffMemberCard,
-#customerDashboard > #customerQueueCard,
-#customerDashboard > #customerDropoffCard,
-#customerDashboard > #customerMemberCard,
-#customerDashboard > #customerPickupCard { display: none !important; }
-
-/* logo branding customer: tengah, 111 x 111 pada lebar 390 */
-#customerDashboard .customer-dashboard-brand {
-  position: absolute !important;
-  left: 50% !important;
-  top: calc(var(--td-w) * .123) !important;
-  width: calc(var(--td-w) * .2846) !important;
-  height: auto !important;
-  transform: translateX(-50%) !important;
-  margin: 0 !important;
+/* logo branding customer: 111 x 111, tengah, y = 48 (pada lebar 390) */
+.td-logo {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--Wc) * 48 / 390);
+  width: calc(var(--Wc) * 111 / 390);
+  height: calc(var(--Wc) * 111 / 390);
+  transform: translateX(-50%);
+  object-fit: contain;
   pointer-events: none;
 }
-#customerDashboard .customer-dashboard-brand img { width: 100%; height: auto; display: block; }
 
-/* header: tanggal + logout */
-:is(#staffDashboard, #customerDashboard) .staff-dashboard-topline {
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  height: 40px !important;
-  padding: 0 !important;
-  position: static !important;
+/* konten mulai y = 190 (27,4% tinggi background); margin 16; jarak antar card 8 */
+.td-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: calc(var(--Wc) * 190 / 390) 16px calc(24px + var(--td-safe-b));
 }
-:is(#staffDashboard, #customerDashboard) .staff-dashboard-update,
-:is(#staffDashboard, #customerDashboard) .staff-logout {
-  height: 40px !important;
-  display: flex !important;
-  align-items: center !important;
-  border-radius: 14px !important;
-  background: var(--td-surface) !important;
-  border: 1px solid var(--td-line) !important;
-  box-shadow: 0 1px 4px rgba(11, 90, 60, .08) !important;
-  font: 700 13px/18px var(--td-font) !important;
-  color: var(--td-ink) !important;
-  backdrop-filter: blur(6px);
-}
-:is(#staffDashboard, #customerDashboard) .staff-dashboard-update { flex: 1; padding: 0 12px !important; }
-:is(#staffDashboard, #customerDashboard) .staff-logout {
-  width: auto !important;
-  padding: 0 12px !important;
-  gap: 6px;
-  color: var(--td-g) !important;
-}
-:is(#staffDashboard, #customerDashboard) .staff-logout-icon svg { width: 18px; height: 18px; stroke: var(--td-g); }
 
-/* card standar: 14 radius, padding 10/12, border 1, shadow 0 1 4 */
-:is(#staffDashboard, #customerDashboard) :is(.staff-dashboard-card, .td-card, .staff-services-card) {
-  min-height: 0 !important;
-  padding: 10px 12px !important;
-  border-radius: 14px !important;
-  background: var(--td-surface) !important;
-  border: 1px solid var(--td-line) !important;
-  box-shadow: 0 1px 4px rgba(11, 90, 60, .08) !important;
+.td-card {
+  background: var(--td-surface);
+  border: 1px solid var(--td-line);
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(11, 90, 60, .08);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  font-family: var(--td-font);
-  text-align: left;
-}
-
-:is(#staffDashboard, #customerDashboard) .staff-section-heading {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  gap: 8px;
-  height: 20px;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-:is(#staffDashboard, #customerDashboard) .staff-section-heading h2 {
-  margin: 0 !important;
-  font: 700 14px/20px var(--td-font) !important;
-  color: var(--td-ink) !important;
-  flex: 1;
-}
-:is(#staffDashboard, #customerDashboard) :is(.staff-section-chevron, .staff-services-chevron, .td-chev) {
-  font-size: 0 !important;
-  width: 18px;
-  height: 18px;
-  flex: none;
-  background: no-repeat center / 18px 18px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235B6F64' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 5l7 7-7 7'/%3E%3C/svg%3E");
-}
-
-/* Status Mesin: minicard Washer & Dryer compact (2 kolom, 48 tinggi) */
-:is(#staffDashboard, #customerDashboard) .staff-machine-summary-grid {
-  display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
-  gap: 8px !important;
-  margin: 8px 0 0 !important;
-}
-:is(#staffDashboard, #customerDashboard) .staff-status-card .staff-machine-summary {
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  height: 48px;
-  min-height: 0 !important;
-  padding: 0 10px !important;
-  border-radius: 10px !important;
-  background: var(--td-mints) !important;
-  border: 1px solid var(--td-line) !important;
-  box-shadow: none !important;
-}
-:is(#staffDashboard, #customerDashboard) .staff-status-card .staff-machine-icon {
-  width: 28px !important;
-  height: 28px !important;
-  flex: none;
-  display: grid !important;
-  place-items: center;
-  border-radius: 8px !important;
-  background: var(--td-mint) !important;
-}
-:is(#staffDashboard, #customerDashboard) .staff-status-card .staff-machine-icon svg {
-  width: 18px !important;
-  height: 18px !important;
-  fill: none;
-  stroke: var(--td-g);
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-:is(#staffDashboard, #customerDashboard) .staff-status-card .staff-machine-summary-copy {
-  display: flex !important;
-  flex-wrap: wrap;
-  align-items: center;
-  column-gap: 10px;
-  row-gap: 0;
   min-width: 0;
 }
-:is(#staffDashboard, #customerDashboard) .staff-status-card .staff-machine-summary-copy > strong {
-  flex-basis: 100%;
-  font: 500 12px/16px var(--td-font) !important;
-  color: var(--td-ink) !important;
-}
-:is(#staffDashboard, #customerDashboard) .staff-status-card .staff-machine-summary-copy > div {
-  display: inline-flex !important;
-  align-items: center;
-  gap: 4px;
-  font: 500 11px/14px var(--td-font) !important;
-  margin: 0 !important;
-}
-:is(#staffDashboard, #customerDashboard) .staff-status-card .staff-machine-summary-copy > div b { display: none !important; }
-:is(#staffDashboard, #customerDashboard) .staff-status-card .staff-machine-summary-copy em {
-  font: 500 11px/14px var(--td-font) !important;
-  font-style: normal;
-  color: var(--td-ink);
-}
-:is(#staffDashboard, #customerDashboard) .staff-status-dot {
-  width: 8px !important;
-  height: 8px !important;
-  border-radius: 50%;
-}
+button.td-card, button.td-menu-item, button.td-req { font: inherit; color: inherit; }
+.td-hdr .td-date { font: 700 13px/18px var(--td-font); }
+.td-hdr .td-out { font: 700 13px/18px var(--td-font); color: var(--td-g); }
 
-/* Antrean Self-Service: hanya nomor antrean Washer & Dryer */
-.td-queue { cursor: pointer; }
-.td-queue h2 { margin: 0; font: 700 14px/20px var(--td-font); color: var(--td-ink); }
-.td-queue-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
-.td-queue-cell {
+/* 1. header: tanggal | tombol layanan 40x40 | logout */
+.td-hdr { display: flex; gap: 8px; height: 40px; }
+.td-hdr > * { height: 40px; display: flex; align-items: center; }
+.td-date { flex: 1; min-width: 0; padding: 0 12px; font: 700 13px/18px var(--td-font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.td-sq { width: 40px; flex: none; justify-content: center; padding: 0; cursor: pointer; }
+.td-out { padding: 0 12px; gap: 6px; font: 700 13px/18px var(--td-font); color: var(--td-g); cursor: pointer; flex: none; }
+.td-hdr svg { width: 18px; height: 18px; }
+
+/* 2. card standar */
+.td-pad { padding: 10px 12px; text-align: left; width: 100%; display: block; }
+.td-ct { height: 20px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.td-ct h2 { margin: 0; font: 700 14px/20px var(--td-font); color: var(--td-ink); }
+.td-chv { width: 18px; height: 18px; flex: none; fill: none; stroke: var(--td-mut); stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.td-two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.td-clickable { cursor: pointer; }
+
+/* 3. minicard mesin 163 x 48 */
+.td-mini {
+  height: 48px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: var(--td-mints);
+  border: 1px solid var(--td-line);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.td-mi {
+  width: 28px; height: 28px; flex: none; display: grid; place-items: center;
+  border-radius: 8px; background: var(--td-mint);
+}
+.td-mi svg { width: 18px; height: 18px; }
+.td-ml { font: 500 12px/16px var(--td-font); white-space: nowrap; }
+.td-dots { display: flex; gap: 10px; font: 500 11px/14px var(--td-font); }
+.td-dots span { display: inline-flex; align-items: center; gap: 4px; }
+.td-d { width: 8px; height: 8px; border-radius: 50%; background: var(--td-g); display: inline-block; }
+.td-d.a { background: var(--td-amb); }
+
+/* 4. antrean: sel 163 x 36 */
+.td-q {
   height: 36px;
   padding: 0 12px;
   border-radius: 10px;
@@ -263,112 +160,57 @@ body[data-role="CUSTOMER"] .customer-dashboard-bg { display: none !important; }
   justify-content: space-between;
   font: 500 12px/16px var(--td-font);
 }
-.td-queue-cell em { font: 700 20px/24px var(--td-font); font-style: normal; color: var(--td-g); }
+.td-q em { font: 700 20px/24px var(--td-font); font-style: normal; color: var(--td-g); }
 
-/* Menu: Drop-off & Member (175 x 56) */
+/* 5. menu 175 x 56 */
 .td-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .td-menu-item {
   height: 56px;
   padding: 0 12px;
-  border-radius: 14px;
-  background: var(--td-surface);
-  border: 1px solid var(--td-line);
-  box-shadow: 0 1px 4px rgba(11, 90, 60, .08);
-  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   gap: 10px;
-  font-family: var(--td-font);
-  color: var(--td-ink);
-  cursor: pointer;
   text-align: left;
+  cursor: pointer;
   min-width: 0;
 }
-.td-ib {
-  width: 32px;
-  height: 32px;
-  flex: none;
-  display: grid;
-  place-items: center;
-  border-radius: 10px;
-  background: var(--td-mint);
-}
-.td-ib svg, .td-ico {
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: var(--td-g);
-  stroke-width: 1.75;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  flex: none;
-}
+.td-ib { width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: 10px; background: var(--td-mint); }
+.td-ib svg, .td-ico { width: 18px; height: 18px; fill: none; stroke: var(--td-g); stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.td-mi svg { fill: none; stroke: var(--td-g); stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.td-hdr svg { fill: none; stroke: var(--td-g); stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 .td-txt { min-width: 0; flex: 1; }
-.td-txt b { display: block; font: 700 14px/20px var(--td-font); }
+.td-txt b { display: block; font: 700 14px/20px var(--td-font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .td-txt small { display: block; font: 400 11px/14px var(--td-font); color: var(--td-mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* Request Antar/Jemput (358 x 56) */
-.td-req {
-  height: 56px;
-  width: 100%;
-  padding: 0 12px;
-  border-radius: 14px;
-  background: var(--td-surface);
-  border: 1px solid var(--td-line);
-  box-shadow: 0 1px 4px rgba(11, 90, 60, .08);
-  backdrop-filter: blur(6px);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-family: var(--td-font);
-  color: var(--td-ink);
-  cursor: pointer;
-  text-align: left;
-}
-.td-req[hidden], .td-menu-item[hidden] { display: none !important; }
+/* 6. request 358 x 56 */
+.td-req { height: 56px; width: 100%; padding: 0 12px; display: flex; align-items: center; gap: 10px; text-align: left; cursor: pointer; }
+.td-req[hidden], .td-ev[hidden] { display: none !important; }
 
-/* badge */
+/* 7. event 358 x 44 */
+.td-ev { height: 44px; width: 100%; padding: 0 12px; display: flex; align-items: center; gap: 8px; text-align: left; cursor: pointer; }
+.td-ev h2 { flex: 1; margin: 0; font: 700 14px/20px var(--td-font); color: var(--td-ink); }
+
+/* badge: tinggi 22, pill */
 .td-badge {
-  min-width: 22px;
-  height: 22px;
-  padding: 0 8px;
-  border-radius: 999px;
-  background: var(--td-ambs);
-  color: var(--td-ambt);
-  font: 700 12px/22px var(--td-font);
-  text-align: center;
-  flex: none;
+  min-width: 22px; height: 22px; padding: 0 8px; border-radius: 999px;
+  background: var(--td-ambs); color: var(--td-ambt);
+  font: 700 12px/22px var(--td-font); text-align: center; flex: none;
 }
 .td-badge.m { background: var(--td-mint); color: var(--td-g); }
 .td-badge.g { background: var(--td-grey); color: var(--td-mut); }
 .td-badge.r { background: #FBE3E0; color: var(--td-err); }
 .td-badge[hidden] { display: none !important; }
 
-/* Event: judul bold seragam, badge jumlah, panah kanan (358 x 44) */
-:is(#staffDashboard, #customerDashboard) .staff-event-card {
-  height: 44px;
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  padding: 0 12px !important;
+button.td-card:focus-visible, .td-menu-item:focus-visible, .td-req:focus-visible, .td-ev:focus-visible, .td-clickable:focus-visible {
+  outline: 2px solid var(--td-g); outline-offset: 2px;
 }
-:is(#staffDashboard, #customerDashboard) .staff-event-card .staff-section-heading { width: 100%; gap: 8px; }
-:is(#staffDashboard, #customerDashboard) .staff-event-card .staff-event-content { display: none !important; }
-:is(#staffDashboard, #customerDashboard) .staff-event-card .td-badge { order: 1; }
-:is(#staffDashboard, #customerDashboard) .staff-event-card .staff-section-heading h2 { flex: 1; order: 0; }
-:is(#staffDashboard, #customerDashboard) .staff-event-card .staff-section-chevron { order: 2; }
 
-/* Layanan & Fasilitas (fitur lama): dibuat compact agar seragam */
-:is(#staffDashboard, #customerDashboard) .staff-services-card {
-  height: 44px;
-  width: 100%;
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
+/* Landscape / layar lebar: kanvas tetap kolom 9:16 di tengah (tanpa zoom/stretch),
+   halaman digulir vertikal; sisi kiri/kanan diisi warna latar. */
+@media (orientation: landscape) {
+  .td-dash { --Wc: min(100vw, 480px); }
+  .td-d-wrap, .td-d-customer .td-d-wrap { align-items: flex-start; }
 }
-:is(#staffDashboard, #customerDashboard) .staff-services-card strong { flex: 1; font: 700 14px/20px var(--td-font) !important; text-align: left; color: var(--td-ink) !important; }
-:is(#staffDashboard, #customerDashboard) .staff-services-icon { width: 28px !important; height: 28px !important; display: grid; place-items: center; border-radius: 8px !important; background: var(--td-mint) !important; }
-:is(#staffDashboard, #customerDashboard) .staff-services-icon svg { width: 18px !important; height: 18px !important; fill: none; stroke: var(--td-g); stroke-width: 2; }
 
 /* --------------------------------------------------------------------------
    3. HALAMAN DALAM (overlay): Request, Event, Antrean, Drop-off, Member
@@ -649,21 +491,6 @@ html.td-lock, html.td-lock body { overflow: hidden !important; }
   .td-form .cb { grid-area: b; }
   .td-form .cc { grid-area: c; }
   .td-list, .td-evs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: start; }
-}
-
-@media (orientation: landscape) and (max-height: 520px) {
-  body[data-role="CUSTOMER"]:has(#customerDashboard:not([hidden])) { background-size: cover; background-position: center 30%; }
-  #customerDashboard { padding-top: 24px !important; }
-  #customerDashboard .customer-dashboard-brand { position: static !important; transform: none !important; width: 88px !important; margin: 0 auto !important; }
-
-  /* Staff Dashboard tetap memakai kanvas portrait 9:16 saat device landscape. */
-  body[data-role="STAFF"]:has(#staffDashboard:not([hidden])) {
-    background-size: var(--td-w) auto;
-    background-position: top center;
-  }
-  #staffDashboard {
-    padding-top: calc(var(--td-w) * .487) !important;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) { .td-page * { transition: none !important; animation: none !important; } }
