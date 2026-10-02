@@ -4,16 +4,18 @@ import type { AuthSession } from "../auth/session-guard";
 import { writeAuditSafe } from "../audit/logger";
 import { broadcastRealtime } from "../realtime";
 import { isPhone, findOrCreateCustomerByPhone } from "../lib/customer-lookup";
+import { readProgramSettings, rewardMilestones } from "../lib/program-settings";
 
 /*
  * ============================================================
  * BUSINESS RULES (locked, see Member Reward Digital spec v3.0)
  * ============================================================
  * - Progress = total_coins_purchased. Never reset, never decreases.
- * - Every multiple of 10  -> +1 BONUS_COIN entitlement (cumulative).
- * - Every multiple of 40  -> +1 LAUNDRY_BAG entitlement (cumulative,
- *   in addition to the BONUS_COIN already due at that same multiple
- *   of 10, since 40 is also a multiple of 10).
+ * - Aturan (kelipatan koin bonus, jumlah bonus, target laundry bag, aktif/nonaktif)
+ *   TIDAK di-hardcode: dibaca dari program_settings yang hanya bisa diubah Owner.
+ *   Bawaan bila Owner belum mengatur: setiap kelipatan 10 -> +1 koin bonus,
+ *   setiap kelipatan 40 -> +1 laundry bag (siklus tampilan mulai dari 0 lagi).
+ * - Hanya customer yang sudah JOIN member yang bisa dicatat pembelian koinnya.
  * - Bonus coins given as reward are NEVER added back into
  *   total_coins_purchased.
  * - A purchase is idempotent by purchase_id: retrying the exact same
@@ -81,14 +83,6 @@ async function broadcastMemberUpdated(env: Env, customerId: string, totalCoinsPu
  * integer floor division so the logic is identical whether the total
  * grew by 1 coin or by 500 coins in a single transaction.
  */
-function bonusCountAt(total: number): number {
-  return Math.floor(total / 10);
-}
-
-function bagCountAt(total: number): number {
-  return Math.floor(total / 40);
-}
-
 async function fetchRewards(
   env: Env,
   customerId: string,
@@ -145,6 +139,19 @@ async function handleRecordPurchase(request: Request, env: Env): Promise<Respons
   const nowIso = new Date().toISOString();
 
   const { customerId } = await findOrCreateCustomerByPhone(env, body.phone);
+
+  // Hanya customer yang sudah JOIN member yang boleh dicatat pembelian koinnya,
+  // dan hanya selama program diaktifkan Owner.
+  const memberRow = await env.DB.prepare(`
+    SELECT is_member FROM customers WHERE customer_id = ? LIMIT 1
+  `).bind(customerId).first<{ is_member: number }>();
+  if (!memberRow || memberRow.is_member !== 1) {
+    return errorResponse("NOT_MEMBER", "Customer belum menjadi member.", 409);
+  }
+  const rules = (await readProgramSettings(env)).member;
+  if (!rules.enabled) {
+    return errorResponse("PROGRAM_DISABLED", "Program member sedang tidak aktif.", 403);
+  }
 
   // Idempotency gate: if this exact purchaseId was already recorded,
   // return the current state instead of processing it again.
@@ -224,53 +231,23 @@ async function handleRecordPurchase(request: Request, env: Env): Promise<Respons
     );
   }
 
-  const oldBonusCount = bonusCountAt(oldTotal);
-  const newBonusCount = bonusCountAt(newTotal);
-  const oldBagCount = bagCountAt(oldTotal);
-  const newBagCount = bagCountAt(newTotal);
-
   const newRewards: RewardRow[] = [];
   const nowIso2 = new Date().toISOString();
 
-  for (let i = oldBonusCount + 1; i <= newBonusCount; i++) {
-    const milestone = i * 10;
+  for (const m of rewardMilestones(oldTotal, newTotal, rules)) {
     const rewardId = crypto.randomUUID();
     const insert = await env.DB.prepare(`
       INSERT OR IGNORE INTO member_rewards
-        (reward_id, customer_id, reward_type, milestone_number, source_purchase_id, status, created_at)
-      VALUES (?, ?, 'BONUS_COIN', ?, ?, 'AVAILABLE', ?)
-    `).bind(rewardId, customerId, milestone, purchaseId, nowIso2).run();
+        (reward_id, customer_id, reward_type, milestone_number, source_purchase_id, status, created_at, quantity)
+      VALUES (?, ?, ?, ?, ?, 'AVAILABLE', ?, ?)
+    `).bind(rewardId, customerId, m.type, m.milestone, purchaseId, nowIso2, m.quantity).run();
 
     if (insert.meta.changes === 1) {
       newRewards.push({
         reward_id: rewardId,
         customer_id: customerId,
-        reward_type: "BONUS_COIN",
-        milestone_number: milestone,
-        source_purchase_id: purchaseId,
-        status: "AVAILABLE",
-        created_at: nowIso2,
-        fulfilled_at: null,
-        fulfilled_by: null,
-      });
-    }
-  }
-
-  for (let i = oldBagCount + 1; i <= newBagCount; i++) {
-    const milestone = i * 40;
-    const rewardId = crypto.randomUUID();
-    const insert = await env.DB.prepare(`
-      INSERT OR IGNORE INTO member_rewards
-        (reward_id, customer_id, reward_type, milestone_number, source_purchase_id, status, created_at)
-      VALUES (?, ?, 'LAUNDRY_BAG', ?, ?, 'AVAILABLE', ?)
-    `).bind(rewardId, customerId, milestone, purchaseId, nowIso2).run();
-
-    if (insert.meta.changes === 1) {
-      newRewards.push({
-        reward_id: rewardId,
-        customer_id: customerId,
-        reward_type: "LAUNDRY_BAG",
-        milestone_number: milestone,
+        reward_type: m.type,
+        milestone_number: m.milestone,
         source_purchase_id: purchaseId,
         status: "AVAILABLE",
         created_at: nowIso2,
@@ -409,12 +386,13 @@ async function handleCustomerProgress(request: Request, env: Env): Promise<Respo
 
   const total = progress?.total_coins_purchased ?? 0;
   const { available, history } = await fetchRewards(env, session.userId);
+  const rules = (await readProgramSettings(env)).member;
 
   return json({
     ok: true,
     totalCoinsPurchased: total,
-    coinMilestoneProgress: total % 10,
-    bagMilestoneProgress: total % 40,
+    coinMilestoneProgress: total % Math.max(1, rules.bonusEveryCoins),
+    bagMilestoneProgress: total % Math.max(1, rules.bagAtCoins),
     availableRewards: available,
     rewardHistory: history,
   });
