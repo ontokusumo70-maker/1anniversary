@@ -194,6 +194,95 @@ function gmailConfigured(env: AuthEnv): boolean {
 }
 
 
+function normalizeName(value: string): string {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+/**
+ * Login/daftar customer dengan nama + nomor HP.
+ * - Nomor belum terdaftar  -> akun dibuat (daftar).
+ * - Nomor terdaftar tanpa nama (mis. dibuat Staff saat drop-off) -> nama diisi.
+ * - Nomor terdaftar dengan nama -> nama harus sama (tanpa membedakan huruf besar/kecil),
+ *   agar akun orang lain tidak bisa dibuka hanya dengan mengetahui nomor HP-nya.
+ */
+async function customerAccessWithName(
+  env: AuthEnv,
+  rawName: string,
+  rawPhone: unknown,
+): Promise<Response> {
+  const name = normalizeName(rawName);
+  if (name.length < 2 || name.length > 60) {
+    return errorResponse("INVALID_REQUEST", "Nama wajib diisi (2–60 karakter).", 400);
+  }
+  if (!isPhone(rawPhone)) {
+    return errorResponse("INVALID_REQUEST", "Nomor HP tidak valid.", 400);
+  }
+
+  const phone = normalizePhone(rawPhone);
+  const phoneHash = await hashPhone(phone);
+
+  const existing = await env.DB.prepare(`
+    SELECT customer_id, name
+    FROM customers
+    WHERE phone_hash = ?
+    LIMIT 1
+  `).bind(phoneHash).first<{ customer_id: string; name: string | null }>();
+
+  let userId: string;
+  let created = false;
+
+  if (existing) {
+    const storedName = normalizeName(existing.name ?? "");
+    if (storedName && storedName.toLowerCase() !== name.toLowerCase()) {
+      return errorResponse(
+        "NAME_MISMATCH",
+        "Nama tidak sesuai dengan nomor HP ini.",
+        403,
+      );
+    }
+    userId = existing.customer_id;
+    await env.DB.prepare(`
+      UPDATE customers
+      SET phone_masked = ?, phone = ?, name = CASE WHEN name = '' OR name IS NULL THEN ? ELSE name END
+      WHERE customer_id = ?
+    `).bind(maskPhone(phone), phone, name, userId).run();
+  } else {
+    userId = `customer_${phoneHash.slice(0, 32)}`;
+    created = true;
+    await env.DB.prepare(`
+      INSERT OR IGNORE INTO customers (
+        customer_id, phone_hash, phone_masked, phone, name, email, created_at
+      )
+      VALUES (?, ?, ?, ?, ?, '', ?)
+    `).bind(userId, phoneHash, maskPhone(phone), phone, name, new Date().toISOString()).run();
+  }
+
+  const session = await createAndPersistAuthSession(env, {
+    userId,
+    role: "CUSTOMER",
+    ttlSeconds: CUSTOMER_SESSION_TTL,
+  });
+
+  await writeAuditSafe(env, {
+    entityType: "SESSION",
+    entityId: session.sessionId,
+    action: "CREATE",
+    actor: userId,
+    result: "SUCCESS",
+  });
+
+  return json({
+    ok: true,
+    guest: false,
+    created,
+    name,
+    token: session.token,
+    role: session.role,
+    userId: session.userId,
+    expiresAt: session.expiresAt,
+  });
+}
+
 async function customerAccess(
   request: Request,
   env: AuthEnv,
@@ -201,18 +290,19 @@ async function customerAccess(
   let body: {
     phone?: unknown;
     email?: unknown;
+    name?: unknown;
   } = {};
 
   try {
     const raw = await request.text();
     if (raw.trim()) {
-      body = JSON.parse(raw) as { phone?: unknown; email?: unknown };
+      body = JSON.parse(raw) as { phone?: unknown; email?: unknown; name?: unknown };
     }
   } catch {
     return errorResponse("INVALID_REQUEST", "Invalid JSON request body.", 400);
   }
 
-  const hasIdentity = body.phone !== undefined || body.email !== undefined;
+  const hasIdentity = body.phone !== undefined || body.email !== undefined || body.name !== undefined;
 
   if (!hasIdentity) {
     const guestId = `guest_${crypto.randomUUID()}`;
@@ -230,6 +320,11 @@ async function customerAccess(
       userId: session.userId,
       expiresAt: session.expiresAt,
     });
+  }
+
+  // Alur baru: login/daftar memakai NAMA + NOMOR HP (tanpa email).
+  if (typeof body.name === "string") {
+    return customerAccessWithName(env, body.name, body.phone);
   }
 
   if (!isPhone(body.phone) || !isEmail(body.email)) {
