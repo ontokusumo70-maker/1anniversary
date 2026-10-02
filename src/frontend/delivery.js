@@ -40,6 +40,8 @@
     plus: '<path d="M12 5v14M5 12h14"/>',
     minus: '<path d="M5 12h14"/>',
     star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    out: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
     wash: '<rect x="4" y="2.5" width="16" height="19" rx="2.5"/><circle cx="12" cy="13.5" r="4.5"/><path d="M7.5 6h.01M10.5 6h.01"/><path d="M9.8 13.5c.8-.8 1.6-.8 2.4 0s1.6.8 2.4 0"/>',
     dry: '<rect x="4" y="2.5" width="16" height="19" rx="2.5"/><circle cx="12" cy="13.5" r="4.5"/><path d="M7.5 6h.01M10.5 6h.01"/><path d="M12 11.3v4.4M10 12.4l4 2.2M14 12.4l-4 2.2"/>',
   };
@@ -445,7 +447,6 @@
     const f = { type: "PICKUP", unit: "BASKET", count: 1 };
 
     body.innerHTML = `
-      ${infoCard(s)}
       <div class="td-form">
         <section class="td-c ca"><h2>Jadwal</h2><div class="td-fs">
           <div class="td-f" data-f="type"><span class="td-lb">Jenis layanan<span class="td-req-star">*</span></span>
@@ -456,7 +457,7 @@
           <div class="td-g2">
             ${fieldWrap("date", "Tanggal", `<input class="td-in" id="td_date" type="date" min="${esc(info.today)}" max="${esc(addDays(info.today, 60))}" value="${esc(sched.date)}">`)}
             ${fieldWrap("time", "Jam", `<input class="td-in" id="td_time" type="time" min="${esc(s.hoursStart)}" max="${esc(s.hoursEnd)}" value="${esc(sched.time)}">`)}
-          </div></div></section>
+          </div><p class="td-note">Jam operasional ${esc(fmtTime(s.hoursStart))} – ${esc(fmtTime(s.hoursEnd))}${s.minOrderKg ? ` · minimum ${esc(s.minOrderKg)} kg` : ""}${s.areas ? ` · area: ${esc(s.areas)}` : ""}</p></div></section>
         <section class="td-c cb"><h2>Data pemohon</h2><div class="td-fs">
           ${fieldWrap("name", "Nama", `<input class="td-in" id="td_name" type="text" maxlength="60" autocomplete="name" value="${esc(profile.name || "")}">`)}
           ${fieldWrap("phone", "No. telepon", `<input class="td-in" id="td_phone" type="tel" inputmode="tel" maxlength="20" autocomplete="tel" value="${esc(profile.phone || "")}">`)}
@@ -583,15 +584,20 @@
   }
 
   /* ------------------------------------------------------------ *
-   * Dashboard: kartu baru (Antrean, Menu, Request) & badge
+   * Dashboard (layer #tdDash) — menggantikan tampilan dashboard lama.
+   * Dashboard lama tetap ada (disembunyikan CSS) sebagai sumber data
+   * dan agar seluruh logika app.js tetap berjalan.
    * ------------------------------------------------------------ */
+  const DAYS = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+  const chev = () => `<svg class="td-chv" viewBox="0 0 24 24" aria-hidden="true">${ICONS.chev}</svg>`;
+
   function setRequestBadge(count) {
-    const card = $(role() === "STAFF" ? "staffRequestCard" : "customerRequestCard");
+    const card = $("tdReq");
     if (!card) return;
     const badge = card.querySelector(".td-badge");
     const sub = card.querySelector("small");
     badge.textContent = count > 99 ? "99+" : String(count);
-    badge.hidden = !count;
+    if (badge.hidden !== !count) badge.hidden = !count;
     sub.textContent = count
       ? "menunggu konfirmasi"
       : (role() === "STAFF" ? "Tidak ada request baru" : "Ajukan antar / jemput");
@@ -604,7 +610,7 @@
         setRequestBadge(Number(data.newCount) || 0);
       } else if (role() === "CUSTOMER") {
         const info = await call("/delivery/settings");
-        const card = $("customerRequestCard");
+        const card = $("tdReq");
         if (card) card.hidden = !info.settings.enabled;
         if (info.settings.enabled) {
           const mine = await call("/delivery/requests/mine");
@@ -615,64 +621,73 @@
   }
 
   async function refreshMenuCounts() {
+    const el = $("tdDropSub");
+    if (!el) return;
     try {
       if (role() === "STAFF") {
         const data = await call("/staff/dropoff/active");
-        const n = (data.orders || []).length;
-        const el = $("staffMenuDropoffSub");
-        if (el) el.textContent = `${n} pesanan aktif`;
+        el.textContent = `${(data.orders || []).length} pesanan aktif`;
       } else if (role() === "CUSTOMER") {
         const data = await call("/dropoff/mine");
-        const el = $("customerMenuDropoffSub");
-        if (el) el.textContent = `${data.order ? 1 : 0} pesanan aktif`;
+        el.textContent = `${data.order ? 1 : 0} pesanan aktif`;
       }
     } catch { /* abaikan */ }
   }
 
-  async function refreshStaffQueueSummary() {
+  async function refreshQueueSummary() {
+    if (role() !== "STAFF") return;
     try {
       const data = await call("/staff/queue/self-service");
       const tickets = data.tickets || [];
       const count = (type) => tickets.filter((t) => t.machine_type === type && t.status === "WAITING").length;
-      const w = $("staffQueueWasher");
-      const d = $("staffQueueDryer");
-      if (w) w.textContent = String(count("WASHER"));
-      if (d) d.textContent = String(count("DRYER"));
+      if ($("tdQW")) $("tdQW").textContent = String(count("WASHER"));
+      if ($("tdQD")) $("tdQD").textContent = String(count("DRYER"));
+    } catch { /* abaikan */ }
+  }
+
+  async function refreshEventBadge() {
+    const badge = document.querySelector("#tdEv .td-badge");
+    if (!badge) return;
+    try {
+      const data = await call("/event/active");
+      const n = Array.isArray(data.events) ? data.events.length : 0;
+      badge.textContent = String(n);
+      if (badge.hidden !== (n === 0)) badge.hidden = n === 0;
     } catch { /* abaikan */ }
   }
 
   function refreshDashboard() {
-    if (role() !== "STAFF" && role() !== "CUSTOMER") return;
+    if (!$("tdDash") || $("tdDash").hidden) return;
     refreshRequestCard();
     refreshMenuCounts();
-    if (role() === "STAFF") refreshStaffQueueSummary();
+    refreshQueueSummary();
+    refreshEventBadge();
   }
 
-  function buildQueueSummary(prefix, washerId, dryerId, label) {
-    const el = document.createElement("section");
-    el.id = `${prefix}QueueSummary`;
-    el.className = "td-queue td-card";
-    el.setAttribute("role", "button");
-    el.tabIndex = 0;
-    el.setAttribute("aria-label", label);
-    el.innerHTML = `<h2>Antrean Self-Service</h2>
-      <div class="td-queue-grid">
-        <div class="td-queue-cell"><span>Washer</span><em id="${washerId}">0</em></div>
-        <div class="td-queue-cell"><span>Dryer</span><em id="${dryerId}">0</em></div>
-      </div>`;
-    return el;
+  function mirror(pairs) {
+    pairs.forEach(([from, to]) => {
+      const src = $(from);
+      const dst = $(to);
+      if (!src || !dst) return;
+      const copy = () => { dst.textContent = (src.textContent || "").trim(); };
+      copy();
+      new MutationObserver(copy).observe(src, { childList: true, characterData: true, subtree: true });
+    });
   }
 
-  function menuButton(id, icon, title, subId, sub) {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.id = id;
-    b.className = "td-menu-item";
-    b.innerHTML = `<span class="td-ib">${ico(icon)}</span><span class="td-txt"><b>${title}</b><small id="${subId}">${sub}</small></span>`;
-    return b;
+  function miniCard(icon, label, totalId, idleId, busyId) {
+    return `<div class="td-mini"><span class="td-mi">${ico(icon, "")}</span><div>
+      <div class="td-ml">${label} (<span id="${totalId}">5</span>)</div>
+      <div class="td-dots"><span><i class="td-d"></i><b id="${idleId}" style="font-weight:inherit">0</b></span><span><i class="td-d a"></i><b id="${busyId}" style="font-weight:inherit">0</b></span></div>
+    </div></div>`;
   }
 
-  function onActivate(el, handler) {
+  function menuItem(id, icon, title, subId, sub) {
+    return `<button type="button" class="td-card td-menu-item" id="${id}"><span class="td-ib">${ico(icon, "")}</span><span class="td-txt"><b>${title}</b><small id="${subId}">${sub}</small></span></button>`;
+  }
+
+  function activate(el, handler) {
+    if (!el) return;
     el.addEventListener("click", handler);
     el.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
@@ -682,114 +697,104 @@
     });
   }
 
-  function interceptEventCard(id) {
-    const card = $(id);
-    if (!card || card.dataset.tdBound) return;
-    card.dataset.tdBound = "1";
-    const open = (event) => {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      openEvents();
-    };
-    card.addEventListener("click", open, true);
-    card.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") open(event);
-    }, true);
-    const heading = card.querySelector(".staff-section-heading");
-    if (heading && !heading.querySelector(".td-badge")) {
-      const badge = document.createElement("span");
-      badge.className = "td-badge m";
-      badge.hidden = true;
-      badge.textContent = "0";
-      const h2 = heading.querySelector("h2");
-      if (h2) h2.after(badge); else heading.prepend(badge);
+  function buildDash(r) {
+    const isC = r === "CUSTOMER";
+    const p = isC ? "customer" : "staff";
+    const el = document.createElement("div");
+    el.id = "tdDash";
+    el.dataset.role = r;
+    el.className = `td-dash ${isC ? "td-d-customer" : "td-d-staff"}`;
+    el.hidden = true;
+    el.innerHTML = `
+      <div class="td-d-wrap"><div class="td-canvas">
+        ${isC ? '<img class="td-logo" src="/assets/branding/branding.png" alt="Teras Laundry">' : ""}
+        <div class="td-flow">
+          <div class="td-hdr">
+            <div class="td-card td-date" id="tdDate"></div>
+            <button type="button" class="td-card td-sq" id="tdServicesBtn" aria-label="Layanan &amp; Fasilitas" title="Layanan &amp; Fasilitas">${ico("sun", "")}</button>
+            <button type="button" class="td-card td-out" id="tdLogout">${ico("out", "")}Logout</button>
+          </div>
+          <section class="td-card td-pad td-clickable" id="tdStatus" role="button" tabindex="0" aria-label="Buka Status Mesin">
+            <div class="td-ct"><h2>Status Mesin</h2>${chev()}</div>
+            <div class="td-two">
+              ${miniCard("wash", "Washer", "tdWT", "tdWI", "tdWB")}
+              ${miniCard("dry", "Dryer", "tdDT", "tdDI", "tdDB")}
+            </div>
+          </section>
+          <section class="td-card td-pad td-clickable" id="tdQueue" role="button" tabindex="0" aria-label="Buka Antrean Self-Service">
+            <div class="td-ct"><h2>Antrean Self-Service</h2></div>
+            <div class="td-two">
+              <div class="td-q"><span>Washer</span><em id="tdQW">0</em></div>
+              <div class="td-q"><span>Dryer</span><em id="tdQD">0</em></div>
+            </div>
+          </section>
+          <div class="td-menu">
+            ${menuItem("tdDrop", "box", "Drop-off", "tdDropSub", "0 pesanan aktif")}
+            ${menuItem("tdMember", "users", "Member", "tdMemberSub", "Koin &amp; reward")}
+          </div>
+          <button type="button" class="td-card td-req" id="tdReq"${isC ? " hidden" : ""}>
+            <span class="td-ib">${ico("truck", "")}</span>
+            <span class="td-txt"><b>Request Antar / Jemput</b><small>${isC ? "Ajukan antar / jemput" : "menunggu konfirmasi"}</small></span>
+            <span class="td-badge" hidden>0</span>${chev()}
+          </button>
+          <button type="button" class="td-card td-ev" id="tdEv">
+            <h2>Event</h2><span class="td-badge m" hidden>0</span>${chev()}
+          </button>
+        </div>
+      </div></div>`;
+    document.body.appendChild(el);
+
+    mirror(isC
+      ? [["customerWasherTotal", "tdWT"], ["customerWasherIdle", "tdWI"], ["customerWasherBusy", "tdWB"],
+         ["customerDryerTotal", "tdDT"], ["customerDryerIdle", "tdDI"], ["customerDryerBusy", "tdDB"],
+         ["customerQueueWasherWaiting", "tdQW"], ["customerQueueDryerWaiting", "tdQD"]]
+      : [["staffWasherTotal", "tdWT"], ["staffWasherIdle", "tdWI"], ["staffWasherBusy", "tdWB"],
+         ["staffDryerTotal", "tdDT"], ["staffDryerIdle", "tdDI"], ["staffDryerBusy", "tdDB"]]);
+
+    activate($("tdStatus"), () => fn(isC ? "openCustomerMachineStatus" : "openStaffMachineStatus")?.());
+    activate($("tdQueue"), openQueue);
+    $("tdServicesBtn").addEventListener("click", () => fn(isC ? "openCustomerServices" : "openStaffServices")?.());
+    $("tdLogout").addEventListener("click", () => $(`${p}Logout`)?.click());
+    $("tdDrop").addEventListener("click", openDropoff);
+    $("tdMember").addEventListener("click", openMember);
+    $("tdReq").addEventListener("click", isC ? openCustomerRequest : openStaffRequests);
+    $("tdEv").addEventListener("click", openEvents);
+    tickDate();
+    return el;
+  }
+
+  function tickDate() {
+    const el = $("tdDate");
+    if (!el) return;
+    const n = new Date();
+    el.textContent = `${DAYS[n.getDay()]}, ${pad(n.getDate())} ${MONTHS[n.getMonth()]} ${n.getFullYear()}, ${pad(n.getHours())}:${pad(n.getMinutes())}`;
+  }
+
+  let dashWasVisible = false;
+
+  function syncDash() {
+    const r = role();
+    let el = $("tdDash");
+    const legacy = r === "STAFF" ? $("staffDashboard") : r === "CUSTOMER" ? $("customerDashboard") : null;
+    const screen = r === "STAFF" ? $("staff") : r === "CUSTOMER" ? $("customer") : null;
+    const show = Boolean(legacy && screen && !legacy.hidden && !screen.hidden);
+
+    if (!show) {
+      if (el && !el.hidden) el.hidden = true;
+      document.documentElement.classList.remove("td-dash-on");
+      dashWasVisible = false;
+      return;
     }
-  }
-
-  function setEventBadge(cardId, data) {
-    const badge = document.querySelector(`#${cardId} .td-badge`);
-    if (!badge) return;
-    const n = Array.isArray(data?.events) ? data.events.length : 0;
-    badge.textContent = String(n);
-    badge.hidden = n === 0;
-  }
-
-  function swapMachineIcons(dashId) {
-    const icons = document.querySelectorAll(`#${dashId} .staff-status-card .staff-machine-icon svg`);
-    icons.forEach((svg, i) => {
-      svg.setAttribute("viewBox", "0 0 24 24");
-      svg.innerHTML = ICONS[i === 0 ? "wash" : "dry"];
-    });
-  }
-
-  function injectStaff() {
-    const dash = $("staffDashboard");
-    if (!dash || dash.dataset.tdReady) return;
-    dash.dataset.tdReady = "1";
-
-    swapMachineIcons("staffDashboard");
-
-    const queue = buildQueueSummary("staff", "staffQueueWasher", "staffQueueDryer", "Buka Antrean Self-Service");
-    onActivate(queue, openQueue);
-
-    const menu = document.createElement("div");
-    menu.className = "td-menu";
-    const drop = menuButton("staffMenuDropoff", "box", "Drop-off", "staffMenuDropoffSub", "0 pesanan aktif");
-    const member = menuButton("staffMenuMember", "users", "Member", "staffMenuMemberSub", "Koin &amp; reward");
-    drop.addEventListener("click", openDropoff);
-    member.addEventListener("click", openMember);
-    menu.append(drop, member);
-
-    const req = document.createElement("button");
-    req.type = "button";
-    req.id = "staffRequestCard";
-    req.className = "td-req";
-    req.innerHTML = `<span class="td-ib">${ico("truck")}</span><span class="td-txt"><b>Request Antar / Jemput</b><small>menunggu konfirmasi</small></span><span class="td-badge" hidden>0</span><span class="td-chev" aria-hidden="true"></span>`;
-    req.addEventListener("click", openStaffRequests);
-
-    dash.append(queue, menu, req);
-    interceptEventCard("staffEventCard");
-  }
-
-  function injectCustomer() {
-    const dash = $("customerDashboard");
-    if (!dash || dash.dataset.tdReady) return;
-    dash.dataset.tdReady = "1";
-
-    swapMachineIcons("customerDashboard");
-
-    // ID penghitung antrean dipindahkan ke kartu ringkasan yang baru
-    ["customerQueueWasherWaiting", "customerQueueDryerWaiting"].forEach((id) => {
-      const old = $(id);
-      if (old) old.removeAttribute("id");
-    });
-    const queue = buildQueueSummary("customer", "customerQueueWasherWaiting", "customerQueueDryerWaiting", "Buka Antrean Self-Service");
-    onActivate(queue, openQueue);
-
-    const menu = document.createElement("div");
-    menu.className = "td-menu";
-    const drop = menuButton("customerMenuDropoff", "box", "Drop-off", "customerMenuDropoffSub", "0 pesanan aktif");
-    const member = menuButton("customerMenuMember", "users", "Member", "customerMenuMemberSub", "Koin &amp; reward");
-    drop.addEventListener("click", openDropoff);
-    member.addEventListener("click", openMember);
-    menu.append(drop, member);
-
-    const req = document.createElement("button");
-    req.type = "button";
-    req.id = "customerRequestCard";
-    req.className = "td-req";
-    req.hidden = true;
-    req.innerHTML = `<span class="td-ib">${ico("truck")}</span><span class="td-txt"><b>Request Antar / Jemput</b><small>Ajukan antar / jemput</small></span><span class="td-badge" hidden>0</span><span class="td-chev" aria-hidden="true"></span>`;
-    req.addEventListener("click", openCustomerRequest);
-
-    dash.append(queue, menu, req);
-    interceptEventCard("customerEventCard");
-  }
-
-  function onDashboardShown() {
-    if (role() === "STAFF") injectStaff();
-    else if (role() === "CUSTOMER") injectCustomer();
-    refreshDashboard();
+    if (!el || el.dataset.role !== r) {
+      if (el) el.remove();
+      el = buildDash(r);
+    }
+    if (el.hidden) el.hidden = false;
+    document.documentElement.classList.add("td-dash-on");
+    if (!dashWasVisible) {
+      dashWasVisible = true;
+      refreshDashboard();
+    }
   }
 
   /* ------------------------------------------------------------ *
@@ -813,11 +818,7 @@
   }
 
   function install() {
-    wrap("showStaffDashboard", () => setTimeout(onDashboardShown, 0));
-    wrap("showCustomerDashboard", () => setTimeout(onDashboardShown, 0));
-    wrap("renderStaffDashboardEvent", (data) => setEventBadge("staffEventCard", data));
-    wrap("renderCustomerDashboardEvent", (data) => setEventBadge("customerEventCard", data));
-    wrap("refreshStaffQueueList", () => refreshStaffQueueSummary());
+    wrap("refreshStaffQueueList", () => refreshQueueSummary());
     wrap("refreshStaffDropoffList", () => refreshMenuCounts());
     wrap("refreshCustomerDropoff", () => refreshMenuCounts());
 
@@ -835,9 +836,17 @@
 
   function start() {
     install();
-    const staffVisible = $("staffDashboard") && !$("staffDashboard").hidden;
-    const customerVisible = $("customerDashboard") && !$("customerDashboard").hidden;
-    if (staffVisible || customerVisible) onDashboardShown();
+    new MutationObserver(syncDash).observe(document.body, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["hidden"],
+    });
+    setInterval(() => {
+      tickDate();
+      if (new Date().getSeconds() === 0) syncDash();
+    }, 1000);
+    setInterval(() => refreshDashboard(), 60000);
+    syncDash();
   }
 
   if (document.readyState === "loading") {
