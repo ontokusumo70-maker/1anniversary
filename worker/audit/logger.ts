@@ -14,7 +14,8 @@ export type AuditEntityType =
   | "MEMBER_PURCHASE"
   | "MEMBER_REWARD"
   | "DROPOFF_ORDER"
-  | "SELF_SERVICE_TICKET";
+  | "SELF_SERVICE_TICKET"
+  | "DELIVERY_REQUEST";
 
 export type AuditAction =
   | "START"
@@ -37,7 +38,9 @@ export type AuditAction =
   | "CALL"
   | "ACTIVATE"
   | "NO_SHOW"
-  | "CANCEL";
+  | "CANCEL"
+  | "CONFIRM"
+  | "REJECT";
 
 export type AuditResult =
   | "SUCCESS"
