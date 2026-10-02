@@ -652,10 +652,18 @@ html.td-lock, html.td-lock body { overflow: hidden !important; }
 }
 
 @media (orientation: landscape) and (max-height: 520px) {
-  body[data-role="STAFF"]:has(#staffDashboard:not([hidden])),
   body[data-role="CUSTOMER"]:has(#customerDashboard:not([hidden])) { background-size: cover; background-position: center 30%; }
-  :is(#staffDashboard, #customerDashboard) { padding-top: 24px !important; }
+  #customerDashboard { padding-top: 24px !important; }
   #customerDashboard .customer-dashboard-brand { position: static !important; transform: none !important; width: 88px !important; margin: 0 auto !important; }
+
+  /* Staff Dashboard tetap memakai kanvas portrait 9:16 saat device landscape. */
+  body[data-role="STAFF"]:has(#staffDashboard:not([hidden])) {
+    background-size: var(--td-w) auto;
+    background-position: top center;
+  }
+  #staffDashboard {
+    padding-top: calc(var(--td-w) * .487) !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) { .td-page * { transition: none !important; animation: none !important; } }
