@@ -1014,13 +1014,13 @@
         <section class="owner-settings-card">
           <h2>Antar / Jemput Laundry</h2>
           <label class="owner-settings-check"><input id="servicePickupEnabled" type="checkbox"> Aktifkan layanan Antar/Jemput di dashboard Customer</label>
-          <label>Area Layanan <span class="owner-settings-help">Teks bebas, contoh: Area 1, Area 2</span><input id="servicePickupAreas" maxlength="200"></label>
+          <label>Area Layanan <span class="owner-settings-help">Teks bebas, contoh: maks. radius 5 km</span><input id="servicePickupAreas" maxlength="200"></label>
           <div class="owner-settings-grid-2">
-            <label>Jam Mulai<input id="servicePickupHoursStart" type="time"></label>
-            <label>Jam Selesai<input id="servicePickupHoursEnd" type="time"></label>
+            <label>Jam Mulai (WIB)<input id="servicePickupHoursStart" type="time"></label>
+            <label>Jam Selesai (WIB)<input id="servicePickupHoursEnd" type="time"></label>
           </div>
           <label>Minimum Order (kg) <span class="owner-settings-help">Kosongkan jika tidak ada minimum</span><input id="servicePickupMinKg" type="number" min="0" step="0.1"></label>
-          <label>Tarif <span class="owner-settings-help">Teks bebas, contoh: Rp10.000 / 7 kg</span><input id="servicePickupTariff" maxlength="120"></label>
+          <label>Tarif <span class="owner-settings-help">Teks bebas, contoh: Rp10.000 / 7 kg</span><input id="servicePickupTariff" maxlength="120" inputmode="numeric" autocomplete="off" placeholder="Rp10.000 / 7 kg"></label>
           <label>Catatan Tambahan <span class="owner-settings-help">Opsional</span><textarea id="servicePickupNote" rows="3"></textarea></label>
           <label>Nomor WhatsApp <span class="owner-settings-help">Format: 628xxxxxxxxxx</span><input id="servicePickupWhatsapp" inputmode="tel" maxlength="20"></label>
         </section>
