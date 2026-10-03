@@ -2172,6 +2172,22 @@ function setOwnerView(view) {
   return Promise.resolve();
 }
 
+let ownerDeliveryCounts = { antar: 0, jemput: 0 };
+
+// Jumlah request Antar / Jemput yang sudah dikonfirmasi Staff (kartu Overview Owner).
+async function refreshOwnerDeliveryCounts() {
+  try {
+    const data = await api("/owner/delivery-counts");
+    ownerDeliveryCounts = { antar: Number(data.antar || 0), jemput: Number(data.jemput || 0) };
+    const antar = $("ownerDeliveryAntar");
+    const jemput = $("ownerDeliveryJemput");
+    if (antar) antar.textContent = ownerDeliveryCounts.antar.toLocaleString("id-ID");
+    if (jemput) jemput.textContent = ownerDeliveryCounts.jemput.toLocaleString("id-ID");
+  } catch {
+    /* kartu bersifat pelengkap */
+  }
+}
+
 function renderOwnerMetrics() {
   const data = ownerData?.metrics;
   const target = $("ownerMetrics");
@@ -2198,7 +2214,7 @@ function renderOwnerMetrics() {
     { label: "Total Member", value: data.members, icon: "customer", action: "members" },
     { label: "Reward Program", value: data.programPending, icon: "gift", action: "customers" },
     { kind: "reward-event", label: "Reward Event", icon: "gift", action: "event-reward" },
-    { label: "Request Antar/Jemput", value: ops.deliveryNew, icon: "truck" },
+    { kind: "delivery", label: "Request Antar/Jemput", icon: "truck" },
     { label: "Antrean Washer", value: ops.washerWaiting, icon: "washer" },
     { label: "Antrean Dryer", value: ops.dryerWaiting, icon: "dryer" },
     { label: "Drop-off Aktif", value: ops.dropoffActive, icon: "basket" },
@@ -2227,6 +2243,18 @@ function renderOwnerMetrics() {
       </div>`;
     }
 
+    if (item.kind === "delivery") {
+      const c = ownerDeliveryCounts;
+      return `<div class="owner-metric-card owner-metric-delivery"><span class="owner-metric-icon truck">${iconSvg("truck")}</span><small>${item.label}</small>
+        <div class="owner-delivery-split">
+          <div class="owner-delivery-col"><strong id="ownerDeliveryAntar">${fmt(c.antar)}</strong><span>Antar</span></div>
+          <i class="owner-reward-split-divider" aria-hidden="true"></i>
+          <div class="owner-delivery-col"><strong id="ownerDeliveryJemput">${fmt(c.jemput)}</strong><span>Jemput</span></div>
+        </div>
+        <span class="owner-metric-note">sudah dikonfirmasi</span>
+      </div>`;
+    }
+
     const hasPercentage = item.percentage !== null && item.percentage !== undefined;
     const numericPercentage = Number(item.percentage || 0);
     const percentageText = hasPercentage ? `${Math.abs(numericPercentage)}%` : "";
@@ -2250,6 +2278,7 @@ function renderOwnerMetrics() {
       }
     };
   });
+  refreshOwnerDeliveryCounts();
 }
 
 async function openOwnerCustomerTrace(status = "all") {
