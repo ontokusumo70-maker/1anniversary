@@ -1,0 +1,143 @@
+/* ==========================================================================
+   TERAS LAUNDRY — Tambahan (dimuat SETELAH ui-spec.css)
+   ========================================================================== */
+
+/* ---------- OWNER OVERVIEW: ikon baru ---------- */
+#ownerMetrics .owner-metric-icon.truck { color: #0f8a5f; }
+#ownerMetrics .owner-metric-icon.basket { color: #2f80ed; }
+#ownerMetrics .owner-metric-icon.truck svg,
+#ownerMetrics .owner-metric-icon.basket svg {
+  fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round;
+}
+
+/* ---------- OWNER OVERVIEW: card Reward Event (2 kolom) ---------- */
+#ownerMetrics .owner-metric-reward-event { grid-column: span 2 !important; }
+#ownerMetrics .owner-metric-reward-event .owner-reward-split {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  align-items: center;
+  width: 100%;
+  margin-top: 4px;
+}
+#ownerMetrics .owner-metric-reward-event .owner-reward-split-col {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0;
+}
+#ownerMetrics .owner-metric-reward-event .owner-reward-split-col strong {
+  display: block; font-size: 30px; line-height: 1.05; font-weight: 800; color: #101a16;
+}
+#ownerMetrics .owner-metric-reward-event .owner-reward-split-col span {
+  display: block; font-size: 12px; line-height: 1.2; color: #5d6965; font-weight: 600;
+}
+#ownerMetrics .owner-metric-reward-event .owner-reward-split-col em {
+  display: block; font-style: normal; font-size: 12px; font-weight: 800; color: #0d9864;
+}
+#ownerMetrics .owner-metric-reward-event .owner-reward-split-divider {
+  display: block; width: 1px; height: 56px; background: #d5ddda;
+}
+
+/* ---------- FORM REQUEST: isi tanggal & jam di tengah ---------- */
+#td_date, #td_time {
+  text-align: center !important;
+  text-align-last: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+#td_date::-webkit-date-and-time-value,
+#td_time::-webkit-date-and-time-value { text-align: center; margin: 0 auto; width: 100%; }
+#td_date::-webkit-datetime-edit,
+#td_time::-webkit-datetime-edit { display: flex; justify-content: center; width: 100%; padding: 0; }
+.td-f[data-f="date"] > label,
+.td-f[data-f="time"] > label { display: block; text-align: center; }
+.td-f[data-f="date"] .td-e,
+.td-f[data-f="time"] .td-e { text-align: center; }
+
+/* ---------- DASHBOARD CUSTOMER: status request dikonfirmasi ---------- */
+.tx-req-status[hidden], .tx-machine[hidden] { display: none !important; }
+.tx-req-status { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.tx-rs-head { display: flex; align-items: center; gap: 10px; }
+.tx-rs-dot {
+  width: 28px; height: 28px; flex: none; display: grid; place-items: center;
+  border-radius: 50%; background: var(--td-g, #0B7A53);
+}
+.tx-rs-dot .tx-ico { stroke: #fff; width: 16px; height: 16px; }
+.tx-rs-tx { min-width: 0; }
+.tx-rs-tx b { display: block; font: 700 13px/18px var(--td-font); color: var(--td-ink, #10281D); }
+.tx-rs-tx small { display: block; font: 400 11px/14px var(--td-font); color: var(--td-mut, #5B6F64); }
+.tx-rs-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; }
+.tx-rs-pill {
+  height: 40px; padding: 0 10px; border-radius: 10px;
+  border: 1px solid var(--td-line); background: var(--td-mints, #F1F9F4);
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  font: 500 12px/16px var(--td-font); color: var(--td-ink);
+}
+.tx-rs-pill:focus-visible { outline: 2px solid var(--td-g); outline-offset: 2px; }
+.tx-rs-ic { display: grid; place-items: center; }
+.tx-rs-lb { flex: 1; text-align: left; font-weight: 700; }
+.tx-rs-pill em {
+  min-width: 24px; height: 24px; padding: 0 8px; border-radius: 999px;
+  background: var(--td-g, #0B7A53); color: #fff; font: 700 12px/24px var(--td-font);
+  font-style: normal; text-align: center;
+}
+
+/* ---------- DASHBOARD CUSTOMER: Laundry Anda ---------- */
+.tx-mm { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.tx-mm-item {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+  border-radius: 10px; background: var(--td-mints, #F1F9F4); border: 1px solid var(--td-line);
+}
+.tx-mm-ic {
+  width: 36px; height: 36px; flex: none; display: grid; place-items: center;
+  border-radius: 10px; background: var(--td-mint, #E1F2E8);
+}
+.tx-mm-ic .tx-ico { width: 22px; height: 22px; }
+.tx-mm-tx { min-width: 0; flex: 1; }
+.tx-mm-tx small { display: block; font: 500 11px/14px var(--td-font); color: var(--td-mut); }
+.tx-mm-tx b { display: block; font: 700 16px/22px var(--td-font); color: var(--td-g, #0B7A53); }
+.tx-mm-tx em { display: block; font: 400 11px/14px var(--td-font); font-style: normal; color: var(--td-ink); }
+.tx-note { margin: 6px 0 0; font: 400 11px/14px var(--td-font); color: var(--td-mut); }
+
+/* ---------- HALAMAN STATUS REQUEST ---------- */
+.tx-ico {
+  width: 18px; height: 18px; flex: none;
+  fill: none; stroke: var(--td-g, #0B7A53); stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round;
+}
+.tx-st { display: flex; flex-direction: column; gap: 10px; }
+.tx-st-banner {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  border-radius: 12px; background: var(--td-mint, #E1F2E8);
+}
+.tx-st-bic {
+  width: 30px; height: 30px; flex: none; display: grid; place-items: center;
+  border-radius: 50%; background: var(--td-g, #0B7A53);
+}
+.tx-st-bic .tx-ico { stroke: #fff; width: 16px; height: 16px; }
+.tx-st-banner b { display: block; font: 700 14px/19px var(--td-font); color: var(--td-ink); }
+.tx-st-banner small { display: block; font: 400 11px/14px var(--td-font); color: var(--td-mut); }
+.tx-st-otw {
+  display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px;
+  border-radius: 12px; background: var(--td-ambs, #FDEECB); color: var(--td-ambt, #8A5A00);
+  font: 500 12px/17px var(--td-font);
+}
+.tx-st-otw .tx-ico { stroke: var(--td-ambt, #8A5A00); margin-top: 1px; }
+
+/* mini card tanggal & jam: isi compact di tengah */
+.tx-dt { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tx-dt-card {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; min-height: 72px; padding: 8px; text-align: center;
+  border-radius: 10px; background: var(--td-mints, #F1F9F4); border: 1px solid var(--td-line);
+}
+.tx-dt-card small { font: 500 11px/14px var(--td-font); color: var(--td-mut); }
+.tx-dt-card b { font: 700 13px/17px var(--td-font); color: var(--td-ink); }
+
+.tx-st-rows { display: flex; flex-direction: column; gap: 6px; }
+.tx-st-row { display: flex; align-items: flex-start; gap: 8px; font: 400 12px/16px var(--td-font); color: var(--td-ink); }
+.tx-st-row .tx-ico { width: 16px; height: 16px; margin-top: 0; }
+.tx-st-row a { color: var(--td-g); text-decoration: none; overflow-wrap: anywhere; }
+.tx-st-row.mu { color: var(--td-mut); }
+.tx-st-foot { margin: 0; font: 400 11px/14px var(--td-font); color: var(--td-mut); }
