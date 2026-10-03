@@ -1,8 +1,7 @@
 /* ==========================================================================
-   TERAS LAUNDRY — Tambahan Dashboard Customer
-   - Card status request Antar/Jemput yang sudah dikonfirmasi (#txReqStatus)
-     + halaman status request (dibuka dari angka Antar / Jemput)
-   - Card "Laundry Anda": nomor Washer/Dryer yang sedang dipakai (#txMyMachine)
+   TERAS LAUNDRY — Tambahan
+   CUSTOMER : card status request Antar/Jemput + "Laundry Anda" (nomor mesin)
+   OWNER    : Reward Member di menu Program + info pemakaian di Reward Pool
    Dimuat SETELAH delivery.js dan td-pages.js.
    ========================================================================== */
 (() => {
@@ -18,6 +17,7 @@
   const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (ch) => (
     { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]
   ));
+  const fmtNum = (n) => Number(n || 0).toLocaleString("id-ID");
 
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
   const DAYS = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
@@ -36,6 +36,8 @@
     user: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-4 3-6 7-6s6.2 2 7 6"/>',
     wash: '<rect x="4" y="2.5" width="16" height="19" rx="2.5"/><circle cx="12" cy="13.5" r="4.5"/><path d="M7.5 6h.01M10.5 6h.01"/><path d="M9.8 13.5c.8-.8 1.6-.8 2.4 0s1.6.8 2.4 0"/>',
     dry: '<rect x="4" y="2.5" width="16" height="19" rx="2.5"/><circle cx="12" cy="13.5" r="4.5"/><path d="M7.5 6h.01M10.5 6h.01"/><path d="M12 11.3v4.4M10 12.4l4 2.2M14 12.4l-4 2.2"/>',
+    trash: '<path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/>',
+    gift: '<rect x="4" y="9" width="16" height="11" rx="1"/><path d="M12 9v11M3 9h18M6 9a2.5 2.5 0 1 1 2.5-2.5C8.5 8 12 9 12 9s3.5-1 3.5-2.5A2.5 2.5 0 1 1 18 9"/>',
   };
   const ico = (name, cls = "tx-ico") =>
     `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${SVG[name] || ""}</svg>`;
@@ -64,7 +66,9 @@
   }
   const unitLabel = (unit) => (ui()?.unitLabel ? ui().unitLabel(unit) : (unit === "BAG" ? "laundry bag" : "keranjang"));
 
-  /* ---------------- state ---------------- */
+  /* ================================================================== *
+   * CUSTOMER
+   * ================================================================== */
   let confirmedRequests = [];
   let activeMachines = [];
   let currentType = "";
@@ -95,9 +99,6 @@
     }
   }
 
-  /* ============================================================ *
-   * 1. STATUS REQUEST ANTAR / JEMPUT
-   * ============================================================ */
   async function refreshRequests() {
     if (role() !== "CUSTOMER") return;
     try {
@@ -199,9 +200,6 @@
       : `<div class="td-c td-empty">Tidak ada request ${esc((TYPE[currentType] || "").toLowerCase())} yang sedang diproses.</div>`;
   }
 
-  /* ============================================================ *
-   * 2. LAUNDRY ANDA (nomor mesin)
-   * ============================================================ */
   async function refreshMachines() {
     if (role() !== "CUSTOMER") return;
     try {
@@ -248,9 +246,6 @@
       <p class="tx-note">Laundry Anda sedang diproses di mesin di atas.</p>`;
   }
 
-  /* ============================================================ *
-   * Realtime & siklus
-   * ============================================================ */
   function installRealtime() {
     const orig = window.handleRealtimeMessage;
     if (typeof orig !== "function" || orig.__txExtra) return;
@@ -267,7 +262,6 @@
       return orig.apply(this, args);
     };
     wrapped.__txExtra = true;
-    // pertahankan penanda pembungkus lain agar tidak dibungkus dua kali
     if (orig.__tdWrapped) wrapped.__tdWrapped = true;
     if (orig.__tdPages) wrapped.__tdPages = true;
     window.handleRealtimeMessage = wrapped;
@@ -288,6 +282,239 @@
     dashVisible = visible;
   }
 
+  /* ================================================================== *
+   * OWNER — Reward Member (menu Program) + info di Reward Pool
+   * ================================================================== */
+  const prog = { pools: [], rows: [], saved: {}, loaded: false, busy: false };
+  let progCache = null;
+  let progCacheAt = 0;
+  let progWasVisible = false;
+
+  async function fetchProgramRewards(force = false) {
+    if (!force && progCache && Date.now() - progCacheAt < 3000) return progCache;
+    const data = await call("/owner/program-rewards");
+    progCache = data;
+    progCacheAt = Date.now();
+    return data;
+  }
+
+  const poolById = (id) => prog.pools.find((p) => p.rewardPoolId === id);
+  // Stok yang boleh dipakai baris ini = stok bebas pool + jumlah yang sudah tersimpan untuk reward ini.
+  const availOf = (pool) => (pool ? Number(pool.freeStock || 0) + Number(prog.saved[pool.rewardPoolId] || 0) : 0);
+  const syncSaved = (items) => {
+    prog.saved = {};
+    (items || []).forEach((i) => { prog.saved[i.rewardPoolId] = Number(i.quantity) || 0; });
+  };
+
+  function ensureProgSlot() {
+    const field = $("td_pbag");
+    if (!field) return null;
+    let slot = $("txProgRewards");
+    if (slot) return slot;
+    const fs = field.closest(".td-fs");
+    if (!fs) return null;
+    slot = document.createElement("div");
+    slot.id = "txProgRewards";
+    slot.className = "tx-prog";
+    fs.appendChild(slot);
+    return slot;
+  }
+
+  function progMsg(text, isError = false) {
+    const el = $("txProgMsg");
+    if (!el) return;
+    el.textContent = text || "";
+    el.classList.toggle("err", Boolean(text) && isError);
+  }
+
+  function renderProgram() {
+    const slot = ensureProgSlot();
+    if (!slot) return;
+    const chosen = new Set(prog.rows.map((r) => r.rewardPoolId).filter(Boolean));
+
+    const rowsHtml = prog.rows.map((row, i) => {
+      const options = prog.pools
+        .filter((p) => p.active || p.rewardPoolId === row.rewardPoolId)
+        .map((p) => {
+          const taken = chosen.has(p.rewardPoolId) && p.rewardPoolId !== row.rewardPoolId;
+          const label = `${p.rewardType} · stok ${fmtNum(availOf(p))}${p.active ? "" : " (nonaktif)"}`;
+          return `<option value="${esc(p.rewardPoolId)}"${p.rewardPoolId === row.rewardPoolId ? " selected" : ""}${taken ? " disabled" : ""}>${esc(label)}</option>`;
+        }).join("");
+      const pool = poolById(row.rewardPoolId);
+      const max = pool ? Math.max(1, availOf(pool)) : "";
+      return `
+        <div class="tx-prog-row" data-i="${i}">
+          <select class="td-in tx-prog-sel" data-i="${i}" aria-label="Pilih reward dari Reward Pool">
+            <option value=""${row.rewardPoolId ? "" : " selected"}>Pilih reward dari Reward Pool</option>${options}
+          </select>
+          <input class="td-in tx-prog-qty" data-i="${i}" type="number" min="1" ${max ? `max="${max}"` : ""} step="1" inputmode="numeric" value="${esc(row.quantity)}" aria-label="Jumlah reward">
+          <button type="button" class="tx-prog-del" data-i="${i}" aria-label="Hapus reward program">${ico("trash")}</button>
+        </div>`;
+    }).join("");
+
+    slot.innerHTML = `
+      <h3 class="tx-prog-title">Reward Member</h3>
+      <div class="tx-prog-rows">${prog.loaded
+        ? (rowsHtml || '<p class="tx-prog-empty">Belum ada reward program.</p>')
+        : '<p class="tx-prog-empty">Memuat…</p>'}</div>
+      <button type="button" class="tx-prog-add" id="txProgAdd"${prog.loaded ? "" : " disabled"}>+ Tambah Reward Program</button>
+      <p class="tx-prog-msg" id="txProgMsg" aria-live="polite"></p>
+      <p class="tx-prog-hint">Reward diambil dari menu Reward Pool dan mengurangi stok “Sisa” di sana. Tekan “Simpan pengaturan” untuk menyimpan.</p>`;
+
+    slot.querySelectorAll(".tx-prog-sel").forEach((sel) => sel.addEventListener("change", () => {
+      const i = Number(sel.dataset.i);
+      const row = prog.rows[i];
+      if (!row) return;
+      row.rewardPoolId = sel.value;
+      const pool = poolById(row.rewardPoolId);
+      if (pool) row.quantity = Math.max(1, Math.min(Number(row.quantity) || 1, availOf(pool) || 1));
+      renderProgram();
+    }));
+    slot.querySelectorAll(".tx-prog-qty").forEach((input) => input.addEventListener("input", () => {
+      const row = prog.rows[Number(input.dataset.i)];
+      if (row) row.quantity = Number(input.value);
+    }));
+    slot.querySelectorAll(".tx-prog-del").forEach((btn) => btn.addEventListener("click", () => {
+      prog.rows.splice(Number(btn.dataset.i), 1);
+      renderProgram();
+    }));
+    $("txProgAdd")?.addEventListener("click", () => {
+      const usable = prog.pools.filter((p) => p.active && !chosen.has(p.rewardPoolId));
+      if (!usable.length) { progMsg("Semua reward di Reward Pool sudah dipilih.", true); return; }
+      prog.rows.push({ rewardPoolId: "", quantity: 1 });
+      renderProgram();
+    });
+  }
+
+  async function loadProgram() {
+    if (role() !== "OWNER") return;
+    prog.loaded = false;
+    renderProgram();
+    try {
+      const data = await fetchProgramRewards(true);
+      prog.pools = data.pools || [];
+      syncSaved(data.items);
+      prog.rows = (data.items || []).map((i) => ({ rewardPoolId: i.rewardPoolId, quantity: i.quantity }));
+      prog.loaded = true;
+    } catch (error) {
+      prog.loaded = false;
+      renderProgram();
+      progMsg(error.message || "Gagal memuat reward program.", true);
+      return;
+    }
+    renderProgram();
+  }
+
+  async function saveProgramRewards() {
+    if (!prog.loaded || prog.busy) return;
+    if (prog.rows.some((r) => !r.rewardPoolId)) {
+      progMsg("Ada baris reward program yang belum memilih reward.", true);
+      return;
+    }
+    const items = prog.rows.map((r) => ({ rewardPoolId: r.rewardPoolId, quantity: Number(r.quantity) }));
+    if (items.some((i) => !Number.isInteger(i.quantity) || i.quantity < 1)) {
+      progMsg("Jumlah reward harus angka bulat minimal 1.", true);
+      return;
+    }
+    prog.busy = true;
+    try {
+      const data = await call("/owner/program-rewards", { method: "PUT", body: JSON.stringify({ items }) });
+      progCache = data;
+      progCacheAt = Date.now();
+      prog.pools = data.pools || prog.pools;
+      syncSaved(data.items);
+      prog.rows = (data.items || []).map((i) => ({ rewardPoolId: i.rewardPoolId, quantity: i.quantity }));
+      renderProgram();
+      progMsg("Reward program tersimpan.");
+    } catch (error) {
+      progMsg(error.message || "Gagal menyimpan reward program.", true);
+    }
+    prog.busy = false;
+  }
+
+  function bindProgramSave() {
+    const btn = $("tdPSave");
+    if (!btn || btn.dataset.txBound === "1") return;
+    btn.dataset.txBound = "1";
+    btn.addEventListener("click", saveProgramRewards);
+  }
+
+  /* ----- Reward Pool: info "Digunakan di Program Member" ----- */
+  const usedLine = (qty) =>
+    `Digunakan di Program Member: <b>${fmtNum(qty)}</b>`;
+
+  async function decorateRewardPool() {
+    const list = $("ownerRewardList");
+    if (!list) return;
+    const pending = [...list.querySelectorAll("[data-open-reward]")].filter((b) => b.dataset.txProg !== "1");
+    if (!pending.length) return;
+
+    let data;
+    try { data = await fetchProgramRewards(); } catch { return; }
+    const map = new Map((data.items || []).map((i) => [i.rewardPoolId, i.quantity]));
+
+    list.querySelectorAll("[data-open-reward]").forEach((btn) => {
+      if (btn.dataset.txProg === "1") return;
+      btn.dataset.txProg = "1";
+      btn.querySelector(".tx-prog-used")?.remove();
+      const qty = map.get(btn.dataset.openReward);
+      if (!qty) return;
+      const host = btn.querySelector(".locked-card-main");
+      if (!host) return;
+      const tag = document.createElement("span");
+      tag.className = "tx-prog-used";
+      tag.innerHTML = `${ico("gift")}<span>${usedLine(qty)}</span>`;
+      host.appendChild(tag);
+    });
+  }
+
+  async function decorateRewardDetail() {
+    const view = $("rewardDetailView");
+    const layout = $("rewardDetailCard")?.querySelector(".reward-detail-layout");
+    if (!view || view.hidden || !layout || layout.dataset.txProg === "1") return;
+    const id = typeof selectedRewardPoolId !== "undefined" ? selectedRewardPoolId : null;
+    if (!id) return;
+
+    let data;
+    try { data = await fetchProgramRewards(); } catch { return; }
+    if (layout.dataset.txProg === "1" || !layout.isConnected) return;
+    layout.dataset.txProg = "1";
+    const found = (data.items || []).find((i) => i.rewardPoolId === id);
+    if (!found) return;
+
+    const section = document.createElement("section");
+    section.className = "reward-detail-wide-card tx-prog-detail";
+    section.innerHTML = `
+      <div class="reward-detail-icon">${ico("gift", "")}</div>
+      <div>
+        <span>Digunakan di Program Member</span>
+        <strong>${fmtNum(found.quantity)} reward</strong>
+        <small>Reward ini dipilih Owner sebagai Reward Member</small>
+      </div>`;
+    layout.insertBefore(section, layout.querySelector(".reward-detail-terms-card"));
+  }
+
+  let ownerScanTimer = null;
+  function scanOwner() {
+    if (role() !== "OWNER") return;
+
+    const view = $("tdOwnerProgram");
+    const visible = Boolean(view) && !view.hidden;
+    if (visible) bindProgramSave();
+    if (visible && !progWasVisible) loadProgram();
+    progWasVisible = visible;
+
+    decorateRewardPool();
+    decorateRewardDetail();
+  }
+  function scheduleOwnerScan() {
+    clearTimeout(ownerScanTimer);
+    ownerScanTimer = setTimeout(scanOwner, 120);
+  }
+
+  /* ================================================================== *
+   * Siklus
+   * ================================================================== */
   function start() {
     let pending = false;
     new MutationObserver(() => {
@@ -296,9 +523,17 @@
       setTimeout(() => { pending = false; checkDash(); }, 150);
     }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden"] });
 
+    const ownerEl = $("owner");
+    if (ownerEl) {
+      new MutationObserver(scheduleOwnerScan).observe(ownerEl, {
+        childList: true, subtree: true, attributes: true, attributeFilter: ["hidden"],
+      });
+    }
+
     setInterval(() => { if (isCustomerDash()) refreshAll(); }, 20000);
     setInterval(() => { if (isCustomerDash()) paintMachine(); }, 30000);
     checkDash();
+    scheduleOwnerScan();
   }
 
   if (document.readyState === "loading") {
