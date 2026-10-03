@@ -252,6 +252,9 @@
     const wrapped = function (...args) {
       try {
         const t = args[0] && args[0].type;
+        if (role() === "OWNER" && t === "DELIVERY_REQUEST_UPDATED") {
+          setTimeout(() => { if (typeof refreshOwnerDeliveryCounts === "function") refreshOwnerDeliveryCounts(); }, 300);
+        }
         if (role() === "CUSTOMER") {
           if (t === "DELIVERY_REQUEST_UPDATED") setTimeout(refreshRequests, 300);
           if (t === "SELF_SERVICE_TICKET_ACTIVATED" || t === "SELF_SERVICE_QUEUE_UPDATED" || t === "MACHINE_UPDATED") {
@@ -337,7 +340,7 @@
         .filter((p) => p.active || p.rewardPoolId === row.rewardPoolId)
         .map((p) => {
           const taken = chosen.has(p.rewardPoolId) && p.rewardPoolId !== row.rewardPoolId;
-          const label = `${p.rewardType} · stok ${fmtNum(availOf(p))}${p.active ? "" : " (nonaktif)"}`;
+          const label = `${p.rewardType} (${fmtNum(availOf(p))})${p.active ? "" : " nonaktif"}`;
           return `<option value="${esc(p.rewardPoolId)}"${p.rewardPoolId === row.rewardPoolId ? " selected" : ""}${taken ? " disabled" : ""}>${esc(label)}</option>`;
         }).join("");
       const pool = poolById(row.rewardPoolId);
@@ -426,14 +429,44 @@
       prog.rows = (data.items || []).map((i) => ({ rewardPoolId: i.rewardPoolId, quantity: i.quantity }));
       renderProgram();
       progMsg("Reward program tersimpan.");
+      setPristine(true);
     } catch (error) {
       progMsg(error.message || "Gagal menyimpan reward program.", true);
     }
     prog.busy = false;
   }
 
+  /* Teks abu-abu setelah dimuat / disimpan; hitam saat salah satu field disentuh. */
+  function setPristine(on) {
+    const view = $("tdOwnerProgram");
+    if (!view) return;
+    view.classList.toggle("tx-pristine", Boolean(on));
+  }
+
   function bindProgramSave() {
+    const view = $("tdOwnerProgram");
     const btn = $("tdPSave");
+    if (view && view.dataset.txBound !== "1") {
+      view.dataset.txBound = "1";
+      const unlock = (event) => {
+        if (event.target.closest("input:not([type=checkbox]), select, textarea")) setPristine(false);
+      };
+      view.addEventListener("focusin", unlock);
+      view.addEventListener("input", unlock);
+      view.addEventListener("pointerdown", unlock);
+
+      // Pengaturan lama tersimpan -> kembali abu-abu
+      const msg = $("tdPMsg");
+      if (msg) {
+        new MutationObserver(() => {
+          if (/tersimpan/i.test(msg.textContent || "")) {
+            setPristine(true);
+            const active = document.activeElement;
+            if (active && view.contains(active) && active.matches("input, select, textarea")) active.blur();
+          }
+        }).observe(msg, { childList: true, characterData: true, subtree: true });
+      }
+    }
     if (!btn || btn.dataset.txBound === "1") return;
     btn.dataset.txBound = "1";
     btn.addEventListener("click", saveProgramRewards);
@@ -457,10 +490,13 @@
       if (btn.dataset.txProg === "1") return;
       btn.dataset.txProg = "1";
       btn.querySelector(".tx-prog-used")?.remove();
+      btn.querySelector(".locked-card-main")?.classList.remove("tx-prog-only");
       const qty = map.get(btn.dataset.openReward);
       if (!qty) return;
       const host = btn.querySelector(".locked-card-main");
       if (!host) return;
+      // Reward hanya untuk Program Member (tidak dipakai event): sembunyikan info event.
+      if (host.querySelector(".locked-no-event")) host.classList.add("tx-prog-only");
       const tag = document.createElement("span");
       tag.className = "tx-prog-used";
       tag.innerHTML = `${ico("gift")}<span>${usedLine(qty)}</span>`;
@@ -491,6 +527,8 @@
         <strong>${fmtNum(found.quantity)} reward</strong>
         <small>Reward ini dipilih Owner sebagai Reward Member</small>
       </div>`;
+    const eventCard = layout.querySelector(".reward-detail-event-card");
+    if (eventCard && eventCard.querySelector(".reward-detail-empty-event")) eventCard.classList.add("tx-hide");
     layout.insertBefore(section, layout.querySelector(".reward-detail-terms-card"));
   }
 
@@ -501,7 +539,7 @@
     const view = $("tdOwnerProgram");
     const visible = Boolean(view) && !view.hidden;
     if (visible) bindProgramSave();
-    if (visible && !progWasVisible) loadProgram();
+    if (visible && !progWasVisible) { loadProgram(); setPristine(true); }
     progWasVisible = visible;
 
     decorateRewardPool();
@@ -513,9 +551,111 @@
   }
 
   /* ================================================================== *
+   * STAFF — serahkan reward program member: pilih reward "Digunakan di Program Member"
+   * ================================================================== */
+  function toastMsg(text) {
+    if (ui()?.toast) ui().toast(text);
+  }
+
+  function closePicker() {
+    $("txPicker")?.remove();
+  }
+
+  async function submitFulfill(rewardId, poolId, btn) {
+    const body = poolId ? JSON.stringify({ programRewardPoolId: poolId }) : undefined;
+    await call(`/staff/member/reward/${encodeURIComponent(rewardId)}/fulfill`, { method: "POST", body });
+    toastMsg("Reward diserahkan");
+    const row = btn.closest(".td-rw");
+    const list = row?.parentElement;
+    row?.remove();
+    if (list && !list.querySelector(".td-rw")) {
+      list.innerHTML = '<div class="td-empty">Belum ada reward.</div>';
+    }
+    try { ui()?.refreshDashboard?.(); } catch { /* abaikan */ }
+  }
+
+  async function openFulfillPicker(btn) {
+    const rewardId = btn.getAttribute("data-fulfill");
+    if (!rewardId || btn.dataset.txBusy === "1") return;
+
+    let items = [];
+    try {
+      const data = await call("/staff/program-rewards");
+      items = data.items || [];
+    } catch (error) {
+      toastMsg(error.message || "Gagal memuat reward program.");
+      return;
+    }
+
+    // Owner belum memilih reward program -> alur serah biasa
+    if (!items.length) {
+      if (!window.confirm("Serahkan reward ini ke customer?")) return;
+      btn.dataset.txBusy = "1";
+      try { await submitFulfill(rewardId, "", btn); }
+      catch (error) { toastMsg(error.message || "Gagal."); }
+      btn.dataset.txBusy = "0";
+      return;
+    }
+
+    closePicker();
+    const el = document.createElement("div");
+    el.id = "txPicker";
+    el.className = "td-modal";
+    el.setAttribute("role", "dialog");
+    el.setAttribute("aria-modal", "true");
+    const firstOk = items.findIndex((i) => i.remaining > 0 && i.active !== false);
+    el.innerHTML = `<div class="td-modal-card">
+      <h2>Serahkan Reward</h2>
+      <p class="td-note">Pilih reward yang diserahkan ke customer.</p>
+      <div class="tx-pick">
+        ${items.map((i, idx) => {
+          const off = i.remaining <= 0 || i.active === false;
+          return `<label class="tx-pick-item${off ? " off" : ""}">
+            <input type="radio" name="txPick" value="${esc(i.rewardPoolId)}"${idx === firstOk ? " checked" : ""}${off ? " disabled" : ""}>
+            <span><b>${esc(i.rewardType)}</b><small>Digunakan di Program Member · sisa ${fmtNum(i.remaining)}</small></span>
+          </label>`;
+        }).join("")}
+      </div>
+      <p class="tx-prog-msg err" id="txPickMsg" aria-live="polite"></p>
+      <div class="td-act"><button type="button" id="txPickNo">Batal</button><button type="button" class="p" id="txPickYes"${firstOk < 0 ? " disabled" : ""}>Serahkan</button></div>
+    </div>`;
+    document.body.appendChild(el);
+    $("txPickNo").addEventListener("click", closePicker);
+    $("txPickYes").addEventListener("click", async () => {
+      const chosen = el.querySelector('input[name="txPick"]:checked');
+      if (!chosen) { $("txPickMsg").textContent = "Pilih reward yang diserahkan."; return; }
+      const yes = $("txPickYes");
+      yes.disabled = true;
+      try {
+        await submitFulfill(rewardId, chosen.value, btn);
+        closePicker();
+      } catch (error) {
+        $("txPickMsg").textContent = error.message || "Gagal menyerahkan reward.";
+        yes.disabled = false;
+      }
+    });
+  }
+
+  function installFulfillIntercept() {
+    if (document.documentElement.dataset.txFulfill === "1") return;
+    document.documentElement.dataset.txFulfill = "1";
+    // Fase capture: jalan sebelum handler lama (yang hanya window.confirm).
+    document.addEventListener("click", (event) => {
+      if (role() !== "STAFF") return;
+      const btn = event.target.closest && event.target.closest("[data-fulfill]");
+      if (!btn) return;
+      event.preventDefault();
+      event.stopPropagation();
+      openFulfillPicker(btn);
+    }, true);
+  }
+
+  /* ================================================================== *
    * Siklus
    * ================================================================== */
   function start() {
+    installRealtime();
+    installFulfillIntercept();
     let pending = false;
     new MutationObserver(() => {
       if (pending) return;
