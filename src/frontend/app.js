@@ -1981,6 +1981,30 @@ function serviceLines(value) {
   return String(value || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
 }
 
+
+/* ---- Tarif Antar/Jemput: awalan Rp otomatis (teks setelah angka, mis. "/ 7 kg", tetap dipertahankan) ---- */
+function formatPickupTariffInput(raw) {
+  const text = String(raw ?? "");
+  const match = /^\s*(?:rp\.?\s*)?([\d.,]*)(.*)$/is.exec(text);
+  if (!match) return text;
+  const digits = match[1].replace(/\D/g, "");
+  const rest = match[2] ?? "";
+  if (!digits) return rest.trim() ? text : "";
+  const formatted = Number(digits).toLocaleString("id-ID");
+  return `Rp${formatted}${rest}`;
+}
+
+(() => {
+  const input = $("servicePickupTariff");
+  if (!input || input.dataset.rpBound === "1") return;
+  input.dataset.rpBound = "1";
+  input.addEventListener("input", () => {
+    const before = input.value;
+    const next = formatPickupTariffInput(before);
+    if (next !== before) input.value = next;
+  });
+})();
+
 function renderOwnerServiceTariffRows(items = []) {
   const target = $("ownerServiceTariffRows");
   if (!target) return;
@@ -2010,7 +2034,7 @@ function fillServiceSettingsForm(data = serviceSettingsData) {
   if ($("servicePickupHoursStart")) $("servicePickupHoursStart").value = settings.pickupDeliveryHoursStart || "";
   if ($("servicePickupHoursEnd")) $("servicePickupHoursEnd").value = settings.pickupDeliveryHoursEnd || "";
   if ($("servicePickupMinKg")) $("servicePickupMinKg").value = settings.pickupDeliveryMinOrderKg ?? "";
-  if ($("servicePickupTariff")) $("servicePickupTariff").value = settings.pickupDeliveryTariffLabel || "";
+  if ($("servicePickupTariff")) $("servicePickupTariff").value = formatPickupTariffInput(settings.pickupDeliveryTariffLabel || "");
   if ($("servicePickupNote")) $("servicePickupNote").value = settings.pickupDeliveryNote || "";
   if ($("servicePickupWhatsapp")) $("servicePickupWhatsapp").value = settings.pickupDeliveryWhatsapp || "";
   renderOwnerServiceTariffRows(Array.isArray(settings.services) ? settings.services : [
@@ -2209,10 +2233,21 @@ function renderOwnerMetrics() {
   const iconSvg = (name) => extraIcons[name] || ownerIconSvg(name);
 
   // Urutan grid 3 kolom: Reward Event memakai 2 kolom.
+  const rangeFrom = ownerData?.dateRange?.from;
+  const rangeTo = ownerData?.dateRange?.to;
+  const multiDay = Boolean(rangeFrom && rangeTo && rangeFrom !== rangeTo);
+
   const items = [
     { label: "Total Customer", value: data.participants, icon: "user", percentage: data.participantsChangePct, vsPrevious: true, action: "customers" },
-    { label: "Total Member", value: data.members, icon: "customer", action: "members" },
-    { label: "Reward Program", value: data.programPending, icon: "gift", action: "customers" },
+    {
+      label: "Total Member", value: data.members, icon: "customer", action: "members",
+      percentage: data.membersPercent, note: "dari total customer",
+      growth: multiDay ? data.membersChangePct : null,
+    },
+    {
+      label: "Reward Program", value: data.programPending, icon: "gift", action: "customers",
+      percentage: data.programGivenPct, note: "dari stok program",
+    },
     { kind: "reward-event", label: "Reward Event", icon: "gift", action: "event-reward" },
     { kind: "delivery", label: "Request Antar/Jemput", icon: "truck" },
     { label: "Antrean Washer", value: ops.washerWaiting, icon: "washer" },
@@ -2231,13 +2266,13 @@ function renderOwnerMetrics() {
       : "";
 
     if (item.kind === "reward-event") {
-      return `<div class="owner-metric-card owner-metric-reward-event clickable"${actionAttr}>
+      return `<div class="owner-metric-card owner-metric-wide clickable"${actionAttr}>
         <span class="owner-metric-icon gift">${iconSvg("gift")}</span>
         <small>${item.label}</small>
-        <div class="owner-reward-split">
-          <div class="owner-reward-split-col"><strong>${fmt(claimed)}</strong><span>Claimed</span><em>${percentOfSupply(claimed)}%</em></div>
-          <i class="owner-reward-split-divider" aria-hidden="true"></i>
-          <div class="owner-reward-split-col"><strong>${fmt(redeemed)}</strong><span>Redeemed</span><em>${percentOfSupply(redeemed)}%</em></div>
+        <div class="owner-metric-pair">
+          <div class="owner-metric-card owner-metric-sub"><small>Claimed</small><b>${fmt(claimed)}</b><em>${percentOfSupply(claimed)}%</em></div>
+          <i class="owner-metric-pair-divider" aria-hidden="true"></i>
+          <div class="owner-metric-card owner-metric-sub"><small>Redeemed</small><b>${fmt(redeemed)}</b><em>${percentOfSupply(redeemed)}%</em></div>
         </div>
         <span class="owner-metric-note">dari total reward event</span>
       </div>`;
@@ -2245,11 +2280,13 @@ function renderOwnerMetrics() {
 
     if (item.kind === "delivery") {
       const c = ownerDeliveryCounts;
-      return `<div class="owner-metric-card owner-metric-delivery"><span class="owner-metric-icon truck">${iconSvg("truck")}</span><small>${item.label}</small>
-        <div class="owner-delivery-split">
-          <div class="owner-delivery-col"><strong id="ownerDeliveryAntar">${fmt(c.antar)}</strong><span>Antar</span></div>
-          <i class="owner-reward-split-divider" aria-hidden="true"></i>
-          <div class="owner-delivery-col"><strong id="ownerDeliveryJemput">${fmt(c.jemput)}</strong><span>Jemput</span></div>
+      return `<div class="owner-metric-card owner-metric-delivery">
+        <span class="owner-metric-icon truck">${iconSvg("truck")}</span>
+        <small>${item.label}</small>
+        <div class="owner-metric-pair">
+          <div class="owner-metric-card owner-metric-sub"><small>Antar</small><b id="ownerDeliveryAntar">${fmt(c.antar)}</b></div>
+          <i class="owner-metric-pair-divider" aria-hidden="true"></i>
+          <div class="owner-metric-card owner-metric-sub"><small>Jemput</small><b id="ownerDeliveryJemput">${fmt(c.jemput)}</b></div>
         </div>
         <span class="owner-metric-note">sudah dikonfirmasi</span>
       </div>`;
@@ -2258,8 +2295,12 @@ function renderOwnerMetrics() {
     const hasPercentage = item.percentage !== null && item.percentage !== undefined;
     const numericPercentage = Number(item.percentage || 0);
     const percentageText = hasPercentage ? `${Math.abs(numericPercentage)}%` : "";
-    const note = hasPercentage && item.vsPrevious ? `<span class="owner-metric-note">vs sebelumnya</span>` : "";
-    return `<div class="owner-metric-card${item.action ? " clickable" : ""}"${actionAttr}><span class="owner-metric-icon ${item.icon}">${iconSvg(item.icon)}</span><small>${item.label}</small><b>${fmt(item.value)}</b>${percentageText ? `<em>${percentageText}</em>` : ""}${note}</div>`;
+    const noteText = item.note ? item.note : (hasPercentage && item.vsPrevious ? "vs sebelumnya" : "");
+    const note = noteText ? `<span class="owner-metric-note">${noteText}</span>` : "";
+    const growth = item.growth !== null && item.growth !== undefined
+      ? `<span class="owner-metric-note">${Number(item.growth) >= 0 ? "▲" : "▼"} ${Math.abs(Number(item.growth))}% vs sebelumnya</span>`
+      : "";
+    return `<div class="owner-metric-card${item.action ? " clickable" : ""}"${actionAttr}><span class="owner-metric-icon ${item.icon}">${iconSvg(item.icon)}</span><small>${item.label}</small><b>${fmt(item.value)}</b>${percentageText ? `<em>${percentageText}</em>` : ""}${note}${growth}</div>`;
   }).join("");
 
   const actions = {
