@@ -6,14 +6,15 @@ import { writeAuditSafe } from "../audit/logger";
  * ============================================================
  * REWARD MEMBER (PROGRAM) — dipilih Owner dari Reward Pool
  * ============================================================
- * GET /owner/program-rewards  (OWNER) -> daftar reward program + reward pool
- * PUT /owner/program-rewards  (OWNER) -> simpan seluruh daftar reward program
+ * GET /owner/program-rewards  (OWNER)         -> reward program + reward pool
+ * PUT /owner/program-rewards  (OWNER)         -> simpan seluruh daftar reward program
+ * GET /staff/program-rewards  (STAFF, OWNER)  -> reward program + sisa untuk diserahkan
  *
- * Data pilihan disimpan di program_rewards (migrations/0030_program_rewards.sql).
+ * Data pilihan disimpan di program_rewards (migrations 0021 + 0022).
  * Jumlah reward program DICADANGKAN dari stok Reward Pool lewat
- * reward_pool.quota_used (cara yang sama seperti alokasi ke Event), sehingga
- * "Sisa" di menu Reward Pool ikut berkurang dan stok tidak bisa dipakai ganda.
- * Mengubah/menghapus baris mengembalikan selisihnya ke stok.
+ * reward_pool.quota_used (sama seperti alokasi ke Event), sehingga "Sisa"
+ * di menu Reward Pool ikut berkurang. Kolom `given` mencatat jumlah yang
+ * sudah diserahkan Staff ke customer (member.ts).
  */
 
 type PoolRow = {
@@ -28,6 +29,7 @@ type ItemRow = {
   reward_pool_id: string;
   reward_type: string;
   quantity: number;
+  given: number;
   active: number;
 };
 
@@ -48,16 +50,31 @@ function errorResponse(error: string, message: string, status: number): Response
   return json({ ok: false, error, message }, status);
 }
 
-async function handleGet(request: Request, env: Env): Promise<Response> {
-  const owner = await requireSession(request, env, ["OWNER"]);
-  if (!owner) return errorResponse("UNAUTHORIZED", "Owner authentication is required.", 401);
-
-  const itemResult = await env.DB.prepare(`
-    SELECT pr.reward_pool_id, pr.quantity, rp.reward_type, rp.active
+async function readItems(env: Env) {
+  const result = await env.DB.prepare(`
+    SELECT pr.reward_pool_id, pr.quantity, pr.given, rp.reward_type, rp.active
     FROM program_rewards pr
     JOIN reward_pool rp ON rp.reward_pool_id = pr.reward_pool_id
     ORDER BY pr.position ASC, pr.created_at ASC
   `).all<ItemRow>();
+
+  return (result.results ?? []).map((row) => {
+    const quantity = Number(row.quantity);
+    const given = Number(row.given ?? 0);
+    return {
+      rewardPoolId: row.reward_pool_id,
+      rewardType: row.reward_type,
+      quantity,
+      given,
+      remaining: Math.max(0, quantity - given),
+      active: Number(row.active) === 1,
+    };
+  });
+}
+
+async function handleGet(request: Request, env: Env): Promise<Response> {
+  const owner = await requireSession(request, env, ["OWNER"]);
+  if (!owner) return errorResponse("UNAUTHORIZED", "Owner authentication is required.", 401);
 
   const poolResult = await env.DB.prepare(`
     SELECT reward_pool_id, reward_type, quota_total, quota_used, active
@@ -67,12 +84,7 @@ async function handleGet(request: Request, env: Env): Promise<Response> {
 
   return json({
     ok: true,
-    items: (itemResult.results ?? []).map((row) => ({
-      rewardPoolId: row.reward_pool_id,
-      rewardType: row.reward_type,
-      quantity: Number(row.quantity),
-      active: Number(row.active) === 1,
-    })),
+    items: await readItems(env),
     pools: (poolResult.results ?? []).map((row) => ({
       rewardPoolId: row.reward_pool_id,
       rewardType: row.reward_type,
@@ -82,6 +94,12 @@ async function handleGet(request: Request, env: Env): Promise<Response> {
       active: Number(row.active) === 1,
     })),
   });
+}
+
+async function handleStaffGet(request: Request, env: Env): Promise<Response> {
+  const session = await requireSession(request, env, ["STAFF", "OWNER"]);
+  if (!session) return errorResponse("UNAUTHORIZED", "Staff authentication is required.", 401);
+  return json({ ok: true, items: await readItems(env) });
 }
 
 async function handlePut(request: Request, env: Env): Promise<Response> {
@@ -120,25 +138,35 @@ async function handlePut(request: Request, env: Env): Promise<Response> {
     items.push({ rewardPoolId, quantity });
   }
 
-  // Alokasi tersimpan saat ini (untuk menghitung selisih stok).
+  // Alokasi tersimpan saat ini (untuk selisih stok dan jumlah yang sudah diserahkan).
   const oldResult = await env.DB.prepare(`
-    SELECT reward_pool_id, quantity FROM program_rewards
-  `).all<{ reward_pool_id: string; quantity: number }>();
+    SELECT reward_pool_id, quantity, given FROM program_rewards
+  `).all<{ reward_pool_id: string; quantity: number; given: number }>();
   const oldQty = new Map<string, number>();
+  const oldGiven = new Map<string, number>();
   for (const row of oldResult.results ?? []) {
     oldQty.set(row.reward_pool_id, Number(row.quantity));
+    oldGiven.set(row.reward_pool_id, Number(row.given ?? 0));
   }
 
   const newQty = new Map(items.map((item) => [item.rewardPoolId, item.quantity]));
   const deltas: Array<{ rewardPoolId: string; delta: number }> = [];
 
-  // Reward yang ditambah / diubah jumlahnya / dibuang
   for (const [poolId, qty] of newQty) {
     const delta = qty - (oldQty.get(poolId) ?? 0);
     if (delta !== 0) deltas.push({ rewardPoolId: poolId, delta });
   }
   for (const [poolId, qty] of oldQty) {
-    if (!newQty.has(poolId)) deltas.push({ rewardPoolId: poolId, delta: -qty });
+    if (!newQty.has(poolId)) {
+      if ((oldGiven.get(poolId) ?? 0) > 0) {
+        return errorResponse(
+          "REWARD_ALREADY_GIVEN",
+          "Reward ini sudah pernah diserahkan ke customer dan tidak dapat dihapus dari program.",
+          409,
+        );
+      }
+      deltas.push({ rewardPoolId: poolId, delta: -qty });
+    }
   }
 
   for (const item of items) {
@@ -149,6 +177,15 @@ async function handlePut(request: Request, env: Env): Promise<Response> {
 
     if (!pool) {
       return errorResponse("REWARD_NOT_FOUND", "Reward di Reward Pool tidak ditemukan.", 404);
+    }
+
+    const given = oldGiven.get(item.rewardPoolId) ?? 0;
+    if (item.quantity < given) {
+      return errorResponse(
+        "QUANTITY_BELOW_GIVEN",
+        `Jumlah ${pool.reward_type} tidak boleh di bawah yang sudah diserahkan (${given}).`,
+        409,
+      );
     }
 
     const delta = item.quantity - (oldQty.get(item.rewardPoolId) ?? 0);
@@ -173,13 +210,14 @@ async function handlePut(request: Request, env: Env): Promise<Response> {
     statements.push(
       env.DB.prepare(`
         INSERT INTO program_rewards (
-          program_reward_id, reward_pool_id, quantity, position, created_at, updated_at
+          program_reward_id, reward_pool_id, quantity, given, position, created_at, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `).bind(
         `pr_${crypto.randomUUID()}`,
         item.rewardPoolId,
         item.quantity,
+        oldGiven.get(item.rewardPoolId) ?? 0,
         index,
         nowIso,
         nowIso,
@@ -215,6 +253,10 @@ export async function handleProgramRewardsRequest(request: Request, env: Env): P
   if (url.pathname === "/owner/program-rewards") {
     if (request.method === "GET") return handleGet(request, env);
     if (request.method === "PUT") return handlePut(request, env);
+  }
+
+  if (url.pathname === "/staff/program-rewards" && request.method === "GET") {
+    return handleStaffGet(request, env);
   }
 
   return errorResponse("NOT_FOUND", "Program rewards endpoint not found.", 404);
