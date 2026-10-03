@@ -22,6 +22,14 @@ import { readProgramSettings } from "../lib/program-settings";
  * The order number (e.g. DO-000248) is sequential and never reset
  * daily, because an order can sit for up to 48 hours; it is also the
  * number Staff writes on the physical basket.
+ *
+ * Setelah COMPLETED, customer memilih cara menerima laundry
+ * (DELIVERY = diantar, SELF_PICKUP = ambil sendiri) dan Staff
+ * mengonfirmasi pilihan itu sebelum menandai PICKED_UP.
+ *
+ * Order dari request Jemput (source = PICKUP_REQUEST) dibuat otomatis saat
+ * Staff mengonfirmasi request (delivery-requests.ts), memakai nomor order
+ * yang sama; Staff hanya mengisi estimasi selesai.
  */
 
 const PICKUP_WINDOW_HOURS = 48;
@@ -42,6 +50,13 @@ type OrderRow = {
   item_count: number;
   item_unit: "BASKET" | "BAG";
   est_done_at: string | null;
+  source?: "WALKIN" | "PICKUP_REQUEST";
+  delivery_request_id?: string | null;
+  return_method?: "DELIVERY" | "SELF_PICKUP" | null;
+  return_chosen_at?: string | null;
+  return_confirmed_at?: string | null;
+  return_confirmed_by?: string | null;
+  request_status?: string | null;
 };
 
 function json(data: unknown, status = 200): Response {
@@ -78,8 +93,12 @@ async function broadcastOrderUpdated(env: Env, order: OrderRow): Promise<void> {
   }
 }
 
-/** Atomically allocates the next sequential drop-off order number. */
-async function allocateOrderId(env: Env): Promise<string> {
+/**
+ * Atomically allocates the next sequential drop-off order number.
+ * Dipakai juga oleh request Jemput (delivery-requests.ts) agar nomor ordernya
+ * SAMA dengan nomor drop-off.
+ */
+export async function allocateOrderId(env: Env): Promise<string> {
   const row = await env.DB.prepare(`
     UPDATE dropoff_sequence
     SET next_number = next_number + 1
@@ -217,6 +236,21 @@ async function handleComplete(request: Request, env: Env, orderId: string): Prom
   const nowIso = new Date().toISOString();
   const pickupDue = new Date(Date.now() + PICKUP_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
 
+  // Order dari request Jemput: cucian baru dikerjakan setelah benar-benar dijemput.
+  const linked = await env.DB.prepare(`
+    SELECT o.status AS order_status, dr.status AS request_status
+    FROM dropoff_orders o
+    LEFT JOIN delivery_requests dr ON dr.request_id = o.delivery_request_id
+    WHERE o.order_id = ? LIMIT 1
+  `).bind(orderId).first<{ order_status: string; request_status: string | null }>();
+  if (linked && linked.request_status && linked.request_status !== "COMPLETED") {
+    return errorResponse(
+      "PICKUP_NOT_DONE",
+      "Request jemput belum ditandai selesai dijemput. Selesaikan dulu di menu Request Antar / Jemput.",
+      409,
+    );
+  }
+
   const update = await env.DB.prepare(`
     UPDATE dropoff_orders
     SET status = 'COMPLETED', completed_at = ?, completed_by = ?, pickup_due_at = ?
@@ -315,9 +349,11 @@ async function handleActiveList(request: Request, env: Env): Promise<Response> {
   }
 
   const orders = await env.DB.prepare(`
-    SELECT o.*, c.phone_masked, c.phone, c.name AS customer_name, c.address AS customer_address
+    SELECT o.*, c.phone_masked, c.phone, c.name AS customer_name, c.address AS customer_address,
+           dr.status AS request_status
     FROM dropoff_orders o
     JOIN customers c ON c.customer_id = o.customer_id
+    LEFT JOIN delivery_requests dr ON dr.request_id = o.delivery_request_id
     WHERE o.status IN ('RECEIVED', 'COMPLETED')
     ORDER BY o.received_at ASC
   `).all();
@@ -339,9 +375,11 @@ async function handleMyOrder(request: Request, env: Env): Promise<Response> {
   }
 
   const result = await env.DB.prepare(`
-    SELECT * FROM dropoff_orders
-    WHERE customer_id = ? AND status IN ('RECEIVED', 'COMPLETED')
-    ORDER BY received_at DESC
+    SELECT o.*, dr.status AS request_status
+    FROM dropoff_orders o
+    LEFT JOIN delivery_requests dr ON dr.request_id = o.delivery_request_id
+    WHERE o.customer_id = ? AND o.status IN ('RECEIVED', 'COMPLETED')
+    ORDER BY o.received_at DESC
     LIMIT 20
   `).bind(session.userId).all<OrderRow>();
   const orders = result.results ?? [];
@@ -357,6 +395,108 @@ async function handleMyOrder(request: Request, env: Env): Promise<Response> {
     activeCount: orders.length,
     customer: customer ? { name: customer.name ?? "", phone: customer.phone ?? "" } : null,
   });
+}
+
+/*
+ * ============================================================
+ * CUSTOMER: pilih cara menerima laundry yang sudah selesai
+ * (DELIVERY = diantar, SELF_PICKUP = ambil sendiri).
+ * Bisa diganti selama Staff belum mengonfirmasi.
+ * ============================================================
+ */
+async function handleReturnChoice(request: Request, env: Env, orderId: string): Promise<Response> {
+  const session = await getCustomerSession(request, env);
+  if (!session) {
+    return errorResponse("UNAUTHORIZED", "Customer authentication is required.", 401);
+  }
+
+  let body: { method?: unknown };
+  try {
+    body = (await request.json()) as typeof body;
+  } catch {
+    return errorResponse("INVALID_REQUEST", "Invalid JSON request body.", 400);
+  }
+  if (body.method !== "DELIVERY" && body.method !== "SELF_PICKUP") {
+    return errorResponse("INVALID_REQUEST", "method must be DELIVERY or SELF_PICKUP.", 400);
+  }
+
+  const nowIso = new Date().toISOString();
+  const update = await env.DB.prepare(`
+    UPDATE dropoff_orders
+    SET return_method = ?, return_chosen_at = ?
+    WHERE order_id = ? AND customer_id = ? AND status = 'COMPLETED' AND return_confirmed_at IS NULL
+  `).bind(body.method, nowIso, orderId, session.userId).run();
+
+  const order = await env.DB.prepare(`
+    SELECT * FROM dropoff_orders WHERE order_id = ? AND customer_id = ? LIMIT 1
+  `).bind(orderId, session.userId).first<OrderRow>();
+
+  if (!order) {
+    return errorResponse("NOT_FOUND", "Order not found.", 404);
+  }
+  if (update.meta.changes !== 1) {
+    return errorResponse(
+      "INVALID_STATE",
+      "Pilihan tidak dapat diubah (laundry belum selesai atau sudah dikonfirmasi staff).",
+      409,
+    );
+  }
+
+  await writeAuditSafe(env, {
+    entityType: "DROPOFF_ORDER",
+    entityId: orderId,
+    action: "RETURN_CHOICE",
+    actor: session.userId,
+    result: "SUCCESS",
+  });
+
+  await broadcastOrderUpdated(env, order);
+  return json({ ok: true, order });
+}
+
+/*
+ * ============================================================
+ * STAFF: konfirmasi pilihan customer (antar / pickup)
+ * ============================================================
+ */
+async function handleConfirmReturn(request: Request, env: Env, orderId: string): Promise<Response> {
+  const session = await getStaffSession(request, env);
+  if (!session) {
+    return errorResponse("UNAUTHORIZED", "Staff authentication is required.", 401);
+  }
+
+  const nowIso = new Date().toISOString();
+  const update = await env.DB.prepare(`
+    UPDATE dropoff_orders
+    SET return_confirmed_at = ?, return_confirmed_by = ?
+    WHERE order_id = ? AND status = 'COMPLETED'
+      AND return_method IS NOT NULL AND return_confirmed_at IS NULL
+  `).bind(nowIso, session.userId, orderId).run();
+
+  const order = await env.DB.prepare(`
+    SELECT * FROM dropoff_orders WHERE order_id = ? LIMIT 1
+  `).bind(orderId).first<OrderRow>();
+
+  if (!order) {
+    return errorResponse("NOT_FOUND", "Order not found.", 404);
+  }
+  if (update.meta.changes !== 1) {
+    if (order.return_confirmed_at) {
+      return json({ ok: true, idempotent: true, order });
+    }
+    return errorResponse("INVALID_STATE", "Customer belum memilih antar / pickup.", 409);
+  }
+
+  await writeAuditSafe(env, {
+    entityType: "DROPOFF_ORDER",
+    entityId: orderId,
+    action: "CONFIRM_RETURN",
+    actor: session.userId,
+    result: "SUCCESS",
+  });
+
+  await broadcastOrderUpdated(env, order);
+  return json({ ok: true, idempotent: false, order });
 }
 
 export async function handleDropoffRequest(request: Request, env: Env): Promise<Response> {
@@ -398,6 +538,32 @@ export async function handleDropoffRequest(request: Request, env: Env): Promise<
 
   if (request.method === "GET" && url.pathname === "/dropoff/mine") {
     return handleMyOrder(request, env);
+  }
+
+  if (
+    request.method === "POST" &&
+    url.pathname.startsWith("/staff/dropoff/") &&
+    url.pathname.endsWith("/confirm-return")
+  ) {
+    const orderId = url.pathname.slice(
+      "/staff/dropoff/".length,
+      url.pathname.length - "/confirm-return".length,
+    );
+    if (!orderId) return errorResponse("INVALID_REQUEST", "orderId is required.", 400);
+    return handleConfirmReturn(request, env, orderId);
+  }
+
+  if (
+    request.method === "POST" &&
+    url.pathname.startsWith("/dropoff/") &&
+    url.pathname.endsWith("/return-choice")
+  ) {
+    const orderId = url.pathname.slice(
+      "/dropoff/".length,
+      url.pathname.length - "/return-choice".length,
+    );
+    if (!orderId) return errorResponse("INVALID_REQUEST", "orderId is required.", 400);
+    return handleReturnChoice(request, env, orderId);
   }
 
   return errorResponse("NOT_FOUND", "Drop-off endpoint not found.", 404);
