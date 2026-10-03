@@ -4,6 +4,8 @@ import type { AuthSession } from "../auth/session-guard";
 import { writeAuditSafe } from "../audit/logger";
 import { broadcastRealtime } from "../realtime";
 import { isPhone, normalizePhone } from "../lib/customer-lookup";
+import { readProgramSettings } from "../lib/program-settings";
+import { allocateOrderId } from "./dropoff";
 
 /*
  * ============================================================
@@ -18,6 +20,11 @@ import { isPhone, normalizePhone } from "../lib/customer-lookup";
  *             MEMBACA pengaturan tersebut.
  *
  * Status: NEW -> CONFIRMED -> COMPLETED, atau NEW -> REJECTED.
+ *
+ * Request JEMPUT mendapat nomor order (DO-xxxxxx) otomatis saat dibuat.
+ * Saat Staff mengonfirmasi, drop-off dibuat otomatis dengan nomor yang sama
+ * (Staff hanya mengisi estimasi selesai), jadi tidak perlu input drop-off dua kali.
+ * Request ANTAR tidak memiliki nomor order.
  */
 
 type DeliveryStatus = "NEW" | "CONFIRMED" | "COMPLETED" | "REJECTED";
@@ -46,6 +53,8 @@ type RequestRow = {
   completed_by: string | null;
   rejected_at: string | null;
   rejected_by: string | null;
+  order_id: string | null;
+  est_done_at: string | null;
 };
 
 type DeliverySettings = {
@@ -154,6 +163,8 @@ function toDto(row: RequestRow) {
     confirmedAt: row.confirmed_at,
     completedAt: row.completed_at,
     rejectedAt: row.rejected_at,
+    orderId: row.order_id,
+    estDoneAt: row.est_done_at,
   };
 }
 
@@ -288,17 +299,20 @@ async function handleCreate(request: Request, env: Env): Promise<Response> {
   const requestId = `dr_${crypto.randomUUID()}`;
   const nowIso = new Date().toISOString();
 
+  // Request JEMPUT = drop-off: nomor ordernya dicadangkan sekarang.
+  const orderId = type === "PICKUP" ? await allocateOrderId(env) : null;
+
   await env.DB.prepare(`
     INSERT INTO delivery_requests (
       request_id, customer_id, service_type, scheduled_date, scheduled_time,
       contact_name, contact_phone, address, est_weight_kg, item_count, item_unit,
-      notes, status, created_at, updated_at
+      notes, status, created_at, updated_at, order_id
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?, ?)
   `).bind(
     requestId, session.userId, type, date, time,
     name, normalizePhone(phoneRaw), address, weight, count, unit,
-    notes, nowIso, nowIso,
+    notes, nowIso, nowIso, orderId,
   ).run();
 
   await writeAuditSafe(env, {
@@ -449,6 +463,16 @@ async function handleTransition(
   const transition = TRANSITIONS[verb];
   if (!transition) return errorResponse("NOT_FOUND", "Delivery endpoint not found.", 404);
 
+  // Body opsional (hanya dipakai saat konfirmasi request JEMPUT): estimasi selesai.
+  let body: { estDoneAt?: unknown; estimateHours?: unknown } = {};
+  if (verb === "confirm") {
+    try {
+      body = (await request.json()) as typeof body;
+    } catch {
+      body = {};
+    }
+  }
+
   const nowIso = new Date().toISOString();
   const result = await env.DB.prepare(transition.sql)
     .bind(nowIso, session.userId, nowIso, requestId)
@@ -483,13 +507,114 @@ async function handleTransition(
     actor: session.userId,
     result: "SUCCESS",
   });
-  await broadcastUpdated(env, requestId, transition.to);
 
-  const row = await env.DB.prepare(`
+  let row = await env.DB.prepare(`
     SELECT * FROM delivery_requests WHERE request_id = ? LIMIT 1
   `).bind(requestId).first<RequestRow>();
 
+  if (row && row.service_type === "PICKUP") {
+    if (verb === "confirm") {
+      await createDropoffForPickup(env, row, session.userId, body, nowIso);
+    } else if (verb === "complete") {
+      // Cucian benar-benar sudah dijemput = waktu diterima.
+      await env.DB.prepare(`
+        UPDATE dropoff_orders SET received_at = ?
+        WHERE delivery_request_id = ? AND status = 'RECEIVED'
+      `).bind(nowIso, requestId).run();
+      await broadcastDropoff(env, row.order_id);
+    }
+    row = await env.DB.prepare(`
+      SELECT * FROM delivery_requests WHERE request_id = ? LIMIT 1
+    `).bind(requestId).first<RequestRow>();
+  }
+
+  await broadcastUpdated(env, requestId, transition.to);
+
   return json({ ok: true, request: row ? toDto(row) : { id: requestId, status: transition.to } });
+}
+
+/** Estimasi selesai: dari Staff (ISO / jam) atau bawaan Pengaturan Program. */
+async function resolveEstDoneAt(
+  env: Env,
+  body: { estDoneAt?: unknown; estimateHours?: unknown },
+): Promise<string> {
+  if (typeof body.estDoneAt === "string") {
+    const ms = Date.parse(body.estDoneAt);
+    if (Number.isFinite(ms) && ms > Date.now()) return new Date(ms).toISOString();
+  }
+  let hours = typeof body.estimateHours === "number" && Number.isFinite(body.estimateHours) &&
+    body.estimateHours >= 1 && body.estimateHours <= 720
+    ? body.estimateHours
+    : 0;
+  if (!hours) {
+    try {
+      hours = (await readProgramSettings(env)).dropoff.estimateHours || 24;
+    } catch {
+      hours = 24;
+    }
+  }
+  return new Date(Date.now() + hours * 3600 * 1000).toISOString();
+}
+
+async function broadcastDropoff(env: Env, orderId: string | null): Promise<void> {
+  if (!orderId) return;
+  try {
+    const order = await env.DB.prepare(`
+      SELECT * FROM dropoff_orders WHERE order_id = ? LIMIT 1
+    `).bind(orderId).first();
+    if (order) await broadcastRealtime(env, "DROPOFF_ORDER_UPDATED", { order });
+  } catch {
+    // best-effort
+  }
+}
+
+/** Membuat drop-off otomatis (nomor order sama dengan request jemput). */
+async function createDropoffForPickup(
+  env: Env,
+  row: RequestRow,
+  staffId: string,
+  body: { estDoneAt?: unknown; estimateHours?: unknown },
+  nowIso: string,
+): Promise<void> {
+  const estDoneAt = await resolveEstDoneAt(env, body);
+
+  let orderId = row.order_id;
+  if (!orderId) {
+    // Request lama (dibuat sebelum fitur ini) belum punya nomor order.
+    orderId = await allocateOrderId(env);
+  }
+
+  await env.DB.prepare(`
+    UPDATE delivery_requests SET order_id = ?, est_done_at = ? WHERE request_id = ?
+  `).bind(orderId, estDoneAt, row.request_id).run();
+
+  await env.DB.prepare(`
+    INSERT OR IGNORE INTO dropoff_orders (
+      order_id, customer_id, weight_kg, notes, status, received_at, received_by,
+      item_count, item_unit, est_done_at, source, delivery_request_id
+    )
+    VALUES (?, ?, ?, ?, 'RECEIVED', ?, ?, ?, ?, ?, 'PICKUP_REQUEST', ?)
+  `).bind(
+    orderId, row.customer_id, row.est_weight_kg, row.notes ?? "", nowIso, staffId,
+    row.item_count, row.item_unit, estDoneAt, row.request_id,
+  ).run();
+
+  // Nama & alamat dari request mengisi profil customer bila masih kosong.
+  await env.DB.prepare(`
+    UPDATE customers
+    SET name = CASE WHEN name IS NULL OR name = '' THEN ? ELSE name END,
+        address = CASE WHEN address IS NULL OR address = '' THEN ? ELSE address END
+    WHERE customer_id = ?
+  `).bind(row.contact_name, row.address, row.customer_id).run();
+
+  await writeAuditSafe(env, {
+    entityType: "DROPOFF_ORDER",
+    entityId: orderId,
+    action: "CREATE",
+    actor: staffId,
+    result: "SUCCESS",
+  });
+  await broadcastDropoff(env, orderId);
 }
 
 /* ------------------------------------------------------------ *
