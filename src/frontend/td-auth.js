@@ -1,11 +1,13 @@
 /* ==========================================================================
    TERAS LAUNDRY — Standar UI v1.0
    Layar login:
-   - Customer (/customer): kartu NAMA + NOMOR HP di atas background
-     customer-bg-clean.png. Nomor belum terdaftar -> otomatis daftar.
-   - Staff (/staff): kartu nomor HP di atas background staff-bg-clean.png.
-   Juga: pemulihan sesi customer saat halaman dimuat ulang, dan logout
-   customer yang benar-benar kembali ke layar login.
+   - Customer (/customer): NAMA + NOMOR HP di atas customer-bg-clean.png.
+       Customer lama  -> langsung masuk ke dashboard.
+       Customer baru  -> muncul notifikasi "Daftar"; setelah diklik, akun dibuat
+                         dan customer masuk ke dashboard.
+   - Staff (/staff): nomor HP Staff di atas staff-bg-clean.png.
+   Juga: pemulihan sesi customer saat halaman dimuat ulang, dan logout customer
+   yang benar-benar kembali ke layar login.
    Dimuat SETELAH delivery.js dan td-pages.js.
    ========================================================================== */
 (() => {
@@ -14,33 +16,36 @@
   window.__tdAuth = true;
 
   const $ = (id) => document.getElementById(id);
+  const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const AUTH_KEY = "td_customer_auth";
-  const LEGACY_IDENTITY_KEY = "teras_customer_identity";
   const routeName = () => (location.pathname.split("/").filter(Boolean)[0] || "").toLowerCase();
 
   /* ------------------------------------------------------------ *
-   * Penyimpanan identitas customer (nama + nomor HP)
+   * Profil customer yang tersimpan (nama + nomor HP)
    * ------------------------------------------------------------ */
-  const readAuth = () => {
+  const readProfile = () => {
     try {
       const v = JSON.parse(localStorage.getItem(AUTH_KEY) || "null");
       return v && v.phone && v.name ? v : null;
     } catch { return null; }
   };
-  const writeAuth = (v) => { try { localStorage.setItem(AUTH_KEY, JSON.stringify(v)); } catch { /* abaikan */ } };
-  const clearAuth = () => {
-    try { localStorage.removeItem(AUTH_KEY); localStorage.removeItem(LEGACY_IDENTITY_KEY); } catch { /* abaikan */ }
+  const writeProfile = (v) => {
+    try { localStorage.setItem(AUTH_KEY, JSON.stringify(v)); } catch { /* abaikan */ }
+    window.TdUi?.setProfile?.(v);
+  };
+  const clearProfile = () => {
+    try { localStorage.removeItem(AUTH_KEY); } catch { /* abaikan */ }
   };
 
-  /* Logout: identitas dihapus SEBELUM handler lama berjalan (fase capture).
-     Tanpa ini aplikasi langsung memulihkan sesi dan customer "tidak bisa logout". */
+  /* Logout: profil dihapus SEBELUM handler lama berjalan (fase capture); tanpa ini
+     aplikasi langsung memulihkan sesi dan customer "tidak bisa logout". */
   document.addEventListener("click", (event) => {
     const hit = event.target.closest && event.target.closest("#customerLogout, #tdLogout");
-    if (hit && (window.TdUi?.role?.() === "CUSTOMER" || routeName() === "customer")) clearAuth();
+    if (hit && (window.TdUi?.role?.() === "CUSTOMER" || routeName() === "customer")) clearProfile();
   }, true);
 
   /* ------------------------------------------------------------ *
-   * Layer login (memakai kanvas yang sama dengan dashboard)
+   * Layer login (kanvas yang sama dengan dashboard)
    * ------------------------------------------------------------ */
   let layer = null;
   let layerKind = "";
@@ -56,15 +61,15 @@
         ${isC ? '<img class="td-logo" src="/assets/branding/branding.png" alt="Teras Laundry">' : ""}
         <div class="td-flow">
           <section class="td-card td-pad" aria-labelledby="tdAuthT">
-            <h2 id="tdAuthT">${isC ? "Masuk / Daftar" : "Login Staff"}</h2>
-            <p class="td-note" id="tdAuthHint">${isC ? "Isi nama dan nomor HP. Bila belum terdaftar, akun dibuat otomatis." : "Masukkan nomor HP Staff."}</p>
+            <h2 id="tdAuthT">${isC ? "Masuk" : "Login Staff"}</h2>
+            <p class="td-note" id="tdAuthHint">${isC ? "Isi nama dan nomor HP Anda." : "Masukkan nomor HP Staff."}</p>
             <div class="td-fs" id="tdAuthForm">
               ${isC ? `<div class="td-f"><label for="tdAuthName">Nama<span class="td-req-star">*</span></label>
                 <input class="td-in" id="tdAuthName" type="text" maxlength="60" autocomplete="name" placeholder="Nama lengkap"></div>` : ""}
               <div class="td-f"><label for="tdAuthPhone">No. HP<span class="td-req-star">*</span></label>
                 <input class="td-in" id="tdAuthPhone" type="tel" inputmode="tel" maxlength="20" autocomplete="tel" placeholder="08xxxxxxxxxx"></div>
               <p class="td-note td-err" id="tdAuthMsg" role="alert" aria-live="polite"></p>
-              <button type="button" class="td-btn" id="tdAuthGo" style="position:static">${isC ? "Masuk / Daftar" : "Login"}</button>
+              <button type="button" class="td-btn" id="tdAuthGo" style="position:static">${isC ? "Masuk" : "Login"}</button>
             </div>
           </section>
         </div>
@@ -84,9 +89,8 @@
     const form = $("tdAuthForm");
     if (form && form.hidden !== loading) form.hidden = loading;
     const hint = $("tdAuthHint");
-    if (hint) hint.textContent = loading ? "Memuat…" : (kind === "CUSTOMER"
-      ? "Isi nama dan nomor HP. Bila belum terdaftar, akun dibuat otomatis."
-      : "Masukkan nomor HP Staff.");
+    const text = loading ? "Memuat…" : (kind === "CUSTOMER" ? "Isi nama dan nomor HP Anda." : "Masukkan nomor HP Staff.");
+    if (hint && hint.textContent !== text) hint.textContent = text;
     document.documentElement.classList.add("td-dash-on");
   }
 
@@ -109,12 +113,48 @@
   /* ------------------------------------------------------------ *
    * Customer
    * ------------------------------------------------------------ */
-  async function customerLogin(name, phone) {
-    const data = await api("/auth/customer-access", { method: "POST", body: JSON.stringify({ name, phone }) });
-    if (data.role !== "CUSTOMER" || !data.token || data.guest) throw new Error("Data customer tidak valid.");
+  const accessCustomer = (name, phone, register = false) =>
+    api("/auth/customer-access", { method: "POST", body: JSON.stringify(register ? { name, phone, register: true } : { name, phone }) });
+
+  function finishCustomerLogin(data, name, phone) {
+    if (data.role !== "CUSTOMER" || !data.token) throw new Error("Data customer tidak valid.");
     applySession(data);
-    writeAuth({ name: data.name || name, phone, userId: data.userId });
-    return data;
+    writeProfile({ name: data.name || name, phone: data.phone || phone, userId: data.userId });
+    verified = true;
+    hide();
+    showRole();
+  }
+
+  /* Notifikasi: nomor belum terdaftar -> tombol Daftar membuat akun lalu masuk. */
+  function askRegister(name, phone) {
+    $("tdRegister")?.remove();
+    const el = document.createElement("div");
+    el.id = "tdRegister";
+    el.className = "td-modal";
+    el.setAttribute("role", "dialog");
+    el.setAttribute("aria-modal", "true");
+    el.setAttribute("aria-labelledby", "tdRegisterT");
+    el.innerHTML = `<div class="td-modal-card">
+      <h2 id="tdRegisterT">Nomor belum terdaftar</h2>
+      <p>Nomor <b>${esc(phone)}</b> belum terdaftar. Klik <b>Daftar</b> untuk membuat akun atas nama <b>${esc(name)}</b> dan langsung masuk.</p>
+      <p class="td-note td-err" id="tdRegisterMsg" role="alert"></p>
+      <div class="td-act"><button type="button" id="tdRegisterNo">Batal</button><button type="button" class="p" id="tdRegisterYes">Daftar</button></div>
+    </div>`;
+    document.body.appendChild(el);
+    $("tdRegisterNo").addEventListener("click", () => el.remove());
+    $("tdRegisterYes").addEventListener("click", async () => {
+      const yes = $("tdRegisterYes");
+      yes.disabled = true;
+      try {
+        const data = await accessCustomer(name, phone, true);
+        el.remove();
+        finishCustomerLogin(data, name, phone);
+      } catch (error) {
+        $("tdRegisterMsg").textContent = error.message || "Gagal mendaftar.";
+        yes.disabled = false;
+      }
+    });
+    $("tdRegisterYes").focus();
   }
 
   async function submitCustomer() {
@@ -125,48 +165,45 @@
     if (phone.replace(/\D/g, "").length < 8) return setMsg("Nomor HP tidak valid.");
     setMsg(""); busy = true; setBusy(true);
     try {
-      await customerLogin(name, phone);
-      verified = true;
-      hide();
-      showRole();
+      const data = await accessCustomer(name, phone);
+      if (data.needsRegister) askRegister(name, phone);
+      else finishCustomerLogin(data, name, phone);
     } catch (error) {
       setMsg(error.message || "Tidak dapat masuk.");
     } finally {
-      busy = false; setBusy(false, "Masuk / Daftar");
+      busy = false; setBusy(false, "Masuk");
     }
   }
 
-  /* Pemulihan sesi: identitas tersimpan + sesi aplikasi masih milik customer itu. */
+  /* Pemulihan sesi: profil tersimpan + sesi aplikasi masih milik customer itu. */
   let verified = false;
   let restoring = false;
 
   async function ensureCustomer() {
     if (restoring) return;
-    const a = readAuth();
-    if (!a) { verified = false; show("CUSTOMER"); return; }
+    const profile = readProfile();
+    if (!profile) { verified = false; show("CUSTOMER"); return; }
     if (verified) { hide(); return; }
 
     restoring = true;
     show("CUSTOMER", { loading: true });
     try {
-      const sameUser = state.token && state.role === "CUSTOMER" && state.userId === a.userId;
+      const sameUser = state.token && state.role === "CUSTOMER" && state.userId === profile.userId;
+      let ok = false;
       if (sameUser) {
-        await api("/member/me"); // sesi masih berlaku?
-      } else {
-        await customerLogin(a.name, a.phone);
-        showRole();
+        try { await api("/member/me"); ok = true; } catch { ok = false; }
       }
-      verified = true;
-      hide();
-    } catch {
-      try {
-        await customerLogin(a.name, a.phone); // sesi kedaluwarsa -> masuk ulang otomatis
+      if (ok) {
         verified = true;
-        showRole();
+        window.TdUi?.setProfile?.(profile);
         hide();
-      } catch {
-        clearAuth(); verified = false; show("CUSTOMER");
+      } else {
+        const data = await accessCustomer(profile.name, profile.phone); // masuk ulang otomatis
+        if (data.needsRegister) throw new Error("Akun tidak ditemukan.");
+        finishCustomerLogin(data, profile.name, profile.phone);
       }
+    } catch {
+      clearProfile(); verified = false; show("CUSTOMER");
     } finally {
       restoring = false;
     }
@@ -214,5 +251,5 @@
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
-  window.TdAuth = { sync, clearAuth };
+  window.TdAuth = { sync, profile: readProfile };
 })();
