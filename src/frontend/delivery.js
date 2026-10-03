@@ -254,7 +254,7 @@
     if (r.status === "NEW") {
       actions = `<div class="td-act">
         <button type="button" class="d" data-act="reject" data-id="${esc(r.id)}">Tolak</button>
-        <button type="button" class="p" data-act="confirm" data-id="${esc(r.id)}">Konfirmasi</button></div>`;
+        <button type="button" class="p" data-act="confirm" data-id="${esc(r.id)}" data-type="${esc(r.type)}" data-order="${esc(r.orderId || "")}">Konfirmasi</button></div>`;
     } else if (r.status === "CONFIRMED") {
       actions = `<div class="td-act"><button type="button" class="p" data-act="complete" data-id="${esc(r.id)}">${ico("check")}Tandai selesai ${verb}</button></div>`;
     } else if (r.status === "COMPLETED") {
@@ -263,6 +263,10 @@
     return `
       <article class="td-c">
         <div class="td-rq-top"><h2>${esc(r.name)}</h2>${statusBadge(r.status)}</div>
+        <div class="tx-chips">
+          <span class="td-badge tx-type">${isPickup ? "Jemput" : "Antar"}</span>
+          ${r.orderId ? `<span class="td-badge tx-order">No. Order ${esc(r.orderId)}</span>` : ""}
+        </div>
         <div class="td-ir g3">
           <span>${ico("truck")}${isPickup ? "Jemput" : "Antar"}</span>
           <span>${ico("cal")}${esc(fmtDate(r.date))}</span>
@@ -272,6 +276,7 @@
         <div class="td-ir">${ico("pin")}<a href="${maps}" target="_blank" rel="noopener noreferrer">${esc(r.address)}</a></div>
         <div class="td-ir">${ico("scale")}<span>±${esc(r.estWeightKg)} kg · ${esc(r.itemCount)} ${unitLabel(r.itemUnit)}</span></div>
         ${r.notes ? `<div class="td-ir mu">${ico("note")}<span>Catatan: ${esc(r.notes)}</span></div>` : ""}
+        ${isPickup && r.estDoneAt ? `<div class="td-ir mu">${ico("clock")}<span>Estimasi selesai pengerjaan ${esc(fmtWib(r.estDoneAt))}</span></div>` : ""}
         ${actions}
       </article>`;
   }
@@ -313,20 +318,79 @@
     complete: ["Tandai request ini sudah selesai?", "Request selesai"],
   };
 
+  /* Konfirmasi request JEMPUT: Staff hanya mengisi estimasi selesai pengerjaan
+     (nomor order & data cucian otomatis menjadi drop-off). */
+  let pickupEstHours = 24;
+  const dtLocal = (date) => {
+    const w = new Date(date.getTime() + 7 * 3600 * 1000);
+    return `${w.getUTCFullYear()}-${pad(w.getUTCMonth() + 1)}-${pad(w.getUTCDate())}T${pad(w.getUTCHours())}:${pad(w.getUTCMinutes())}`;
+  };
+
+  function askPickupEstimate(orderId) {
+    return new Promise((resolve) => {
+      $("tdEstModal")?.remove();
+      const el = document.createElement("div");
+      el.id = "tdEstModal";
+      el.className = "td-modal";
+      el.setAttribute("role", "dialog");
+      el.setAttribute("aria-modal", "true");
+      el.innerHTML = `<div class="td-modal-card">
+        <h2>Konfirmasi Request Jemput</h2>
+        <p>${orderId ? `Nomor order <b>${esc(orderId)}</b> otomatis menjadi nomor drop-off. ` : ""}Isi estimasi selesai pengerjaan.</p>
+        <div class="td-f" data-f="est"><label for="tdEstInput">Estimasi selesai</label>
+          <input class="td-in" id="tdEstInput" type="datetime-local" value="${esc(dtLocal(new Date(Date.now() + pickupEstHours * 3600 * 1000)))}">
+          <div class="td-e" role="alert"></div></div>
+        <div class="td-act"><button type="button" id="tdEstNo">Batal</button><button type="button" class="p" id="tdEstYes">Konfirmasi</button></div>
+      </div>`;
+      document.body.appendChild(el);
+      const done = (value) => { el.remove(); resolve(value); };
+      $("tdEstNo").addEventListener("click", () => done(null));
+      $("tdEstYes").addEventListener("click", () => {
+        const v = $("tdEstInput").value;
+        const d = v ? new Date(`${v}:00+07:00`) : null;
+        const hours = d ? (d.getTime() - Date.now()) / 3600000 : NaN;
+        const wrap = el.querySelector(".td-f");
+        if (!d || !(hours >= 1)) {
+          wrap.classList.add("err");
+          wrap.querySelector(".td-e").textContent = "Estimasi minimal 1 jam dari sekarang.";
+          return;
+        }
+        done(d.toISOString());
+      });
+      $("tdEstInput").focus();
+    });
+  }
+
   async function runAction(button) {
     const act = button.getAttribute("data-act");
     const id = button.getAttribute("data-id");
     const [question, done] = ACTION_TEXT[act] || [];
-    if (!question || !window.confirm(question)) return;
+    if (!question) return;
+
+    let payload;
+    if (act === "confirm" && button.getAttribute("data-type") === "PICKUP") {
+      try {
+        const r = await call("/program/settings");
+        const h = Number(r.settings?.dropoff?.estimateHours);
+        if (h >= 1) pickupEstHours = h;
+      } catch { /* pakai bawaan */ }
+      const est = await askPickupEstimate(button.getAttribute("data-order"));
+      if (!est) return;
+      payload = JSON.stringify({ estDoneAt: est });
+    } else if (!window.confirm(question)) {
+      return;
+    }
+
     const siblings = button.parentElement.querySelectorAll("button");
     siblings.forEach((b) => { b.disabled = true; });
     try {
-      await call(`/staff/delivery/requests/${encodeURIComponent(id)}/${act}`, { method: "POST" });
+      await call(`/staff/delivery/requests/${encodeURIComponent(id)}/${act}`, { method: "POST", body: payload });
       toast(done);
     } catch (error) {
       toast(error.message || "Aksi gagal.");
     }
     loadStaffRequests();
+    refreshDashboard();
   }
 
   function openStaffRequests() {
