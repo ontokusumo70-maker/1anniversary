@@ -4,6 +4,7 @@ import { writeAuditSafe } from "../audit/logger";
 import { releaseExpiredMachines } from "./machines";
 import { handleOwnerExportRequest } from "./owner-export";
 import { broadcastRealtime } from "../realtime";
+import { handleOwnerCustomerDetail, handleOwnerCustomerList } from "./owner-trace";
 
 async function publishRealtime(env: Env, type: string, payload: unknown): Promise<void> {
   try {
@@ -305,24 +306,10 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
 
   const metrics = env.DB.prepare(`
     SELECT
-      (SELECT COUNT(DISTINCT p.customer_id)
-       FROM plays p
-       INNER JOIN events e
-         ON p.created_at >= e.starts_at
-        AND p.created_at < e.ends_at
-       WHERE e.active = 1
-         AND e.starts_at <= ?
-         AND e.ends_at > ?
-         AND p.created_at >= ? AND p.created_at < ?) AS participants,
-      (SELECT COUNT(DISTINCT p.customer_id)
-       FROM plays p
-       INNER JOIN events e
-         ON p.created_at >= e.starts_at
-        AND p.created_at < e.ends_at
-       WHERE e.active = 1
-         AND e.starts_at <= ?
-         AND e.ends_at > ?
-         AND p.created_at >= ? AND p.created_at < ?) AS participants_previous,
+      (SELECT COUNT(*) FROM customers WHERE created_at < ?) AS participants,
+      (SELECT COUNT(*) FROM customers WHERE created_at < ?) AS participants_previous,
+      (SELECT COUNT(*) FROM customers WHERE is_member = 1) AS members_count,
+      (SELECT COUNT(*) FROM member_rewards WHERE status = 'AVAILABLE') AS program_pending,
       (SELECT COUNT(*) FROM rewards WHERE claimed_at IS NOT NULL AND claimed_at >= ? AND claimed_at < ?) AS claimed_count,
       (SELECT COUNT(*) FROM rewards WHERE claimed_at IS NOT NULL AND claimed_at >= ? AND claimed_at < ?) AS claimed_previous,
       (SELECT COUNT(*) FROM rewards WHERE redeemed_at IS NOT NULL AND redeemed_at >= ? AND redeemed_at < ?) AS redeemed_count,
@@ -330,14 +317,13 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
       (SELECT COALESCE(SUM(e.reward_quantity), 0)
        FROM events e
        WHERE e.starts_at < ? AND e.ends_at > ?) AS total_reward_supplied,
-      (SELECT COUNT(*) FROM plays) AS play_count,
       (SELECT COUNT(*) FROM rewards WHERE status = 'WON') AS won_count,
       (SELECT COUNT(*) FROM rewards WHERE status = 'USED') AS used_count,
       (SELECT COUNT(*) FROM rewards WHERE status NOT IN ('WON','CLAIMED','REDEEMED','USED')) AS unclaimed_count,
       (SELECT COUNT(*) FROM audit_log WHERE result IN ('FAILED','REJECTED')) AS error_retry_count
   `).bind(
-    nowIso, nowIso, currentStartIso, currentEndIso,
-    nowIso, nowIso, previousStartIso, previousEndIso,
+    currentEndIso,
+    currentStartIso,
     currentStartIso, currentEndIso,
     previousStartIso, previousEndIso,
     currentStartIso, currentEndIso,
@@ -369,6 +355,10 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
     SELECT COUNT(*) AS n
     FROM dropoff_orders
     WHERE status IN ('RECEIVED', 'COMPLETED')
+  `);
+
+  const deliveryNew = env.DB.prepare(`
+    SELECT COUNT(*) AS n FROM delivery_requests WHERE status = 'NEW'
   `);
 
   const machines = env.DB.prepare(`
@@ -418,7 +408,7 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
     LIMIT 50
   `);
 
-  const [metricResult, rewardResult, poolResult, machineResult, daily, weekly, monthly, yearly, eventResult, queueWaitingResult, dropoffActiveResult] =
+  const [metricResult, rewardResult, poolResult, machineResult, daily, weekly, monthly, yearly, eventResult, queueWaitingResult, dropoffActiveResult, deliveryNewResult] =
     await env.DB.batch([
       metrics,
       rewardStatus,
@@ -428,6 +418,7 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
       events,
       queueWaiting,
       dropoffActive,
+      deliveryNew,
     ]);
 
   let opsWasherWaiting = 0;
@@ -436,6 +427,7 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
     if (row.machine_type === "WASHER") opsWasherWaiting = Number(row.n);
     if (row.machine_type === "DRYER") opsDryerWaiting = Number(row.n);
   }
+  const opsDeliveryNew = Number((deliveryNewResult.results?.[0] as { n?: number } | undefined)?.n ?? 0);
   const opsDropoffActive = Number((dropoffActiveResult.results?.[0] as { n?: number } | undefined)?.n ?? 0);
 
   const metric = metricResult.results?.[0] as Record<string, number> | undefined;
@@ -505,7 +497,8 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
       participants: Number(metric?.participants ?? 0),
       participantsPrevious: Number(metric?.participants_previous ?? 0),
       participantsChangePct: ownerPercentChange(Number(metric?.participants ?? 0), Number(metric?.participants_previous ?? 0)),
-      play: Number(metric?.play_count ?? 0),
+      members: Number(metric?.members_count ?? 0),
+      programPending: Number(metric?.program_pending ?? 0),
       won: Number(metric?.won_count ?? statusMap.get("WON") ?? 0),
       claimed: Number(metric?.claimed_count ?? statusMap.get("CLAIMED") ?? 0),
       claimedPrevious: Number(metric?.claimed_previous ?? 0),
@@ -522,6 +515,7 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
       washerWaiting: opsWasherWaiting,
       dryerWaiting: opsDryerWaiting,
       dropoffActive: opsDropoffActive,
+      deliveryNew: opsDeliveryNew,
     },
     rewardPool: (poolResult.results ?? []).map((row) => ({
       rewardType: row.reward_type,
@@ -549,83 +543,6 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
   });
 }
 
-async function handleOwnerCustomers(request: Request, env: Env): Promise<Response> {
-  const owner = await requireOwner(request, env);
-  if (!owner) return errorResponse("UNAUTHORIZED", "Owner authentication is required.", 401);
-
-  const url = new URL(request.url);
-  const search = (url.searchParams.get("search") || "").trim().slice(0, 128);
-  const scope = (url.searchParams.get("scope") || "").trim().toLowerCase();
-  const activeEventScope = scope === "active-event";
-  const statusFilter = (url.searchParams.get("status") || "all").trim().toLowerCase();
-  const nowIso = new Date().toISOString();
-  const activeSessionExists = `EXISTS (
-    SELECT 1
-    FROM auth_sessions s_customer
-    WHERE s_customer.user_id = c.customer_id
-      AND s_customer.role = 'CUSTOMER'
-      AND s_customer.session_id NOT LIKE 'otp_%'
-      AND s_customer.revoked_at IS NULL
-      AND s_customer.expires_at > ?
-  )`;
-  const pageRaw = Number(url.searchParams.get("page") || 1);
-  const pageSizeRaw = Number(url.searchParams.get("pageSize") || 10);
-  const page = Number.isInteger(pageRaw) && pageRaw > 0 ? Math.min(pageRaw, 100000) : 1;
-  const pageSize = Number.isInteger(pageSizeRaw) && pageSizeRaw > 0 ? Math.min(pageSizeRaw, 50) : 10;
-  const offset = (page - 1) * pageSize;
-  const pattern = `%${search.replace(/[\%_]/g, "\\$&")}%`;
-  const whereClauses: string[] = [];
-  const whereParams: unknown[] = [];
-  if (activeEventScope) {
-    whereClauses.push(`EXISTS (
-      SELECT 1
-      FROM plays p_active
-      INNER JOIN events e_active
-        ON p_active.created_at >= e_active.starts_at
-       AND p_active.created_at < e_active.ends_at
-      WHERE p_active.customer_id = c.customer_id
-        AND e_active.active = 1
-        AND e_active.starts_at <= ?
-        AND e_active.ends_at > ?
-    )`);
-    whereParams.push(nowIso, nowIso);
-  }
-  if (statusFilter === "active") {
-    whereClauses.push(activeSessionExists);
-    whereParams.push(nowIso);
-  } else if (statusFilter === "inactive") {
-    whereClauses.push(`NOT ${activeSessionExists}`);
-    whereParams.push(nowIso);
-  }
-  if (search) {
-    whereClauses.push(`(c.email LIKE ? ESCAPE '\\' OR c.phone LIKE ? ESCAPE '\\' OR c.phone_masked LIKE ? ESCAPE '\\' OR c.customer_id LIKE ? ESCAPE '\\')`);
-    whereParams.push(pattern, pattern, pattern, pattern);
-  }
-  const where = whereClauses.length ? `WHERE ${whereClauses.join(" AND ")}` : "";
-  const params = [...whereParams, pageSize, offset];
-
-  const result = await env.DB.prepare(`
-    SELECT c.customer_id, c.email, c.phone, c.phone_masked, c.created_at,
-      (SELECT COUNT(*) FROM plays p WHERE p.customer_id = c.customer_id) AS total_play,
-      (SELECT COUNT(*) FROM rewards r WHERE r.customer_id = c.customer_id) AS total_reward,
-      (SELECT COUNT(*) FROM rewards r WHERE r.customer_id = c.customer_id AND r.redeemed_at IS NOT NULL) AS total_redeemed,
-      CASE WHEN ${activeSessionExists} THEN 'ACTIVE' ELSE 'INACTIVE' END AS login_status,
-      COUNT(*) OVER () AS total_count
-    FROM customers c ${where}
-    ORDER BY c.created_at DESC, c.customer_id ASC
-    LIMIT ? OFFSET ?
-  `).bind(...[nowIso, ...whereParams, pageSize, offset]).all();
-
-  const rows = (result.results ?? []) as Array<Record<string, unknown>>;
-  const total = Number(rows[0]?.total_count ?? 0);
-  return json({ ok: true, total, page, pageSize, items: rows.map((row) => ({
-    customerId: String(row.customer_id ?? ""), email: String(row.email ?? ""),
-    phone: String(row.phone ?? ""), phoneMasked: String(row.phone_masked ?? ""), createdAt: String(row.created_at ?? ""),
-    totalPlay: Number(row.total_play ?? 0), totalReward: Number(row.total_reward ?? 0),
-    totalRedeemed: Number(row.total_redeemed ?? 0), status: String(row.login_status ?? "INACTIVE"),
-  })) });
-}
-
 async function handleOwnerCustomerDelete(request: Request, env: Env, customerId: string): Promise<Response> {
   const owner = await requireOwner(request, env);
   if (!owner) return errorResponse("UNAUTHORIZED", "Owner authentication is required.", 401);
@@ -641,6 +558,12 @@ async function handleOwnerCustomerDelete(request: Request, env: Env, customerId:
   if (!customer) return errorResponse("CUSTOMER_NOT_FOUND", "Customer was not found.", 404);
 
   await env.DB.batch([
+    env.DB.prepare(`DELETE FROM member_rewards WHERE customer_id = ?`).bind(id),
+    env.DB.prepare(`DELETE FROM member_purchases WHERE customer_id = ?`).bind(id),
+    env.DB.prepare(`DELETE FROM member_progress WHERE customer_id = ?`).bind(id),
+    env.DB.prepare(`DELETE FROM delivery_requests WHERE customer_id = ?`).bind(id),
+    env.DB.prepare(`DELETE FROM dropoff_orders WHERE customer_id = ?`).bind(id),
+    env.DB.prepare(`DELETE FROM self_service_tickets WHERE customer_id = ?`).bind(id),
     env.DB.prepare(`DELETE FROM rewards WHERE customer_id = ?`).bind(id),
     env.DB.prepare(`DELETE FROM sessions WHERE play_id IN (SELECT play_id FROM plays WHERE customer_id = ?)`).bind(id),
     env.DB.prepare(`DELETE FROM plays WHERE customer_id = ?`).bind(id),
@@ -658,36 +581,6 @@ async function handleOwnerCustomerDelete(request: Request, env: Env, customerId:
   });
 
   return json({ ok: true, customerId: id });
-}
-
-async function handleCustomerTrace(request: Request, env: Env, customerId: string): Promise<Response> {
-  const owner = await requireOwner(request, env);
-  if (!owner) return errorResponse("UNAUTHORIZED", "Owner authentication is required.", 401);
-  const id = customerId.trim();
-  if (!id || id.length > 128) return errorResponse("INVALID_REQUEST", "Customer ID is required.", 400);
-
-  const customer = await env.DB.prepare(`
-    SELECT customer_id, name, phone, phone_masked, email, created_at,
-      CASE WHEN EXISTS (
-        SELECT 1 FROM auth_sessions s_customer
-        WHERE s_customer.user_id = customers.customer_id
-          AND s_customer.role = 'CUSTOMER'
-          AND s_customer.session_id NOT LIKE 'otp_%'
-          AND s_customer.revoked_at IS NULL
-          AND s_customer.expires_at > ?
-      ) THEN 'ACTIVE' ELSE 'INACTIVE' END AS login_status
-    FROM customers WHERE customer_id = ? LIMIT 1
-  `).bind(new Date().toISOString(), id).first<{ customer_id: string; name: string; phone: string | null; phone_masked: string; email: string; created_at: string; login_status: string }>();
-  if (!customer) return errorResponse("CUSTOMER_NOT_FOUND", "Customer was not found.", 404);
-
-  const [transactions, plays, rewards] = await env.DB.batch([
-    env.DB.prepare(`SELECT transaction_id, service_type, amount, created_at FROM transactions WHERE customer_id = ? ORDER BY created_at DESC`).bind(id),
-    env.DB.prepare(`SELECT play_id, transaction_id, session_id, status, created_at, finished_at FROM plays WHERE customer_id = ? ORDER BY created_at DESC`).bind(id),
-    env.DB.prepare(`SELECT reward_id, play_id, type, status, token_ref, created_at, claimed_at, redeemed_at, used_at FROM rewards WHERE customer_id = ? ORDER BY created_at DESC`).bind(id),
-  ]);
-
-  await writeAuditSafe(env, { entityType: "CUSTOMER", entityId: id, action: "TRACE", actor: owner.userId, result: "SUCCESS" });
-  return json({ ok: true, customer, transactions: transactions.results ?? [], plays: plays.results ?? [], rewards: rewards.results ?? [] });
 }
 
 async function handleAudit(request: Request, env: Env): Promise<Response> {
@@ -1786,7 +1679,7 @@ export async function handleOwnerRequest(request: Request, env: Env): Promise<Re
   if (customerDeleteMatch && request.method === "DELETE") {
     return handleOwnerCustomerDelete(request, env, decodeURIComponent(customerDeleteMatch[1]));
   }
-  if (url.pathname === "/owner/customers" && request.method === "GET") return handleOwnerCustomers(request, env);
+  if (url.pathname === "/owner/customers" && request.method === "GET") return handleOwnerCustomerList(request, env);
   if (url.pathname === "/owner/audit" && request.method === "GET") return handleAudit(request, env);
   if (url.pathname === "/owner/reward-pool" || url.pathname.startsWith("/owner/reward-pool/")) return handleRewardPool(request, env);
   const eventImageMatch = url.pathname.match(/^\/owner\/events\/([^/]+)\/image$/);
@@ -1794,7 +1687,7 @@ export async function handleOwnerRequest(request: Request, env: Env): Promise<Re
   if (url.pathname === "/owner/events" || url.pathname.startsWith("/owner/events/")) return handleEvents(request, env);
   if (request.method === "GET") {
     const match = url.pathname.match(/^\/owner\/customer\/([^/]+)$/);
-    if (match) return handleCustomerTrace(request, env, decodeURIComponent(match[1]));
+    if (match) return handleOwnerCustomerDetail(request, env, decodeURIComponent(match[1]));
   }
   return errorResponse("NOT_FOUND", "Owner endpoint not found.", 404);
 }
