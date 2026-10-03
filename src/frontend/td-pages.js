@@ -69,7 +69,7 @@
       machinesCache = m.machines || [];
       const tickets = q.tickets || [];
       body.innerHTML = `
-        <div class="td-list td-evs">
+        <div class="td-grid">
           ${queueGroup("WASHER", tickets)}
           ${queueGroup("DRYER", tickets)}
         </div>`;
@@ -84,7 +84,7 @@
     const idle = machinesCache.filter((m) => m.type === type && m.status === "IDLE");
     const first = list[0];
     const items = list.map((t) => {
-      const code = t.display_code || t.displayCode || `${type === "WASHER" ? "W" : "D"}-${pad(t.queue_number)}`;
+      const code = t.display_code || t.displayCode || `${type === "WASHER" ? "C" : "K"}-${pad(t.queue_number)}`;
       const called = t.status === "CALLED";
       const calledAt = t.called_at ? Date.parse(t.called_at) : 0;
       const canNoShow = called && calledAt && Date.now() - calledAt >= 10 * 60 * 1000;
@@ -397,7 +397,7 @@
       const orders = data.orders || (data.order ? [data.order] : []);
       const who = data.customer || {};
       if (!orders.length) { body.innerHTML = empty("Belum ada laundry drop-off aktif."); return; }
-      body.innerHTML = `<div class="td-list td-evs">${orders.map((o) => `
+      body.innerHTML = `<div class="td-grid">${orders.map((o) => `
         <article class="td-c">
           <div class="td-rq-top"><h2>${esc(o.order_id)}</h2>${orderStatus(o)}</div>
           ${infoRow("cal", `Diterima staff <b>${esc(fmtDT(o.received_at))}</b>`)}
@@ -654,7 +654,9 @@
     el.setAttribute("role", "alert");
     el.innerHTML = `<div class="td-ib">${ico("check")}</div><div class="td-txt"><b>${esc(title)}</b><small>${esc(text)}</small></div><button type="button" aria-label="Tutup">×</button>`;
     document.body.appendChild(el);
-    el.querySelector("button").addEventListener("click", () => { markSeen(id); el.remove(); });
+    const close = () => { markSeen(id); el.remove(); };
+    el.querySelector("button").addEventListener("click", close);
+    setTimeout(() => { if (el.isConnected) close(); }, 20000);
   }
 
   function machineText(type, machineId) {
@@ -782,11 +784,11 @@
   /* ------------------------------------------------------------ *
    * Start
    * ------------------------------------------------------------ */
+  let noticeTimer = null;
   function onDashboard(r) {
-    if (r === "CUSTOMER") {
-      pollCustomerNotices();
-      setInterval(pollCustomerNotices, 20000);
-    }
+    if (r !== "CUSTOMER") return;
+    setTimeout(pollCustomerNotices, 400);
+    if (!noticeTimer) noticeTimer = setInterval(pollCustomerNotices, 20000);
   }
 
   function start() {
