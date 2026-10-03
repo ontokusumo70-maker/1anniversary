@@ -4,7 +4,6 @@ import { createAndPersistAuthSession, hashAuthSessionToken, revokeAuthSession } 
 import { writeAuditSafe } from "../audit/logger";
 
 const MAX_PHONE = 32;
-const MAX_EMAIL = 254;
 
 const CUSTOMER_SESSION_TTL = 24 * 60 * 60;
 const STAFF_SESSION_TTL = 8 * 60 * 60;
@@ -15,10 +14,6 @@ type AuthEnv = Env & {
   OWNER_PHONE_1?: string;
   OWNER_PHONE_2?: string;
 
-  GMAIL_CLIENT_ID?: string;
-  GMAIL_CLIENT_SECRET?: string;
-  GMAIL_REFRESH_TOKEN?: string;
-  GMAIL_SENDER_EMAIL?: string;
 };
 
 function json(data: unknown, status = 200): Response {
@@ -58,20 +53,6 @@ function isPhone(value: unknown): value is string {
   );
 }
 
-function isEmail(value: unknown): value is string {
-  if (
-    typeof value !== "string" ||
-    value.trim().length === 0 ||
-    value.length > MAX_EMAIL
-  ) {
-    return false;
-  }
-
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-    value.trim(),
-  );
-}
-
 function normalizePhone(phone: string): string {
   return phone.replace(/[^\d+]/g, "");
 }
@@ -87,10 +68,6 @@ async function sha256(value: string): Promise<string> {
 
 async function hashPhone(phone: string): Promise<string> {
   return sha256(normalizePhone(phone));
-}
-
-function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
 }
 
 function maskPhone(phone: string): string {
@@ -144,56 +121,6 @@ async function resolveRole(
   return "CUSTOMER";
 }
 
-async function identifyAuthMode(
-  request: Request,
-  env: AuthEnv,
-): Promise<Response> {
-  let body: {
-    phone?: unknown;
-  };
-
-  try {
-    body = await request.json() as {
-      phone?: unknown;
-    };
-  } catch {
-    return errorResponse(
-      "INVALID_REQUEST",
-      "Invalid JSON request body.",
-      400,
-    );
-  }
-
-  if (!isPhone(body.phone)) {
-    return errorResponse(
-      "INVALID_REQUEST",
-      "Phone is required.",
-      400,
-    );
-  }
-
-  const phone = normalizePhone(body.phone);
-  const role = await resolveRole(env, phone);
-
-  return json({
-    ok: true,
-    mode:
-      role === "STAFF" || role === "OWNER"
-        ? "STAFF_OWNER"
-        : "CUSTOMER",
-  });
-}
-
-function gmailConfigured(env: AuthEnv): boolean {
-  return Boolean(
-    env.GMAIL_CLIENT_ID?.trim() &&
-    env.GMAIL_CLIENT_SECRET?.trim() &&
-    env.GMAIL_REFRESH_TOKEN?.trim() &&
-    env.GMAIL_SENDER_EMAIL?.trim(),
-  );
-}
-
-
 function normalizeName(value: string): string {
   return value.trim().replace(/\s+/g, " ");
 }
@@ -205,22 +132,44 @@ function normalizeName(value: string): string {
  * - Nomor terdaftar dengan nama -> nama harus sama (tanpa membedakan huruf besar/kecil),
  *   agar akun orang lain tidak bisa dibuka hanya dengan mengetahui nomor HP-nya.
  */
-async function customerAccessWithName(
+/**
+ * Login / daftar customer dengan NAMA + NOMOR HP (tanpa email, tanpa OTP).
+ *  - Nomor terdaftar dan nama cocok (atau nama masih kosong) -> langsung masuk.
+ *  - Nomor terdaftar tetapi nama berbeda                     -> 403 NAME_MISMATCH.
+ *  - Nomor belum terdaftar                                   -> { needsRegister: true }
+ *    (akun BELUM dibuat; aplikasi menampilkan tombol "Daftar").
+ *  - Nomor belum terdaftar + register: true                  -> akun dibuat lalu masuk.
+ */
+async function customerAccess(
+  request: Request,
   env: AuthEnv,
-  rawName: string,
-  rawPhone: unknown,
 ): Promise<Response> {
-  const name = normalizeName(rawName);
+  let body: { name?: unknown; phone?: unknown; register?: unknown };
+  try {
+    body = (await request.json()) as typeof body;
+  } catch {
+    return errorResponse("INVALID_REQUEST", "Invalid JSON request body.", 400);
+  }
+
+  const name = typeof body.name === "string" ? normalizeName(body.name) : "";
   if (name.length < 2 || name.length > 60) {
     return errorResponse("INVALID_REQUEST", "Nama wajib diisi (2–60 karakter).", 400);
   }
-  if (!isPhone(rawPhone)) {
+  if (!isPhone(body.phone)) {
     return errorResponse("INVALID_REQUEST", "Nomor HP tidak valid.", 400);
   }
 
-  const phone = normalizePhone(rawPhone);
-  const phoneHash = await hashPhone(phone);
+  const phone = normalizePhone(body.phone);
 
+  if ((await resolveRole(env, phone)) !== "CUSTOMER") {
+    return errorResponse(
+      "ROLE_NOT_CUSTOMER",
+      "Nomor ini terdaftar untuk Staff/Owner. Gunakan halaman login Staff/Owner.",
+      403,
+    );
+  }
+
+  const phoneHash = await hashPhone(phone);
   const existing = await env.DB.prepare(`
     SELECT customer_id, name
     FROM customers
@@ -234,11 +183,7 @@ async function customerAccessWithName(
   if (existing) {
     const storedName = normalizeName(existing.name ?? "");
     if (storedName && storedName.toLowerCase() !== name.toLowerCase()) {
-      return errorResponse(
-        "NAME_MISMATCH",
-        "Nama tidak sesuai dengan nomor HP ini.",
-        403,
-      );
+      return errorResponse("NAME_MISMATCH", "Nama tidak sesuai dengan nomor HP ini.", 403);
     }
     userId = existing.customer_id;
     await env.DB.prepare(`
@@ -247,6 +192,9 @@ async function customerAccessWithName(
       WHERE customer_id = ?
     `).bind(maskPhone(phone), phone, name, userId).run();
   } else {
+    if (body.register !== true) {
+      return json({ ok: true, needsRegister: true, phoneMasked: maskPhone(phone) });
+    }
     userId = `customer_${phoneHash.slice(0, 32)}`;
     created = true;
     await env.DB.prepare(`
@@ -273,161 +221,9 @@ async function customerAccessWithName(
 
   return json({
     ok: true,
-    guest: false,
     created,
     name,
-    token: session.token,
-    role: session.role,
-    userId: session.userId,
-    expiresAt: session.expiresAt,
-  });
-}
-
-async function customerAccess(
-  request: Request,
-  env: AuthEnv,
-): Promise<Response> {
-  let body: {
-    phone?: unknown;
-    email?: unknown;
-    name?: unknown;
-  } = {};
-
-  try {
-    const raw = await request.text();
-    if (raw.trim()) {
-      body = JSON.parse(raw) as { phone?: unknown; email?: unknown; name?: unknown };
-    }
-  } catch {
-    return errorResponse("INVALID_REQUEST", "Invalid JSON request body.", 400);
-  }
-
-  const hasIdentity = body.phone !== undefined || body.email !== undefined || body.name !== undefined;
-
-  if (!hasIdentity) {
-    const guestId = `guest_${crypto.randomUUID()}`;
-    const session = await createAndPersistAuthSession(env, {
-      userId: guestId,
-      role: "CUSTOMER",
-      ttlSeconds: CUSTOMER_SESSION_TTL,
-    });
-
-    return json({
-      ok: true,
-      guest: true,
-      token: session.token,
-      role: session.role,
-      userId: session.userId,
-      expiresAt: session.expiresAt,
-    });
-  }
-
-  // Alur baru: login/daftar memakai NAMA + NOMOR HP (tanpa email).
-  if (typeof body.name === "string") {
-    return customerAccessWithName(env, body.name, body.phone);
-  }
-
-  if (!isPhone(body.phone) || !isEmail(body.email)) {
-    return errorResponse(
-      "INVALID_REQUEST",
-      "Nomor HP dan email wajib diisi.",
-      400,
-    );
-  }
-
-  const phone = normalizePhone(body.phone);
-  const email = normalizeEmail(body.email);
-  const phoneHash = await hashPhone(phone);
-
-  const exact = await env.DB.prepare(`
-    SELECT customer_id
-    FROM customers
-    WHERE phone_hash = ? AND lower(email) = lower(?)
-    LIMIT 1
-  `).bind(phoneHash, email).first<{ customer_id: string }>();
-
-  let userId = exact?.customer_id ?? null;
-
-  if (!userId) {
-    const phoneOwner = await env.DB.prepare(`
-      SELECT customer_id, email
-      FROM customers
-      WHERE phone_hash = ?
-      LIMIT 1
-    `).bind(phoneHash).first<{ customer_id: string; email: string }>();
-
-    if (phoneOwner && normalizeEmail(phoneOwner.email) !== email) {
-      return errorResponse(
-        "CUSTOMER_IDENTITY_MISMATCH",
-        "Data customer tidak cocok.",
-        409,
-      );
-    }
-
-    const emailOwner = await env.DB.prepare(`
-      SELECT customer_id
-      FROM customers
-      WHERE lower(email) = lower(?)
-      LIMIT 1
-    `).bind(email).first<{ customer_id: string }>();
-
-    if (emailOwner && emailOwner.customer_id !== userId) {
-      return errorResponse(
-        "EMAIL_ALREADY_REGISTERED",
-        "Email sudah terdaftar pada customer lain.",
-        409,
-      );
-    }
-  }
-
-  if (!userId) {
-    userId = `customer_${phoneHash.slice(0, 32)}`;
-
-    await env.DB.prepare(`
-      INSERT INTO customers (
-        customer_id,
-        phone_hash,
-        phone_masked,
-        phone,
-        name,
-        email,
-        created_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      userId,
-      phoneHash,
-      maskPhone(phone),
-      phone,
-      "",
-      email,
-      new Date().toISOString(),
-    ).run();
-  } else {
-    await env.DB.prepare(`
-      UPDATE customers
-      SET phone_masked = ?, phone = ?, email = ?
-      WHERE customer_id = ?
-    `).bind(maskPhone(phone), phone, email, userId).run();
-  }
-
-  const session = await createAndPersistAuthSession(env, {
-    userId,
-    role: "CUSTOMER",
-    ttlSeconds: CUSTOMER_SESSION_TTL,
-  });
-
-  await writeAuditSafe(env, {
-    entityType: "SESSION",
-    entityId: session.sessionId,
-    action: "CREATE",
-    actor: userId,
-    result: "SUCCESS",
-  });
-
-  return json({
-    ok: true,
-    guest: false,
+    phone,
     token: session.token,
     role: session.role,
     userId: session.userId,
@@ -552,13 +348,6 @@ export async function handleAuthRequest(
     url.pathname === "/auth/logout"
   ) {
     return logoutRequest(request, env);
-  }
-
-  if (
-    request.method === "POST" &&
-    url.pathname === "/auth/mode"
-  ) {
-    return identifyAuthMode(request, env);
   }
 
   if (
