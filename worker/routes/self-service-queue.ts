@@ -125,7 +125,6 @@ async function broadcastQueueUpdated(env: Env, machineType: MachineType, queueDa
   }
 }
 
-/** Atomically allocates the next queue number for (date, machineType). */
 /** Notifikasi realtime untuk customer pemilik tiket (dashboard customer). */
 async function broadcastTicketEvent(
   env: Env,
@@ -145,6 +144,7 @@ async function broadcastTicketEvent(
   }
 }
 
+/** Atomically allocates the next queue number for (date, machineType). */
 async function allocateQueueNumber(env: Env, queueDate: string, machineType: MachineType): Promise<number> {
   await env.DB.prepare(`
     INSERT OR IGNORE INTO self_service_counters (queue_date, machine_type, next_number)
@@ -321,7 +321,36 @@ async function handleMine(request: Request, env: Env): Promise<Response> {
   `).bind(session.userId, queueDate, sinceIso).all<TicketRow>();
   const recentActivated = (activatedResult.results ?? []).map((ticket) => ticketResponse(ticket, null));
 
-  return json({ ok: true, tickets, recentActivated });
+  // Card "Laundry Anda": mesin yang SEDANG berjalan untuk tiket customer ini.
+  // Hanya MEMBACA tabel machines (file ini tetap tidak menulis ke machines).
+  const nowIso = new Date().toISOString();
+  const activeResult = await env.DB.prepare(`
+    SELECT t.*, m.expected_end_at AS machine_expected_end_at
+    FROM self_service_tickets t
+    JOIN machines m ON m.machine_id = t.activated_machine_id
+    WHERE t.customer_id = ?
+      AND t.status = 'ACTIVATED'
+      AND t.activated_at IS NOT NULL
+      AND m.status = 'IN_USE'
+      AND m.started_at IS NOT NULL
+      AND m.expected_end_at IS NOT NULL
+      AND m.started_at <= t.activated_at
+      AND m.expected_end_at > t.activated_at
+      AND m.expected_end_at > ?
+    ORDER BY t.activated_at DESC
+    LIMIT 4
+  `).bind(session.userId, nowIso).all<TicketRow & { machine_expected_end_at: string }>();
+
+  const activeMachines = (activeResult.results ?? []).map((row) => ({
+    ticketId: row.ticket_id,
+    displayCode: displayCode(row.machine_type, row.queue_number),
+    machineType: row.machine_type,
+    machineId: row.activated_machine_id,
+    activatedAt: row.activated_at,
+    expectedEndAt: row.machine_expected_end_at,
+  }));
+
+  return json({ ok: true, tickets, recentActivated, activeMachines });
 }
 
 /*
