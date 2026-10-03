@@ -291,12 +291,21 @@ body[data-role="OWNER"] .app-shell{width:min(100%,520px);max-width:520px;min-hei
 .owner-account>b{font-size:11px;color:#1d2522}
 .owner-account button{display:flex;flex-direction:column;align-items:center;gap:1px;padding:0;background:transparent;color:#4d7162;font-size:8px;font-weight:700}
 .owner-account svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.owner-tabbar{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;padding:9px 0 7px;border-bottom:1px solid #e7ebe9;background:#fff;overflow:hidden}
-.owner-tabbar button{min-width:0;padding:0 1px 8px;border-radius:0;background:#fff;color:#6d7471;font-size:8px;font-weight:600;line-height:1.15;box-shadow:none;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative}
+
+
+
+
+
+
+/* ===== Owner: tab navigasi (satu-satunya definisi) =====
+   6 tab sama lebar; label boleh 2 baris sehingga tidak saling menumpuk. */
+.owner-tabbar{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:0;height:72px;min-height:72px;padding:8px 0 4px;border-bottom:1px solid #e8ecea;background:#fff;overflow:hidden}
+.owner-tabbar button{min-width:0;padding:0 2px 6px;border-radius:0;background:#fff;color:#6d7471;font-size:9px;font-weight:600;line-height:1.15;text-align:center;white-space:normal;overflow-wrap:anywhere;box-shadow:none;display:flex;flex-direction:column;align-items:center;gap:3px;position:relative}
 .owner-tabbar button.active{color:#16855e;font-weight:800}
-.owner-tabbar button.active::after{content:"";position:absolute;left:12%;right:12%;bottom:0;height:2px;border-radius:2px;background:#1aa36f}
-.owner-nav-icon{height:20px;display:grid;place-items:center;font-size:19px;line-height:1;color:#667b72;font-weight:500}
-.owner-tabbar button.active .owner-nav-icon{color:#128a60}
+.owner-tabbar button.active::after{content:"";position:absolute;left:12%;right:12%;bottom:0;height:3px;border-radius:2px;background:#1aa36f}
+.owner-nav-icon{width:24px;height:22px;flex:none;display:grid;place-items:center;font-size:0;line-height:1;color:#65766f}
+.owner-tabbar button.active .owner-nav-icon{color:#16855e}
+@media(min-width:700px){.owner-tabbar{height:76px;min-height:76px}.owner-tabbar button{font-size:11px;gap:5px}.owner-nav-icon{width:28px;height:26px}}
 .owner-view{padding:0 3px}
 .owner-page-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:15px 2px 11px}
 .owner-page-heading.compact{padding-top:7px}
@@ -372,7 +381,7 @@ body[data-role="OWNER"] .app-shell{width:min(100%,520px);max-width:520px;min-hei
   .owner-brand-logo{width:60px;height:60px;flex-basis:60px}
   .owner-brand-copy{font-size:9px}.owner-brand-copy strong{font-size:11px}
   .owner-account>b{font-size:10px}
-  .owner-tabbar button{font-size:7px}.owner-nav-icon{font-size:17px}
+  
   .owner-page-heading h1{font-size:23px}
 }
 
@@ -389,12 +398,12 @@ body[data-role="OWNER"] .owner-dashboard-header{height:68px;padding:6px 4px 4px;
 .owner-account>b{font-size:10px}
 .owner-account button{font-size:7px;gap:1px}
 .owner-account svg{width:22px;height:22px}
-.owner-tabbar{height:70px;grid-template-columns:repeat(6,1fr);gap:0;padding:9px 0 5px;border-bottom:1px solid #e8ecea;background:#fff}
-.owner-tabbar button{padding:0 1px 7px;font-size:7px;line-height:1.15;gap:4px}
-.owner-nav-icon{width:24px;height:22px;font-size:0;color:#65766f}
+
+
+
 .owner-nav-icon svg,.owner-inline-icon svg,.owner-metric-icon svg,.owner-machine-icon svg,.operation-stat-icon svg,.event-card-icon svg,.active-event-icon svg,.machine-row-icon svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.55;stroke-linecap:round;stroke-linejoin:round}
-.owner-tabbar button.active .owner-nav-icon{color:#16855e}
-.owner-tabbar button.active::after{height:3px;left:12%;right:12%;bottom:0}
+
+
 .owner-view{padding:0 2px}
 .owner-page-heading{padding:15px 0 11px}
 .owner-page-heading.compact{padding:8px 0 10px}
@@ -482,7 +491,7 @@ body[data-role="OWNER"] .owner-dashboard-header{height:68px;padding:6px 4px 4px;
   body[data-role="OWNER"] .screen-owner{padding-left:3px;padding-right:3px}
   .owner-brand-logo{width:58px;height:58px;flex-basis:58px}
   .owner-brand-copy{font-size:9px}
-  .owner-tabbar button{font-size:7px}
+  
   .owner-page-heading h1{font-size:24px}
 }
 
@@ -494,8 +503,8 @@ body[data-role="OWNER"] .owner-dashboard-header{height:68px;min-height:68px}
 .owner-brand-logo{object-fit:contain}
 .owner-brand-copy span{display:block}
 .owner-brand-copy strong{display:block;white-space:nowrap}
-.owner-tabbar{height:70px;min-height:70px}
-.owner-tabbar button{white-space:nowrap}
+
+
 .owner-page-heading{min-height:58px}
 .owner-date-button{min-height:36px}
 .owner-metric-grid{align-items:stretch}
@@ -536,9 +545,9 @@ body[data-role="OWNER"] .owner-dashboard-header{height:68px;min-height:68px}
   .owner-brand-copy{font-size:9px}
   .owner-brand-copy strong{font-size:11px}
   .owner-account{padding-top:10px}
-  .owner-tabbar{height:70px;min-height:70px}
-  .owner-tabbar button{font-size:7px}
-  .owner-nav-icon{width:24px;height:22px}
+  
+  
+  
   .owner-page-heading h1{font-size:24px}
   .owner-page-heading p{font-size:11px}
   .owner-metric-card{padding-left:4px;padding-right:4px}
@@ -846,9 +855,9 @@ body[data-role="OWNER"] .locked-form-actions .primary-button{border:1px solid #0
   body[data-role="OWNER"] .owner-account>b{font-size:8px}
   body[data-role="OWNER"] .owner-account button{font-size:6px;padding:3px 0}
   body[data-role="OWNER"] .owner-account svg{width:18px;height:18px}
-  body[data-role="OWNER"] .owner-tabbar{height:48px;min-height:48px;padding:4px 0 2px}
-  body[data-role="OWNER"] .owner-tabbar button{font-size:6px;gap:2px;padding-bottom:4px}
-  body[data-role="OWNER"] .owner-nav-icon{width:19px;height:18px}
+  
+  
+  
   body[data-role="OWNER"] .locked-module-heading h1{font-size:24px}
   body[data-role="OWNER"] .locked-module-heading p{font-size:9px}
   body[data-role="OWNER"] .locked-add-button{height:38px;min-height:38px;font-size:9px;padding:0 10px}
@@ -864,12 +873,12 @@ body[data-role="OWNER"] .locked-form-actions .primary-button{border:1px solid #0
 }
 
 /* OWNER NAV SIZE LOCK — 5 BUSINESS MENUS */
-body[data-role="OWNER"] .owner-tabbar{grid-template-columns:repeat(5,1fr)}
-body[data-role="OWNER"] .owner-tabbar button{font-size:8px;gap:5px}
-body[data-role="OWNER"] .owner-nav-icon{width:27px;height:25px}
+
+
+
 @media(max-width:600px){
-  body[data-role="OWNER"] .owner-tabbar button{font-size:8px;gap:5px}
-  body[data-role="OWNER"] .owner-nav-icon{width:27px;height:25px}
+  
+  
 }
 
 
@@ -915,13 +924,15 @@ body[data-role="OWNER"] .owner-nav-icon{width:27px;height:25px}
 .owner-customer-table tbody tr{cursor:pointer}
 .owner-customer-table tbody tr:last-child td{border-bottom:0}
 .owner-customer-table tbody tr:hover{background:#f8fbfa}
-.owner-customer-table th:nth-child(1),.owner-customer-table td:nth-child(1){width:32px;text-align:center}
-.owner-customer-table th:nth-child(2),.owner-customer-table td:nth-child(2){width:28%}
-.owner-customer-table th:nth-child(3),.owner-customer-table td:nth-child(3){width:18%}
-.owner-customer-table th:nth-child(4),.owner-customer-table td:nth-child(4),.owner-customer-table th:nth-child(5),.owner-customer-table td:nth-child(5){width:8%;text-align:center}
-.owner-customer-table th:nth-child(6),.owner-customer-table td:nth-child(6){width:13%;text-align:center}
-.owner-customer-table th:nth-child(7),.owner-customer-table td:nth-child(7){width:46px;text-align:center}
-.owner-customer-table th:nth-child(8),.owner-customer-table td:nth-child(8){width:44px;text-align:center}
+.owner-customer-table th:nth-child(1),.owner-customer-table td:nth-child(1){width:34px;text-align:center}
+.owner-customer-table th:nth-child(2),.owner-customer-table td:nth-child(2){width:24%;word-break:break-word}
+.owner-customer-table th:nth-child(3),.owner-customer-table td:nth-child(3){width:20%;word-break:break-all}
+.owner-customer-table th:nth-child(4),.owner-customer-table td:nth-child(4){width:auto;word-break:break-word}
+.owner-customer-table th:nth-child(5),.owner-customer-table td:nth-child(5){width:104px;text-align:center}
+.owner-customer-table th:nth-child(6),.owner-customer-table td:nth-child(6){width:84px;text-align:center}
+.owner-customer-actions{white-space:nowrap}
+.owner-customer-actions button{display:inline-grid;vertical-align:middle}
+.owner-customer-status.inactive{background:#eceff0;color:#667571}
 .owner-customer-delete{width:34px;height:34px;min-width:34px;min-height:34px;margin:0 auto;padding:0;border:1px solid #efcfcb;border-radius:9px;background:#fff;color:#c84b43;display:grid;place-items:center;line-height:1;box-shadow:none;cursor:pointer}
 .owner-customer-delete svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .owner-customer-open{width:28px;height:34px;min-width:28px;min-height:34px;margin:0 auto;padding:0;border:0;background:transparent;color:#1b735a;font-size:27px;line-height:1;display:grid;place-items:center;cursor:pointer}
@@ -952,13 +963,19 @@ body[data-role="OWNER"] .owner-nav-icon{width:27px;height:25px}
   .owner-customer-heading p{font-size:13px}
   .owner-customer-search{grid-template-columns:minmax(0,1fr) 78px}
   .owner-customer-search input,.owner-customer-search .primary-button{height:44px;font-size:12px}
-  .owner-customer-table{font-size:10px;min-width:700px}
+  .owner-customer-table{font-size:10px;min-width:0}
   .owner-customer-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .owner-customer-table th,.owner-customer-table td{padding:10px 8px}
-  .owner-customer-table th:nth-child(7),.owner-customer-table td:nth-child(7){width:46px}
-  .owner-customer-table th:nth-child(8),.owner-customer-table td:nth-child(8){width:44px}
-  .owner-customer-delete{width:34px;height:34px;min-width:34px;min-height:34px}
-  .owner-customer-open{width:28px;height:34px;min-width:28px;min-height:34px}
+  .owner-customer-table th,.owner-customer-table td{padding:9px 5px}
+  .owner-customer-table th:nth-child(1),.owner-customer-table td:nth-child(1){width:24px;padding-left:2px;padding-right:2px}
+  .owner-customer-table th:nth-child(2),.owner-customer-table td:nth-child(2){width:23%}
+  .owner-customer-table th:nth-child(3),.owner-customer-table td:nth-child(3){width:26%}
+  .owner-customer-table th:nth-child(5),.owner-customer-table td:nth-child(5){width:62px}
+  .owner-customer-table th:nth-child(6),.owner-customer-table td:nth-child(6){width:38px;padding-left:2px;padding-right:2px}
+  .owner-customer-table .owner-customer-status{padding:3px 6px;font-size:9px;line-height:1.2}
+  .owner-customer-actions button{display:grid;margin:2px auto}
+  .owner-customer-delete{width:28px;height:28px;min-width:28px;min-height:28px}
+  .owner-customer-delete svg{width:15px;height:15px}
+  .owner-customer-open{width:28px;height:26px;min-width:28px;min-height:26px;font-size:22px}
   .owner-customer-detail-heading h1{font-size:28px}
   .owner-customer-info-card{padding:8px 12px}
   .owner-customer-info-card>div{grid-template-columns:112px minmax(0,1fr);gap:10px;font-size:12px}
@@ -1015,9 +1032,9 @@ body[data-role="OWNER"] .owner-nav-icon{width:27px;height:25px}
   body[data-role="OWNER"] .owner-brand-copy{font-size:9px}
   body[data-role="OWNER"] .owner-brand-copy strong{font-size:11px}
   body[data-role="OWNER"] .owner-account{padding-top:7px}
-  body[data-role="OWNER"] .owner-tabbar{grid-template-columns:repeat(5,minmax(0,1fr));padding:7px 0 6px;gap:4px}
-  body[data-role="OWNER"] .owner-tabbar button{font-size:10px;gap:5px;padding-bottom:7px}
-  body[data-role="OWNER"] .owner-nav-icon{width:28px;height:26px}
+  
+  
+  
   body[data-role="OWNER"] .owner-view{padding:0 6px}
   body[data-role="OWNER"] .owner-page-heading{padding:13px 3px 10px}
   body[data-role="OWNER"] .owner-page-heading h1{font-size:28px}
@@ -2537,18 +2554,16 @@ html[data-initial-route="OWNER"] .app-shell{
   box-shadow:none;
 }
 
-/* CUSTOMER IDENTITY — COMPACT */
-.customer-identity-modal{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:18px;}
-.customer-identity-modal[hidden]{display:none!important}
-.customer-identity-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.22)}
-.customer-identity-card{position:relative;z-index:1;width:min(270px,82vw);padding:12px;border-radius:10px;background:#fff;box-shadow:0 8px 22px rgba(0,0,0,.16)}
-.customer-identity-card label{display:block;margin:0 0 7px;font-size:11px;line-height:1.2}
-.customer-identity-card input{display:block;width:100%;box-sizing:border-box;margin-top:3px;padding:8px 9px;border:1px solid #d4d4d4;border-radius:6px;background:#fff;font:inherit;font-size:11px;outline:none}
-.customer-identity-card input:focus{border-color:#999}
-.customer-identity-card button{width:100%;margin-top:2px;padding:8px 9px;font-size:11px}
-.customer-identity-card button:disabled{opacity:.65;cursor:wait}
-.customer-identity-card .msg{margin:5px 0 0;text-align:center;font-size:10px;min-height:0}
-.customer-identity-card .msg:empty{display:none}
+
+
+
+
+
+
+
+
+
+
 
 /* CUSTOMER DASHBOARD — VIEWPORT CLEANUP */
 body[data-role="CUSTOMER"]:has(#customerDashboard:not([hidden])){
@@ -2566,7 +2581,7 @@ body[data-role="CUSTOMER"]:has(#customerDashboard:not([hidden])) .customer-dashb
 }
 /* CUSTOMER DASHBOARD — SAME OUTER WIDTH AS LOCKED STAFF */
 .screen-customer.customer-dashboard-screen{position:relative;min-height:100svh;overflow:hidden;background:#e8f7df !important;animation:none !important;}
-.screen-customer.customer-dashboard-screen .customer-dashboard-bg{position:fixed;z-index:0;inset:0;width:100%;height:100%;object-fit:cover;object-position:center center;pointer-events:none;user-select:none;}
+
 .screen-customer.customer-dashboard-screen .customer-dashboard-content{position:relative;z-index:1;}
 .screen-customer.customer-dashboard-screen .staff-dashboard{background:transparent !important;}
 body[data-role="CUSTOMER"]:has(#customer:not([hidden])) .app-shell{
@@ -3179,64 +3194,48 @@ body.owner-machine-detail-open{overflow:hidden}
   body[data-role="OWNER"] .owner-machine-detail-sheet{width:100%;padding:6px 16px 16px}
 }
 
-/* OWNER SERVICE SETTINGS — PRODUCTION COMPACT VISUAL FIX */
-body[data-role="OWNER"] .owner-service-settings-form{width:100%;max-width:900px;padding:0 0 24px}
-body[data-role="OWNER"] .owner-settings-card{margin:0 0 10px;padding:12px;border:1px solid #dfe8e3;border-radius:10px;background:#fff}
-body[data-role="OWNER"] .owner-settings-card h2{margin:0 0 9px;color:#173f30;font-size:14px;line-height:1.08;font-weight:900;letter-spacing:-.3px}
-body[data-role="OWNER"] .owner-settings-card label{display:block;margin:0 0 8px;color:#315846;font-size:11px;line-height:1.2;font-weight:800}
+/* ===== OWNER — Pengaturan Layanan & Fasilitas (satu definisi, compact) ===== */
+body[data-role="OWNER"] .owner-service-settings-form{width:100%;max-width:900px;padding:0 0 20px}
+body[data-role="OWNER"] .owner-settings-card{margin:0 0 8px;padding:10px 12px;border:1px solid #dfe8e3;border-radius:10px;background:#fff}
+body[data-role="OWNER"] .owner-settings-card h2{margin:0 0 6px;color:#173f30;font-size:13px;line-height:1.15;font-weight:800;letter-spacing:0}
+body[data-role="OWNER"] .owner-settings-card label{display:block;margin:0 0 6px;color:#315846;font-size:11px;line-height:1.2;font-weight:700}
 body[data-role="OWNER"] .owner-settings-card label:last-child{margin-bottom:0}
-body[data-role="OWNER"] .owner-settings-card input,
+body[data-role="OWNER"] .owner-settings-card input:not([type=checkbox]):not([type=radio]):not([type=file]),
 body[data-role="OWNER"] .owner-settings-card select,
-body[data-role="OWNER"] .owner-settings-card textarea{display:block;box-sizing:border-box;width:100%;margin-top:5px;border:1.5px solid #b8d9c6;border-radius:9px;background:#fff;color:#163b2b;outline:none;box-shadow:none;font-size:11px;font-weight:600;line-height:1.2}
-body[data-role="OWNER"] .owner-settings-card input,
-body[data-role="OWNER"] .owner-settings-card select{height:39px;padding:0 10px;line-height:39px}
-body[data-role="OWNER"] .owner-settings-card textarea{min-height:64px;padding:8px 10px;resize:vertical;line-height:1.35}
+body[data-role="OWNER"] .owner-settings-card textarea{display:block;box-sizing:border-box;width:100%;margin-top:3px;border:1px solid #b8d9c6;border-radius:8px;background:#fff;color:#163b2b;font-size:12px;outline:0}
+body[data-role="OWNER"] .owner-settings-card input:not([type=checkbox]):not([type=radio]):not([type=file]),
+body[data-role="OWNER"] .owner-settings-card select{height:34px;padding:0 9px;line-height:34px}
+body[data-role="OWNER"] .owner-settings-card textarea{min-height:48px;padding:6px 9px;resize:vertical;line-height:1.35}
 body[data-role="OWNER"] .owner-settings-card input:focus,
 body[data-role="OWNER"] .owner-settings-card select:focus,
 body[data-role="OWNER"] .owner-settings-card textarea:focus{border-color:#0b8f61;box-shadow:0 0 0 2px rgba(11,143,97,.10)}
-body[data-role="OWNER"] .owner-settings-grid-2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:8px;row-gap:7px;min-width:0}body[data-role="OWNER"] .owner-settings-grid-2>label{min-width:0}body[data-role="OWNER"] .owner-settings-grid-2>label input{min-width:0;width:100%;height:39px;padding:0 10px;box-sizing:border-box}
-body[data-role="OWNER"] .owner-settings-help{display:block;margin-top:3px;color:#718079;font-size:9px;font-weight:500;line-height:1.25}
-body[data-role="OWNER"] .owner-service-tariff-rows{display:grid;gap:7px}
-body[data-role="OWNER"] .owner-service-tariff-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 36px;gap:8px;align-items:start;padding:9px;border:1px solid #e1eae5;border-radius:9px;background:#f8fcfa}
+body[data-role="OWNER"] .owner-settings-grid-2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:8px;row-gap:6px;min-width:0}
+body[data-role="OWNER"] .owner-settings-help{display:block;margin-top:2px;color:#718079;font-size:9px;font-weight:500;line-height:1.25}
+/* kotak centang (Aktifkan layanan, Hapus foto) satu baris dengan teksnya */
+body[data-role="OWNER"] .owner-settings-card .owner-settings-check{display:flex;align-items:center;gap:8px;margin:0 0 8px;font-size:11px;line-height:1.3}
+body[data-role="OWNER"] .owner-settings-card input[type=checkbox]{flex:none;width:16px;height:16px;margin:0;padding:0;accent-color:#0b8f61}
+/* tarif */
+body[data-role="OWNER"] .owner-service-tariff-rows{display:grid;gap:6px}
+body[data-role="OWNER"] .owner-service-tariff-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 32px;gap:6px;align-items:end;padding:7px;border:1px solid #e1eae5;border-radius:8px;background:#f8fcfa}
 body[data-role="OWNER"] .owner-service-tariff-row label{margin:0}
-body[data-role="OWNER"] .owner-service-remove-tariff{width:36px;height:39px;min-height:39px;margin-top:20px;align-self:start;padding:0;border:1.5px solid #efcfcb;border-radius:9px;background:#fff;color:#c84b43;font-size:24px;font-weight:900;line-height:1;box-shadow:none;display:grid;place-items:center}
+body[data-role="OWNER"] .owner-service-remove-tariff{width:32px;height:34px;min-height:34px;padding:0;border:1px solid #efcfcb;border-radius:8px;background:#fff;color:#c84b43;font-size:20px;font-weight:700;line-height:1;box-shadow:none;display:grid;place-items:center}
 body[data-role="OWNER"] .owner-service-remove-tariff:disabled{opacity:.35}
-body[data-role="OWNER"] .owner-service-add-button{width:100%;height:39px;min-height:39px;margin-top:8px;padding:0 10px;border:1.5px solid #8fd2ba;border-radius:9px;background:#f7fcf9;color:#147955;font-size:11px;font-weight:800;box-shadow:none}
-body[data-role="OWNER"] .owner-service-photo-row{display:grid;grid-template-columns:minmax(150px,42%) minmax(0,1fr);gap:12px;align-items:start}
-body[data-role="OWNER"] .owner-service-photo-preview{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;object-position:center;border:1px solid #dce7e1;border-radius:9px;background:#edf5f0}
+body[data-role="OWNER"] .owner-service-add-button{width:100%;height:34px;min-height:34px;margin-top:6px;padding:0 10px;border:1px solid #8fd2ba;border-radius:8px;background:#f7fcf9;color:#147955;font-size:11px;font-weight:700;box-shadow:none}
+/* foto */
+body[data-role="OWNER"] .owner-service-photo-row{display:grid;grid-template-columns:minmax(120px,40%) minmax(0,1fr);gap:10px;align-items:start}
+body[data-role="OWNER"] .owner-service-photo-preview{display:block;width:100%;aspect-ratio:16/9;max-height:140px;object-fit:cover;object-position:center;border:1px solid #dce7e1;border-radius:8px;background:#edf5f0}
 body[data-role="OWNER"] .owner-service-photo-row>div{min-width:0}
-body[data-role="OWNER"] .owner-service-photo-row input[type="file"]{height:auto;padding:7px 8px;background:#f8fcfa;font-size:10px;line-height:1.2}
-body[data-role="OWNER"] .owner-service-photo-row input[type="checkbox"]{display:inline-block;width:16px;height:16px;margin:0 6px 0 0;vertical-align:-3px;accent-color:#0b8f61}
-body[data-role="OWNER"] .owner-service-photo-row .owner-settings-check{display:flex;align-items:flex-start;gap:2px;margin-top:9px;font-size:10px;line-height:1.3}
-body[data-role="OWNER"] .owner-settings-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:4px}
-body[data-role="OWNER"] .owner-settings-actions button{width:100%;height:40px;min-height:40px;padding:0 8px;border-radius:9px;font-size:11px;font-weight:800;box-shadow:none}
+body[data-role="OWNER"] .owner-service-photo-row input[type="file"]{height:auto;padding:5px 7px;background:#f8fcfa;font-size:10px;line-height:1.2}
+/* tombol aksi */
+body[data-role="OWNER"] .owner-settings-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:2px}
+body[data-role="OWNER"] .owner-settings-actions button{width:100%;height:38px;min-height:38px;padding:0 8px;border-radius:8px;font-size:11px;font-weight:700;box-shadow:none}
 body[data-role="OWNER"] .owner-settings-actions .secondary-button{border:1px solid #9fd5c0;background:#f7fcf9;color:#147955}
 body[data-role="OWNER"] .owner-settings-actions .primary-button{border:1px solid #078f61;background:#078f61;color:#fff}
-body[data-role="OWNER"] #serviceSettingsMsg{margin:7px 0 0;text-align:center;font-size:10px}
-
+body[data-role="OWNER"] #serviceSettingsMsg{margin:6px 0 0;text-align:center;font-size:10px}
 @media(max-width:600px){
   body[data-role="OWNER"] .owner-service-settings-form{max-width:none}
-  body[data-role="OWNER"] .owner-settings-card{padding:11px;margin-bottom:9px;border-radius:10px}
-  body[data-role="OWNER"] .owner-settings-card h2{font-size:14px;margin-bottom:9px}
-  body[data-role="OWNER"] .owner-settings-card label{font-size:11px;margin-bottom:7px}
-  body[data-role="OWNER"] .owner-settings-card input,
-  body[data-role="OWNER"] .owner-settings-card select,
-  body[data-role="OWNER"] .owner-settings-card textarea{font-size:11px}
-  body[data-role="OWNER"] .owner-settings-card input,
-  body[data-role="OWNER"] .owner-settings-card select{height:39px;line-height:39px}
-  body[data-role="OWNER"] .owner-settings-card textarea{min-height:60px}
-  body[data-role="OWNER"] .owner-settings-grid-2{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:8px;row-gap:7px;min-width:0}body[data-role="OWNER"] .owner-settings-grid-2>label{min-width:0}body[data-role="OWNER"] .owner-settings-grid-2>label input{min-width:0;width:100%;height:39px;padding:0 10px;box-sizing:border-box}
-  body[data-role="OWNER"] .owner-service-tariff-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 36px;gap:6px;padding:8px}
-  body[data-role="OWNER"] .owner-service-remove-tariff{width:36px;height:39px;min-height:39px}
-  body[data-role="OWNER"] .owner-service-add-button{height:39px;min-height:39px;font-size:11px}
-  body[data-role="OWNER"] .owner-service-photo-row{grid-template-columns:minmax(130px,42%) minmax(0,1fr);gap:9px}
-  body[data-role="OWNER"] .owner-service-photo-preview{aspect-ratio:16/9;max-height:180px}
-  body[data-role="OWNER"] .owner-service-photo-row input[type="file"]{font-size:9px}
-  body[data-role="OWNER"] .owner-service-photo-row .owner-settings-check{font-size:9px}
-  body[data-role="OWNER"] .owner-settings-actions{grid-template-columns:1fr 1fr;gap:7px}
-  body[data-role="OWNER"] .owner-settings-actions button{height:40px;min-height:40px;font-size:10px}
+  body[data-role="OWNER"] .owner-service-photo-row{grid-template-columns:minmax(110px,40%) minmax(0,1fr);gap:8px}
 }
-
 
 /* DETAIL REWARD — COMPACT / CONSISTENT OWNER UI */
 body[data-role="OWNER"]:has(#rewardDetailView:not([hidden])) .locked-detail-back{
@@ -4034,3 +4033,17 @@ body[data-role="OWNER"] #ownerEventsList .locked-event-stats{
 .screen-staff .staff-member-result{margin-top:10px;width:100%}
 .screen-staff .staff-member-reward-row{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fff6df;border:1px solid #f0dba6;border-radius:11px;padding:8px 10px;margin-bottom:6px;font-size:11px;font-weight:800;color:#8a5a06}
 .screen-staff .staff-member-reward-row button{width:auto;padding:6px 10px;font-size:10px;background:#d1fae5;color:#06734f}
+
+/* ===== Owner: Pengaturan Layanan — abu-abu sampai ada perubahan ===== */
+body[data-role="OWNER"] .owner-service-settings-form.is-pristine .owner-settings-card input:not([type=checkbox]):not([type=radio]):not([type=file]),
+body[data-role="OWNER"] .owner-service-settings-form.is-pristine .owner-settings-card textarea,
+body[data-role="OWNER"] .owner-service-settings-form.is-pristine .owner-settings-card select{color:#8d9a95;-webkit-text-fill-color:#8d9a95;border-color:#d3ddd8;background:#f6f8f7}
+body[data-role="OWNER"] .owner-service-settings-form:not(.is-pristine) .owner-settings-card input:not([type=checkbox]):not([type=radio]):not([type=file]),
+body[data-role="OWNER"] .owner-service-settings-form:not(.is-pristine) .owner-settings-card textarea,
+body[data-role="OWNER"] .owner-service-settings-form:not(.is-pristine) .owner-settings-card select{color:#10201a;-webkit-text-fill-color:#10201a}
+#serviceSettingsSave:disabled{opacity:.5;cursor:not-allowed}
+
+/* ===== Owner: Customer Detail — dua journey terpisah ===== */
+.owner-journey-tag{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:999px;background:#dcf4e8;color:#1a805d;font-size:10px;font-weight:700;vertical-align:middle}
+.owner-journey-tag.event{background:#fdeecb;color:#8a5a00}
+.owner-customer-journey-title+.owner-customer-empty{margin-bottom:6px}
