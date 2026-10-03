@@ -287,15 +287,86 @@ async function handleFulfillReward(request: Request, env: Env, rewardId: string)
     return errorResponse("UNAUTHORIZED", "Staff authentication is required.", 401);
   }
 
+  // Body opsional: reward program member yang diserahkan (dipilih Staff).
+  let body: { programRewardPoolId?: unknown } = {};
+  try {
+    body = (await request.json()) as typeof body;
+  } catch {
+    body = {};
+  }
+  const programPoolId =
+    typeof body.programRewardPoolId === "string" ? body.programRewardPoolId.trim() : "";
+
   const nowIso = new Date().toISOString();
+
+  const existing = await env.DB.prepare(`
+    SELECT * FROM member_rewards WHERE reward_id = ? LIMIT 1
+  `).bind(rewardId).first<RewardRow & { quantity?: number | null }>();
+
+  if (!existing) {
+    return errorResponse("NOT_FOUND", "Reward not found.", 404);
+  }
+  if (existing.status === "FULFILLED") {
+    return json({ ok: true, idempotent: true, reward: existing });
+  }
+
+  // Bila Owner sudah memilih reward program, Staff wajib memilih salah satunya.
+  const configured = await env.DB.prepare(`
+    SELECT COUNT(*) AS n
+    FROM program_rewards pr
+    JOIN reward_pool rp ON rp.reward_pool_id = pr.reward_pool_id
+  `).first<{ n: number }>();
+
+  const grantQty = Math.max(1, Number(existing.quantity ?? 1));
+  let reservedPoolId: string | null = null;
+
+  if (Number(configured?.n ?? 0) > 0) {
+    if (!programPoolId) {
+      return errorResponse(
+        "PROGRAM_REWARD_REQUIRED",
+        "Pilih reward program member yang diserahkan.",
+        400,
+      );
+    }
+
+    const reserve = await env.DB.prepare(`
+      UPDATE program_rewards
+      SET given = given + ?, updated_at = ?
+      WHERE reward_pool_id = ? AND given + ? <= quantity
+    `).bind(grantQty, nowIso, programPoolId, grantQty).run();
+
+    if (reserve.meta.changes !== 1) {
+      const row = await env.DB.prepare(`
+        SELECT quantity, given FROM program_rewards WHERE reward_pool_id = ? LIMIT 1
+      `).bind(programPoolId).first<{ quantity: number; given: number }>();
+      if (!row) {
+        return errorResponse("PROGRAM_REWARD_NOT_FOUND", "Reward tersebut tidak dipakai di Program Member.", 404);
+      }
+      return errorResponse(
+        "PROGRAM_REWARD_OUT_OF_STOCK",
+        `Stok reward program tidak cukup (sisa ${Math.max(0, Number(row.quantity) - Number(row.given))}).`,
+        409,
+      );
+    }
+    reservedPoolId = programPoolId;
+  }
 
   const update = await env.DB.prepare(`
     UPDATE member_rewards
-    SET status = 'FULFILLED', fulfilled_at = ?, fulfilled_by = ?
+    SET status = 'FULFILLED', fulfilled_at = ?, fulfilled_by = ?, fulfilled_reward_pool_id = ?
     WHERE reward_id = ? AND status = 'AVAILABLE'
-  `).bind(nowIso, session.userId, rewardId).run();
+  `).bind(nowIso, session.userId, reservedPoolId, rewardId).run();
 
   if (update.meta.changes !== 1) {
+    // Balikkan cadangan stok program bila penyerahan tidak jadi tercatat.
+    if (reservedPoolId) {
+      await env.DB.prepare(`
+        UPDATE program_rewards
+        SET given = MAX(0, given - ?), updated_at = ?
+        WHERE reward_pool_id = ?
+      `).bind(grantQty, nowIso, reservedPoolId).run();
+    }
+
     const current = await env.DB.prepare(`
       SELECT * FROM member_rewards WHERE reward_id = ? LIMIT 1
     `).bind(rewardId).first<RewardRow>();
