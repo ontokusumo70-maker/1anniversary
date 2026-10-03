@@ -429,7 +429,7 @@ async function handleStaffList(request: Request, env: Env): Promise<Response> {
       t.queue_number ASC
   `).bind(queueDate).all();
 
-  const tickets = (result.results ?? []).map((row) => ({
+  const tickets = ((result.results ?? []) as Array<TicketRow & Record<string, unknown>>).map((row) => ({
     ...row,
     display_code: displayCode(row.machine_type, row.queue_number),
   }));
