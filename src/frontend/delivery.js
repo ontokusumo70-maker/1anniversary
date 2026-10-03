@@ -648,7 +648,7 @@
     el.hidden = true;
     el.innerHTML = `
       <div class="td-d-wrap"><div class="td-canvas">
-        ${isC ? '<img class="td-logo" src="/assets/branding/branding.png" alt="Teras Laundry">' : ""}
+        ${isC ? '<img class="td-logo" src="/assets/branding/branding.png" alt="Teras Laundry"><div class="td-who" id="tdWho"></div>' : ""}
         <div class="td-flow">
           <div class="td-hdr">
             <div class="td-card td-date" id="tdDate"></div>
@@ -700,8 +700,29 @@
     $("tdReq").addEventListener("click", isC ? openCustomerRequest : openStaffRequests);
     $("tdEv").addEventListener("click", openEvents);
     tickDate();
+    if (isC) loadWho();
     try { window.TdPages?.onDashboard?.(r); } catch { /* abaikan */ }
     return el;
+  }
+
+  /* Nama + nomor HP customer yang sedang login (di bawah logo). */
+  const fmtPhone = (p) => {
+    let d = String(p || "").replace(/\D/g, "");
+    if (d.startsWith("62")) d = `0${d.slice(2)}`;
+    return d.length > 8 ? `${d.slice(0, 4)}-${d.slice(4, 8)}-${d.slice(8)}` : d;
+  };
+  function paintWho(profile) {
+    const el = $("tdWho");
+    if (!el || !profile) return;
+    el.innerHTML = `<b>${esc(profile.name || "")}</b> · ${esc(fmtPhone(profile.phone))}`;
+  }
+  async function loadWho() {
+    const stored = window.TdAuth?.profile?.();
+    if (stored) { paintWho(stored); return; }
+    try {
+      const me = await call("/member/me");
+      if (me.customer?.name || me.customer?.phone) paintWho(me.customer);
+    } catch { /* abaikan */ }
   }
 
   function tickDate() {
@@ -797,7 +818,7 @@
   }
 
   window.TdUi = {
-    openPage, closePage, isOpen, esc, ico, call, role, toast, fmtDate, fmtTime, fmtWib, pad, MONTHS,
+    openPage, closePage, isOpen, esc, ico, call, role, toast, fmtDate, fmtTime, fmtWib, pad, MONTHS, setProfile: paintWho,
     body: () => bodyEl, sticky: () => stickyEl, refreshDashboard, unitLabel,
   };
   window.TerasUi = { openStaffRequests, openCustomerRequest, openEvents, closePage, refreshDashboard };
