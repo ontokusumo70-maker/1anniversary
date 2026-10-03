@@ -163,7 +163,7 @@
     const isPickup = r.type === "PICKUP";
     const label = TYPE[r.type] || "Antar / Jemput";
     const otw = isPickup
-      ? "Petugas kami sedang menuju lokasi Anda untuk menjemput laundry."
+      ? "Petugas kami sedang menuju lokasi Anda untuk menjemput laundry. Info order dapat dilihat di menu Drop-off."
       : "Petugas kami sedang menuju lokasi Anda untuk mengantar laundry.";
     const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address || "")}`;
     return `
@@ -179,6 +179,8 @@
         </div>
         <div class="tx-st-rows">
           ${infoRow("truck", `Layanan: <b>${esc(label)}</b>`)}
+          ${isPickup && r.orderId ? infoRow("note", `No. Order: <b>${esc(r.orderId)}</b>`) : ""}
+          ${isPickup && r.estDoneAt ? infoRow("clock", `Estimasi selesai pengerjaan: <b>${esc(fmtWib(r.estDoneAt))}</b>`) : ""}
           ${infoRow("user", esc(r.name || "–"))}
           ${infoRow("phone", esc(r.phone || "–"))}
           ${infoRow("pin", `<a href="${maps}" target="_blank" rel="noopener noreferrer">${esc(r.address || "–")}</a>`)}
@@ -551,111 +553,10 @@
   }
 
   /* ================================================================== *
-   * STAFF — serahkan reward program member: pilih reward "Digunakan di Program Member"
-   * ================================================================== */
-  function toastMsg(text) {
-    if (ui()?.toast) ui().toast(text);
-  }
-
-  function closePicker() {
-    $("txPicker")?.remove();
-  }
-
-  async function submitFulfill(rewardId, poolId, btn) {
-    const body = poolId ? JSON.stringify({ programRewardPoolId: poolId }) : undefined;
-    await call(`/staff/member/reward/${encodeURIComponent(rewardId)}/fulfill`, { method: "POST", body });
-    toastMsg("Reward diserahkan");
-    const row = btn.closest(".td-rw");
-    const list = row?.parentElement;
-    row?.remove();
-    if (list && !list.querySelector(".td-rw")) {
-      list.innerHTML = '<div class="td-empty">Belum ada reward.</div>';
-    }
-    try { ui()?.refreshDashboard?.(); } catch { /* abaikan */ }
-  }
-
-  async function openFulfillPicker(btn) {
-    const rewardId = btn.getAttribute("data-fulfill");
-    if (!rewardId || btn.dataset.txBusy === "1") return;
-
-    let items = [];
-    try {
-      const data = await call("/staff/program-rewards");
-      items = data.items || [];
-    } catch (error) {
-      toastMsg(error.message || "Gagal memuat reward program.");
-      return;
-    }
-
-    // Owner belum memilih reward program -> alur serah biasa
-    if (!items.length) {
-      if (!window.confirm("Serahkan reward ini ke customer?")) return;
-      btn.dataset.txBusy = "1";
-      try { await submitFulfill(rewardId, "", btn); }
-      catch (error) { toastMsg(error.message || "Gagal."); }
-      btn.dataset.txBusy = "0";
-      return;
-    }
-
-    closePicker();
-    const el = document.createElement("div");
-    el.id = "txPicker";
-    el.className = "td-modal";
-    el.setAttribute("role", "dialog");
-    el.setAttribute("aria-modal", "true");
-    const firstOk = items.findIndex((i) => i.remaining > 0 && i.active !== false);
-    el.innerHTML = `<div class="td-modal-card">
-      <h2>Serahkan Reward</h2>
-      <p class="td-note">Pilih reward yang diserahkan ke customer.</p>
-      <div class="tx-pick">
-        ${items.map((i, idx) => {
-          const off = i.remaining <= 0 || i.active === false;
-          return `<label class="tx-pick-item${off ? " off" : ""}">
-            <input type="radio" name="txPick" value="${esc(i.rewardPoolId)}"${idx === firstOk ? " checked" : ""}${off ? " disabled" : ""}>
-            <span><b>${esc(i.rewardType)}</b><small>Digunakan di Program Member · sisa ${fmtNum(i.remaining)}</small></span>
-          </label>`;
-        }).join("")}
-      </div>
-      <p class="tx-prog-msg err" id="txPickMsg" aria-live="polite"></p>
-      <div class="td-act"><button type="button" id="txPickNo">Batal</button><button type="button" class="p" id="txPickYes"${firstOk < 0 ? " disabled" : ""}>Serahkan</button></div>
-    </div>`;
-    document.body.appendChild(el);
-    $("txPickNo").addEventListener("click", closePicker);
-    $("txPickYes").addEventListener("click", async () => {
-      const chosen = el.querySelector('input[name="txPick"]:checked');
-      if (!chosen) { $("txPickMsg").textContent = "Pilih reward yang diserahkan."; return; }
-      const yes = $("txPickYes");
-      yes.disabled = true;
-      try {
-        await submitFulfill(rewardId, chosen.value, btn);
-        closePicker();
-      } catch (error) {
-        $("txPickMsg").textContent = error.message || "Gagal menyerahkan reward.";
-        yes.disabled = false;
-      }
-    });
-  }
-
-  function installFulfillIntercept() {
-    if (document.documentElement.dataset.txFulfill === "1") return;
-    document.documentElement.dataset.txFulfill = "1";
-    // Fase capture: jalan sebelum handler lama (yang hanya window.confirm).
-    document.addEventListener("click", (event) => {
-      if (role() !== "STAFF") return;
-      const btn = event.target.closest && event.target.closest("[data-fulfill]");
-      if (!btn) return;
-      event.preventDefault();
-      event.stopPropagation();
-      openFulfillPicker(btn);
-    }, true);
-  }
-
-  /* ================================================================== *
    * Siklus
    * ================================================================== */
   function start() {
     installRealtime();
-    installFulfillIntercept();
     let pending = false;
     new MutationObserver(() => {
       if (pending) return;
