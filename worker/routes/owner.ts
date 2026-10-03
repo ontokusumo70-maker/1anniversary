@@ -309,6 +309,15 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
       (SELECT COUNT(*) FROM customers WHERE created_at < ?) AS participants,
       (SELECT COUNT(*) FROM customers WHERE created_at < ?) AS participants_previous,
       (SELECT COUNT(*) FROM customers WHERE is_member = 1) AS members_count,
+      (SELECT COUNT(*) FROM customers) AS customers_total,
+      (SELECT COUNT(*) FROM customers WHERE is_member = 1 AND COALESCE(member_since, created_at) < ?) AS members_current,
+      (SELECT COUNT(*) FROM customers WHERE is_member = 1 AND COALESCE(member_since, created_at) < ?) AS members_previous,
+      (SELECT COALESCE(SUM(pr.given), 0)
+       FROM program_rewards pr
+       JOIN reward_pool rp ON rp.reward_pool_id = pr.reward_pool_id) AS program_given,
+      (SELECT COALESCE(SUM(pr.quantity), 0)
+       FROM program_rewards pr
+       JOIN reward_pool rp ON rp.reward_pool_id = pr.reward_pool_id) AS program_stock,
       (SELECT COUNT(*) FROM member_rewards WHERE status = 'AVAILABLE') AS program_pending,
       (SELECT COUNT(*) FROM rewards WHERE claimed_at IS NOT NULL AND claimed_at >= ? AND claimed_at < ?) AS claimed_count,
       (SELECT COUNT(*) FROM rewards WHERE claimed_at IS NOT NULL AND claimed_at >= ? AND claimed_at < ?) AS claimed_previous,
@@ -322,6 +331,8 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
       (SELECT COUNT(*) FROM rewards WHERE status NOT IN ('WON','CLAIMED','REDEEMED','USED')) AS unclaimed_count,
       (SELECT COUNT(*) FROM audit_log WHERE result IN ('FAILED','REJECTED')) AS error_retry_count
   `).bind(
+    currentEndIso,
+    currentStartIso,
     currentEndIso,
     currentStartIso,
     currentStartIso, currentEndIso,
@@ -498,6 +509,16 @@ async function handleOwnerOverview(request: Request, env: Env): Promise<Response
       participantsPrevious: Number(metric?.participants_previous ?? 0),
       participantsChangePct: ownerPercentChange(Number(metric?.participants ?? 0), Number(metric?.participants_previous ?? 0)),
       members: Number(metric?.members_count ?? 0),
+      membersPercent: Number(metric?.customers_total ?? 0) > 0
+        ? Math.round((Number(metric?.members_count ?? 0) / Number(metric?.customers_total ?? 0)) * 100)
+        : 0,
+      membersPrevious: Number(metric?.members_previous ?? 0),
+      membersChangePct: ownerPercentChange(Number(metric?.members_current ?? 0), Number(metric?.members_previous ?? 0)),
+      programGiven: Number(metric?.program_given ?? 0),
+      programStock: Number(metric?.program_stock ?? 0),
+      programGivenPct: Number(metric?.program_stock ?? 0) > 0
+        ? Math.round((Number(metric?.program_given ?? 0) / Number(metric?.program_stock ?? 0)) * 100)
+        : 0,
       programPending: Number(metric?.program_pending ?? 0),
       won: Number(metric?.won_count ?? statusMap.get("WON") ?? 0),
       claimed: Number(metric?.claimed_count ?? statusMap.get("CLAIMED") ?? 0),
