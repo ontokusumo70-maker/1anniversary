@@ -88,46 +88,7 @@
     </div>
   </section>
 
-  <section id="auth" class="screen screen-customer auth-screen customer-login-screen" hidden>
-    <img id="customerBg" class="customer-login-bg" src="/assets/background/customer/customer-login-bg.png" alt="" aria-hidden="true">
-    <div class="customer-login-brand" aria-label="Teras Laundry">
-      <img src="/assets/branding/branding.png" alt="Teras Laundry" class="customer-login-brand-logo">
-      <p class="customer-login-address">Jl. Gegerkalong Hilir No.27 Ciwaruga-Bandung</p>
-    </div>
-
-    <div class="customer-login-card glass-card">
-      <label>Nomor HP
-        <input id="phone" inputmode="tel" autocomplete="tel" maxlength="32" placeholder="08xxxxxxxxxx" aria-label="Nomor HP Customer">
-      </label>
-
-      <label id="emailLabel">Alamat Email Gmail
-        <input id="email" type="email" inputmode="email" autocomplete="email" maxlength="254" placeholder="nama@gmail.com" aria-label="Alamat Email Gmail">
-      </label>
-
-      <div class="authActions customer-login-actions">
-        <button id="customerLogin" class="primary-button" type="button">Login</button>
-        <button id="staffLogin" class="secondary-button" type="button" hidden>Login</button>
-      </div>
-
-      <p id="authMsg" class="msg status-msg customer-login-msg"></p>
-    </div>
-  </section>
-
-  <section id="customer" class="screen screen-staff screen-customer customer-dashboard-screen" hidden>
-    <div id="customerIdentityModal" class="customer-identity-modal" hidden>
-      <div class="customer-identity-backdrop" aria-hidden="true"></div>
-      <section class="customer-identity-card" role="dialog" aria-modal="true" aria-label="Data customer">
-        <label>No. HP
-          <input id="customerIdentityPhone" inputmode="tel" autocomplete="tel" maxlength="32" placeholder="08xxxxxxxxxx" aria-label="Nomor HP">
-        </label>
-        <label>Email
-          <input id="customerIdentityEmail" type="email" inputmode="email" autocomplete="email" maxlength="254" placeholder="nama@gmail.com" aria-label="Email">
-        </label>
-        <button id="customerIdentitySubmit" class="primary-button" type="button">Klik untuk melanjutkan</button>
-        <p id="customerIdentityMsg" class="msg status-msg" aria-live="polite"></p>
-      </section>
-    </div>
-    <img class="customer-dashboard-bg" src="/assets/background/customer/customer-login-bg.png" alt="" aria-hidden="true">
+    <section id="customer" class="screen screen-staff screen-customer customer-dashboard-screen" hidden>
     <div class="customer-dashboard-content">
       <section id="customerDashboard" class="staff-dashboard">
       <div class="customer-dashboard-brand" aria-hidden="true">
@@ -1010,8 +971,8 @@
     <div id="ownerViewCustomerTrace" class="owner-view" hidden>
       <div id="ownerCustomerListView">
         <div class="owner-back" data-owner-view="overview"><span class="owner-back-arrow">←</span> Kembali ke Overview</div>
-        <div class="owner-page-heading compact owner-customer-heading"><div><h1 id="ownerCustomerHeading">Customer Trace</h1><div class="owner-customer-total-row"><p id="ownerCustomerTotal">0 Customers</p><select id="ownerCustomerStatusFilter" aria-label="Filter status customer"><option value="all">All</option><option value="active">Active</option><option value="inactive">Inactive</option></select><button id="ownerCustomerExportButton" class="owner-customer-export" type="button" aria-label="Buka Export CSV" title="Export CSV"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v5h5M10 12h5M10 16h5"/></svg></button></div></div></div>
-        <div class="owner-customer-search"><label><span class="owner-search-icon" aria-hidden="true">⌕</span><input id="ownerCustomerSearch" maxlength="128" placeholder="Email ID / No. HP" aria-label="Cari customer"></label><button id="ownerCustomerSearchButton" class="primary-button" type="button">Cari</button></div>
+        <div class="owner-page-heading compact owner-customer-heading"><div><h1 id="ownerCustomerHeading">Customer Trace</h1><div class="owner-customer-total-row"><p id="ownerCustomerTotal">0 Customers</p><select id="ownerCustomerStatusFilter" aria-label="Filter status customer"><option value="all">Semua</option><option value="member">Member</option><option value="non-member">Belum member</option></select><button id="ownerCustomerExportButton" class="owner-customer-export" type="button" aria-label="Buka Export CSV" title="Export CSV"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v5h5M10 12h5M10 16h5"/></svg></button></div></div></div>
+        <div class="owner-customer-search"><label><span class="owner-search-icon" aria-hidden="true">⌕</span><input id="ownerCustomerSearch" maxlength="128" placeholder="Nama / No. HP" aria-label="Cari customer"></label><button id="ownerCustomerSearchButton" class="primary-button" type="button">Cari</button></div>
         <div id="ownerCustomerList" class="owner-customer-list"></div>
         <div class="owner-customer-pagination-summary" id="ownerCustomerPaginationSummary">0 dari 0</div>
         <div id="ownerCustomerPagination" class="owner-customer-pagination"></div>
