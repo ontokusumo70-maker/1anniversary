@@ -105,7 +105,7 @@
   let titleEl = null;
   let pageOpen = false;
   let pageKey = "";
-  let parked = [];
+  let pageOnBack = null;
 
   function ensurePage() {
     if (pageEl) return;
@@ -127,39 +127,23 @@
     bodyEl = $("tdBody");
     stickyEl = $("tdSticky");
     titleEl = $("tdPageTitle");
-    $("tdBack").addEventListener("click", () => closePage());
+    $("tdBack").addEventListener("click", () => {
+      if (pageOnBack) pageOnBack();
+      else closePage();
+    });
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && pageOpen) closePage();
     });
   }
 
-  function park(node) {
-    if (!node || !node.parentNode) return;
-    const placeholder = document.createComment("td-park");
-    node.parentNode.insertBefore(placeholder, node);
-    parked.push({ node, placeholder });
-    bodyEl.appendChild(node);
-  }
-
-  function restoreParked() {
-    parked.forEach(({ node, placeholder }) => {
-      if (placeholder.parentNode) {
-        placeholder.parentNode.insertBefore(node, placeholder);
-        placeholder.remove();
-      }
-    });
-    parked = [];
-  }
-
-  function openPage({ key, title, sticky = false }) {
+  function openPage({ key, title, sticky = false, onBack = null }) {
     ensurePage();
-    if (pageOpen) {
-      restoreParked();
-    } else {
+    if (!pageOpen) {
       try { history.pushState({ tdPage: key }, "", location.href); } catch { /* abaikan */ }
     }
     pageOpen = true;
     pageKey = key;
+    pageOnBack = typeof onBack === "function" ? onBack : null;
     pageEl.className = `td-page ${role() === "CUSTOMER" ? "td-customer" : "td-staff"}${sticky ? " has-sticky" : ""}`;
     titleEl.textContent = title;
     bodyEl.innerHTML = "";
@@ -175,7 +159,7 @@
     if (!pageOpen) return;
     pageOpen = false;
     pageKey = "";
-    restoreParked();
+    pageOnBack = null;
     bodyEl.innerHTML = "";
     stickyEl.innerHTML = "";
     pageEl.hidden = true;
@@ -191,58 +175,12 @@
   const isOpen = (key) => pageOpen && pageKey === key;
 
   /* ------------------------------------------------------------ *
-   * Halaman: kartu lama yang dipindahkan (Antrean, Drop-off, Member)
+   * Halaman Antrean, Drop-off, Member: lihat td-pages.js
    * ------------------------------------------------------------ */
-  function openParkedPage(key, title, cardId, refresh) {
-    const body = openPage({ key, title });
-    const card = $(cardId);
-    if (!card) {
-      body.innerHTML = '<div class="td-c"><div class="td-empty">Halaman tidak tersedia.</div></div>';
-      return;
-    }
-    park(card);
-    let empty = null;
-    if (cardId === "customerDropoffCard") {
-      empty = document.createElement("div");
-      empty.className = "td-c td-empty";
-      empty.textContent = "Belum ada laundry drop-off aktif.";
-      empty.hidden = true;
-      body.appendChild(empty);
-    }
-    const done = () => { if (empty) empty.hidden = !card.hidden; };
-    try {
-      Promise.resolve(refresh && refresh()).then(done, done);
-    } catch { done(); }
-  }
-
   const fn = (name) => (typeof window[name] === "function" ? window[name] : null);
-
-  function openQueue() {
-    if (role() === "STAFF") {
-      openParkedPage("queue", "Antrean Self-Service", "staffQueueCard", () => fn("refreshStaffQueueList")?.());
-    } else {
-      openParkedPage("queue", "Antrean Self-Service", "customerQueueCard", () => {
-        fn("refreshCustomerQueueBoard")?.();
-        return fn("refreshCustomerMyTickets")?.();
-      });
-    }
-  }
-
-  function openDropoff() {
-    if (role() === "STAFF") {
-      openParkedPage("dropoff", "Drop-off", "staffDropoffCard", () => fn("refreshStaffDropoffList")?.());
-    } else {
-      openParkedPage("dropoff", "Drop-off", "customerDropoffCard", () => fn("refreshCustomerDropoff")?.());
-    }
-  }
-
-  function openMember() {
-    if (role() === "STAFF") {
-      openParkedPage("member", "Member", "staffMemberCard", null);
-    } else {
-      openParkedPage("member", "Member", "customerMemberCard", () => fn("refreshCustomerMember")?.());
-    }
-  }
+  const openQueue = () => window.TdPages?.openQueue?.();
+  const openDropoff = () => window.TdPages?.openDropoff?.();
+  const openMember = () => window.TdPages?.openMember?.();
 
   /* ------------------------------------------------------------ *
    * Halaman Event (view only) — daftar event, detail memakai view lama
@@ -271,7 +209,7 @@
       if (!isOpen("events")) return;
       const events = Array.isArray(data.events) ? data.events : [];
       body.innerHTML = `
-        <div class="td-list td-evs">
+        <div class="td-list td-grid">
           ${events.length ? events.map(eventCard).join("") : '<div class="td-c td-empty">Belum ada event aktif.</div>'}
         </div>
         <div class="td-foot">Event dikelola admin · halaman hanya untuk dilihat</div>`;
@@ -393,7 +331,7 @@
 
   function openStaffRequests() {
     const body = openPage({ key: "requests", title: "Request Antar / Jemput" });
-    body.innerHTML = '<div class="td-chips" id="tdChips"></div><div class="td-list" id="tdList"><div class="td-c td-empty">Memuat…</div></div>';
+    body.innerHTML = '<div class="td-chips" id="tdChips"></div><div class="td-list td-grid" id="tdList"><div class="td-c td-empty">Memuat…</div></div>';
     renderChips({});
     $("tdList").addEventListener("click", (event) => {
       const btn = event.target.closest("[data-act]");
@@ -457,7 +395,7 @@
           <div class="td-g2">
             ${fieldWrap("date", "Tanggal", `<input class="td-in" id="td_date" type="date" min="${esc(info.today)}" max="${esc(addDays(info.today, 60))}" value="${esc(sched.date)}">`)}
             ${fieldWrap("time", "Jam", `<input class="td-in" id="td_time" type="time" min="${esc(s.hoursStart)}" max="${esc(s.hoursEnd)}" value="${esc(sched.time)}">`)}
-          </div><p class="td-note">Jam operasional ${esc(fmtTime(s.hoursStart))} – ${esc(fmtTime(s.hoursEnd))}${s.minOrderKg ? ` · minimum ${esc(s.minOrderKg)} kg` : ""}${s.areas ? ` · area: ${esc(s.areas)}` : ""}</p></div></section>
+          </div><p class="td-note">Jam operasional ${esc(fmtTime(s.hoursStart))} – ${esc(fmtTime(s.hoursEnd))}${s.minOrderKg ? ` · minimum ${esc(s.minOrderKg)} kg` : ""}${s.tariffLabel ? ` · tarif: ${esc(s.tariffLabel)}` : ""}${s.areas ? ` · area: ${esc(s.areas)}` : ""}</p></div></section>
         <section class="td-c cb"><h2>Data pemohon</h2><div class="td-fs">
           ${fieldWrap("name", "Nama", `<input class="td-in" id="td_name" type="text" maxlength="60" autocomplete="name" value="${esc(profile.name || "")}">`)}
           ${fieldWrap("phone", "No. telepon", `<input class="td-in" id="td_phone" type="tel" inputmode="tel" maxlength="20" autocomplete="tel" value="${esc(profile.phone || "")}">`)}
@@ -609,13 +547,8 @@
         const data = await call("/staff/delivery/count");
         setRequestBadge(Number(data.newCount) || 0);
       } else if (role() === "CUSTOMER") {
-        const info = await call("/delivery/settings");
-        const card = $("tdReq");
-        if (card) card.hidden = !info.settings.enabled;
-        if (info.settings.enabled) {
-          const mine = await call("/delivery/requests/mine");
-          setRequestBadge(Number(mine.newCount) || 0);
-        }
+        const mine = await call("/delivery/requests/mine");
+        setRequestBadge(Number(mine.newCount) || 0);
       }
     } catch { /* kartu bersifat pelengkap */ }
   }
@@ -626,15 +559,23 @@
     try {
       if (role() === "STAFF") {
         const data = await call("/staff/dropoff/active");
-        el.textContent = `${(data.orders || []).length} pesanan aktif`;
+        el.textContent = `${Number(data.activeCount ?? (data.orders || []).length)} pesanan aktif`;
       } else if (role() === "CUSTOMER") {
         const data = await call("/dropoff/mine");
-        el.textContent = `${data.order ? 1 : 0} pesanan aktif`;
+        el.textContent = `${Number(data.activeCount ?? (data.order ? 1 : 0))} pesanan aktif`;
       }
     } catch { /* abaikan */ }
   }
 
   async function refreshQueueSummary() {
+    if (role() === "CUSTOMER") {
+      try {
+        const board = await call("/queue/self-service/board");
+        if ($("tdQW")) $("tdQW").textContent = String(board.washer?.waitingCount ?? 0);
+        if ($("tdQD")) $("tdQD").textContent = String(board.dryer?.waitingCount ?? 0);
+      } catch { /* abaikan */ }
+      return;
+    }
     if (role() !== "STAFF") return;
     try {
       const data = await call("/staff/queue/self-service");
@@ -732,7 +673,7 @@
             ${menuItem("tdDrop", "box", "Drop-off", "tdDropSub", "0 pesanan aktif")}
             ${menuItem("tdMember", "users", "Member", "tdMemberSub", "Koin &amp; reward")}
           </div>
-          <button type="button" class="td-card td-req" id="tdReq"${isC ? " hidden" : ""}>
+          <button type="button" class="td-card td-req" id="tdReq">
             <span class="td-ib">${ico("truck", "")}</span>
             <span class="td-txt"><b>Request Antar / Jemput</b><small>${isC ? "Ajukan antar / jemput" : "menunggu konfirmasi"}</small></span>
             <span class="td-badge" hidden>0</span>${chev()}
@@ -746,8 +687,7 @@
 
     mirror(isC
       ? [["customerWasherTotal", "tdWT"], ["customerWasherIdle", "tdWI"], ["customerWasherBusy", "tdWB"],
-         ["customerDryerTotal", "tdDT"], ["customerDryerIdle", "tdDI"], ["customerDryerBusy", "tdDB"],
-         ["customerQueueWasherWaiting", "tdQW"], ["customerQueueDryerWaiting", "tdQD"]]
+         ["customerDryerTotal", "tdDT"], ["customerDryerIdle", "tdDI"], ["customerDryerBusy", "tdDB"]]
       : [["staffWasherTotal", "tdWT"], ["staffWasherIdle", "tdWI"], ["staffWasherBusy", "tdWB"],
          ["staffDryerTotal", "tdDT"], ["staffDryerIdle", "tdDI"], ["staffDryerBusy", "tdDB"]]);
 
@@ -760,6 +700,7 @@
     $("tdReq").addEventListener("click", isC ? openCustomerRequest : openStaffRequests);
     $("tdEv").addEventListener("click", openEvents);
     tickDate();
+    try { window.TdPages?.onDashboard?.(r); } catch { /* abaikan */ }
     return el;
   }
 
@@ -855,5 +796,9 @@
     start();
   }
 
+  window.TdUi = {
+    openPage, closePage, isOpen, esc, ico, call, role, toast, fmtDate, fmtTime, fmtWib, pad, MONTHS,
+    body: () => bodyEl, sticky: () => stickyEl, refreshDashboard, unitLabel,
+  };
   window.TerasUi = { openStaffRequests, openCustomerRequest, openEvents, closePage, refreshDashboard };
 })();
