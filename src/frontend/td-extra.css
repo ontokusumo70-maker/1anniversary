@@ -10,28 +10,34 @@
   fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round;
 }
 
-/* ---------- OWNER OVERVIEW: card Reward Event (2 kolom) ---------- */
-#ownerMetrics .owner-metric-reward-event { grid-column: span 2 !important; }
-#ownerMetrics .owner-metric-reward-event .owner-reward-split {
-  display: grid; grid-template-columns: 1fr 1px 1fr; align-items: center; width: 100%; margin-top: 4px;
+/* ---------- OWNER OVERVIEW: card 2 angka (Reward Event, Antar/Jemput) ----------
+   Memakai markup kartu standar (small + b + em) sehingga ukuran teks & angka
+   otomatis sama dengan kartu lain. */
+#ownerMetrics .owner-metric-wide { grid-column: span 2 !important; }
+#ownerMetrics .owner-metric-pair {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  align-items: center;
+  width: 100%;
 }
-#ownerMetrics .owner-metric-reward-event .owner-reward-split-col {
-  display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0;
+#ownerMetrics .owner-metric-pair-divider {
+  display: block; width: 1px; height: 64%; min-height: 34px; background: #d5ddda;
 }
-#ownerMetrics .owner-metric-reward-event .owner-reward-split-col strong {
-  display: block; font-size: 30px; line-height: 1.05; font-weight: 800; color: #101a16;
-}
-#ownerMetrics .owner-metric-reward-event .owner-reward-split-col span {
-  display: block; font-size: 12px; line-height: 1.2; color: #5d6965; font-weight: 600;
-}
-#ownerMetrics .owner-metric-reward-event .owner-reward-split-col em {
-  display: block; font-style: normal; font-size: 12px; font-weight: 800; color: #0d9864;
-}
-#ownerMetrics .owner-metric-reward-event .owner-reward-split-divider {
-  display: block; width: 1px; height: 56px; background: #d5ddda;
+#ownerMetrics .owner-metric-card.owner-metric-sub {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  min-height: 0 !important;
+  width: auto !important;
+  grid-column: auto !important;
+  transform: none !important;
+  cursor: inherit;
 }
 
-/* ---------- OWNER CUSTOMER TRACE: tabel bisa digeser kiri/kanan ---------- */
+/* ---------- OWNER CUSTOMER TRACE: tabel compact, bisa digeser kiri/kanan ---------- */
 #ownerCustomerList .owner-customer-table-wrap {
   overflow-x: auto !important;
   overflow-y: visible;
@@ -41,51 +47,57 @@
 }
 #ownerCustomerList .owner-customer-table {
   width: 100%;
-  min-width: 700px;
+  min-width: 640px;
   border-collapse: collapse;
 }
-#ownerCustomerList .owner-customer-table th,
+#ownerCustomerList .owner-customer-table th {
+  padding: 8px 10px !important;
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+  white-space: nowrap;
+  text-align: left;
+}
 #ownerCustomerList .owner-customer-table td {
+  padding: 5px 10px !important;
+  height: auto !important;
+  font-size: 13px !important;
+  line-height: 1.25 !important;
   white-space: nowrap;
   vertical-align: middle !important;
 }
+#ownerCustomerList .owner-customer-table tbody tr { height: auto !important; }
 
-/* ikon delete sejajar horizontal dengan ikon ">" */
+/* kolom # sempit */
+#ownerCustomerList .owner-customer-table th:first-child,
+#ownerCustomerList .owner-customer-table td:first-child { width: 1%; padding-left: 12px !important; padding-right: 6px !important; }
+
+/* kolom Status diberi jarak dari kolom Aksi */
+#ownerCustomerList .owner-customer-table th:nth-child(5),
+#ownerCustomerList .owner-customer-table td:nth-child(5) { padding-right: 22px !important; }
+#ownerCustomerList .owner-customer-status {
+  display: inline-block; padding: 2px 9px !important; font-size: 11px !important; line-height: 1.5 !important; white-space: nowrap;
+}
+
+/* kolom Aksi: delete dan ">" sejajar horizontal */
+#ownerCustomerList .owner-customer-table th:last-child { text-align: center; padding-left: 14px !important; }
 #ownerCustomerList .owner-customer-table td.owner-customer-actions {
   display: table-cell !important;
   width: 1%;
-  padding-left: 8px;
-  padding-right: 8px;
+  padding-left: 14px !important;
+  padding-right: 10px !important;
   text-align: center;
 }
 #ownerCustomerList .owner-customer-actions-inner {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  flex-wrap: nowrap;
+  display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 8px; flex-wrap: nowrap;
 }
 #ownerCustomerList .owner-customer-actions-inner button {
-  position: static !important;
-  transform: none !important;
-  float: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  flex: none;
-  width: 34px;
-  height: 34px;
-  display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
+  position: static !important; transform: none !important; float: none !important;
+  margin: 0 !important; padding: 0 !important; flex: none;
+  width: 30px; height: 30px;
+  display: inline-flex !important; align-items: center; justify-content: center; line-height: 1;
 }
-#ownerCustomerList .owner-customer-actions-inner .owner-customer-delete svg {
-  width: 20px; height: 20px;
-}
-#ownerCustomerList .owner-customer-actions-inner .owner-customer-open {
-  font-size: 24px;
-}
+#ownerCustomerList .owner-customer-actions-inner .owner-customer-delete svg { width: 17px; height: 17px; }
+#ownerCustomerList .owner-customer-actions-inner .owner-customer-open { font-size: 22px; }
 
 /* ---------- FORM REQUEST: isi tanggal & jam di tengah ---------- */
 #td_date, #td_time {
@@ -273,23 +285,6 @@
 .tx-st-row.mu { color: var(--td-mut); }
 .tx-st-foot { margin: 0; font: 400 11px/14px var(--td-font); color: var(--td-mut); }
 
-/* ---------- OWNER OVERVIEW: card Request Antar/Jemput (Antar | Jemput) ---------- */
-#ownerMetrics .owner-metric-delivery .owner-delivery-split {
-  display: grid; grid-template-columns: 1fr 1px 1fr; align-items: center; width: 100%; margin-top: 4px;
-}
-#ownerMetrics .owner-metric-delivery .owner-delivery-col {
-  display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0;
-}
-#ownerMetrics .owner-metric-delivery .owner-delivery-col strong {
-  display: block; font-size: 28px; line-height: 1.05; font-weight: 800; color: #101a16;
-}
-#ownerMetrics .owner-metric-delivery .owner-delivery-col span {
-  display: block; font-size: 12px; line-height: 1.2; color: #5d6965; font-weight: 600;
-}
-#ownerMetrics .owner-metric-delivery .owner-reward-split-divider {
-  display: block; width: 1px; height: 44px; background: #d5ddda;
-}
-
 /* ---------- REWARD POOL: reward khusus Program Member (tanpa info event) ---------- */
 .locked-card-main.tx-prog-only .locked-used-label,
 .locked-card-main.tx-prog-only .locked-no-event { display: none !important; }
@@ -325,3 +320,13 @@
 .tx-pick-item input { width: 18px; height: 18px; flex: none; accent-color: var(--td-g, #0B7A53); }
 .tx-pick-item b { display: block; font: 700 14px/20px var(--td-font); color: var(--td-ink, #10281D); }
 .tx-pick-item small { display: block; font: 500 11px/14px var(--td-font); color: #087552; }
+
+/* ---------- REQUEST ANTAR/JEMPUT (staff): jenis + nomor order ---------- */
+.tx-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 6px; }
+.td-badge.tx-type { background: #e6f0ff !important; color: #1d4f9f !important; }
+.td-badge.tx-order { background: #eef7f2 !important; color: #087552 !important; }
+
+/* ---------- Drop-off: info laundry selesai (customer) ---------- */
+.tx-ret-info { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; text-align: left; }
+.tx-pick-err { margin: 0; min-height: 0; color: var(--td-err, #C0392B); font: 500 12px/16px var(--td-font); }
+.tx-pick-err:empty { display: none; }
