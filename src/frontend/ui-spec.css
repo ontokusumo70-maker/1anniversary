@@ -88,6 +88,19 @@ html.td-dash-on, html.td-dash-on body { overflow: hidden !important; }
   pointer-events: none;
 }
 
+/* nama + nomor HP customer: satu baris di antara logo (y 48-159) dan header (y 190) */
+.td-who {
+  position: absolute;
+  left: 16px; right: 16px;
+  top: calc(var(--Wc) * 164 / 390);
+  text-align: center;
+  font: 400 12px/16px var(--td-font);
+  color: var(--td-ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  pointer-events: none;
+}
+.td-who b { font-weight: 700; }
+
 /* konten mulai y = 190 (27,4% tinggi background); margin 16; jarak antar card 8 */
 .td-flow {
   display: flex;
@@ -480,8 +493,6 @@ html.td-lock, html.td-lock body { overflow: hidden !important; }
 /* ==========================================================================
    6. HALAMAN LANJUTAN: antrean, drop-off, member, notifikasi, login
    ========================================================================== */
-#customerIdentityModal { display: none !important; }
-
 .td-sec-h { display: flex; align-items: center; justify-content: space-between; margin: 4px 2px 6px; }
 .td-sec-h h2 { margin: 0; font: 700 14px/20px var(--td-font); }
 .td-tk .td-act { margin-top: 8px; }
@@ -510,8 +521,6 @@ html.td-lock, html.td-lock body { overflow: hidden !important; }
 .td-rw small { color: var(--td-mut); font-size: 11px; }
 .td-mini-btn { height: 28px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--td-g); background: var(--td-g); color: #fff; font: 700 12px/16px var(--td-font); cursor: pointer; flex: none; }
 .td-mini-btn:disabled { opacity: .55; }
-.td-sw { display: flex; align-items: center; gap: 8px; font: 500 12px/16px var(--td-font); }
-.td-sw input { width: 18px; height: 18px; accent-color: var(--td-g); }
 
 .td-modal { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 24px; background: rgba(16, 40, 29, .45); font-family: var(--td-font); }
 .td-modal-card { width: 100%; max-width: 340px; background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 8px 30px rgba(0, 0, 0, .25); }
@@ -542,8 +551,6 @@ html.td-lock .td-notice { display: none; }
 .td-auth .td-note { font: 400 11px/14px var(--td-font); color: var(--td-mut); }
 .td-auth .td-note.td-err { color: var(--td-err); font-weight: 500; }
 
-/* Owner: tab "Program" ditambahkan; semua tab tetap satu baris */
-.owner-tabbar { grid-auto-flow: column !important; grid-template-columns: none !important; grid-auto-columns: minmax(0, 1fr) !important; }
-.td-sw { display: flex !important; flex-direction: row !important; align-items: center; gap: 8px; }
-.td-sw input { flex: none; width: 18px; height: 18px; margin: 0; }
-.td-sw span { font: 500 12px/16px var(--td-font); }
+/* saklar (checkbox + label) di halaman Program owner */
+.td-sw { display: flex !important; flex-direction: row !important; align-items: center; gap: 8px; font: 500 12px/16px var(--td-font); }
+.td-sw input { flex: none; width: 18px; height: 18px; margin: 0; accent-color: var(--td-g); }
