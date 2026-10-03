@@ -6,7 +6,6 @@ const state = {
   playId: null,
   sessionId: null,
   rewardId: null,
-  authMode: "CUSTOMER",
 };
 
 const SESSION_KEY = "teras_laundry_auth_session";
@@ -338,19 +337,10 @@ async function loadConfig() {
       }
 
       document.documentElement.style.setProperty(
-        "--game-bg",
-        `url("${assetBasePath}background/game/game-bg.PNG")`,
-      );
-
-      document.documentElement.style.setProperty(
         "--owner-bg",
         `url("${assetBasePath}background/owner/owner-bg.PNG")`,
       );
 
-      if (coinImage) {
-        coinImage.src =
-          `${assetBasePath}coin/coin_1st_front.png`;
-      }
     }
   } catch {
     // Keep production defaults.
@@ -609,20 +599,7 @@ async function refreshCustomerDashboardMachines() {
     }
     throw new Error("EMPTY_MACHINE_DATA");
   } catch {
-    try {
-      const identity = loadCustomerIdentity();
-      if (identity) {
-        await restoreCustomerIdentitySession(identity);
-      } else {
-        await createCustomerGuestSession();
-      }
-      const retry = await api("/machines");
-      customerMachineData = Array.isArray(retry.machines) ? retry.machines : [];
-      renderCustomerDashboardMachineSummary(customerMachineData);
-      return;
-    } catch {
-      renderCustomerDashboardMachineSummary(customerMachineData);
-    }
+    renderCustomerDashboardMachineSummary(customerMachineData);
   }
 }
 
@@ -783,116 +760,10 @@ function setRoleRoute(role) {
 }
 
 
-const CUSTOMER_IDENTITY_KEY = "teras_customer_identity";
-
-function saveCustomerIdentity(identity) {
-  try {
-    localStorage.setItem(CUSTOMER_IDENTITY_KEY, JSON.stringify(identity));
-  } catch {}
-}
-
-function loadCustomerIdentity() {
-  try {
-    const raw = localStorage.getItem(CUSTOMER_IDENTITY_KEY);
-    if (!raw) return null;
-    const value = JSON.parse(raw);
-    if (!value?.phone || !value?.email) return null;
-    return value;
-  } catch {
-    return null;
-  }
-}
-
-function openCustomerIdentityPopup() {
-  const modal = $("customerIdentityModal");
-  if (!modal || !modal.hidden) return;
-  const identity = loadCustomerIdentity();
-  if ($("customerIdentityPhone")) $("customerIdentityPhone").value = identity?.phone || "";
-  if ($("customerIdentityEmail")) $("customerIdentityEmail").value = identity?.email || "";
-  if ($("customerIdentityMsg")) $("customerIdentityMsg").textContent = "";
-  modal.hidden = false;
-}
-
-function closeCustomerIdentityPopup() {
-  const modal = $("customerIdentityModal");
-  if (modal) modal.hidden = true;
-}
-
-async function createCustomerGuestSession() {
-  const data = await api("/auth/customer-access", { method: "POST" });
-  if (data.role !== "CUSTOMER" || !data.token) {
-    throw new Error("Customer session tidak valid.");
-  }
-  state.token = data.token;
-  state.role = data.role;
-  state.userId = data.userId;
-  state.expiresAt = data.expiresAt || null;
-  saveSession();
-  return data;
-}
-
-async function restoreCustomerIdentitySession(identity) {
-  const data = await api("/auth/customer-access", {
-    method: "POST",
-    body: JSON.stringify({ phone: identity.phone, email: identity.email }),
-  });
-  if (data.role !== "CUSTOMER" || !data.token || data.guest) {
-    throw new Error("Customer session tidak valid.");
-  }
-  state.token = data.token;
-  state.role = data.role;
-  state.userId = data.userId;
-  state.expiresAt = data.expiresAt || null;
-  saveSession();
-  return data;
-}
-
-async function submitCustomerIdentity() {
-  const phone = $("customerIdentityPhone")?.value.trim() || "";
-  const email = $("customerIdentityEmail")?.value.trim() || "";
-  const button = $("customerIdentitySubmit");
-  const message = $("customerIdentityMsg");
-
-  if (!phone || !email) {
-    if (message) message.textContent = "Nomor HP dan email wajib diisi.";
-    return;
-  }
-
-  if (button) button.disabled = true;
-  if (message) message.textContent = "";
-
-  try {
-    const data = await api("/auth/customer-access", {
-      method: "POST",
-      body: JSON.stringify({ phone, email }),
-    });
-
-    if (data.role !== "CUSTOMER" || !data.token || data.guest) {
-      throw new Error("Customer session tidak valid.");
-    }
-
-    state.token = data.token;
-    state.role = data.role;
-    state.userId = data.userId;
-    state.expiresAt = data.expiresAt || null;
-    saveSession();
-    saveCustomerIdentity({ phone, email, userId: data.userId });
-    closeCustomerIdentityPopup();
-
-    await refreshCustomerDashboardMachines();
-    await loadActiveEventForRole("CUSTOMER");
-  } catch (error) {
-    if (message) message.textContent = error.message || "Data tidak dapat diproses.";
-  } finally {
-    if (button) button.disabled = false;
-  }
-}
-
 function showRootLanding() {
   if ($("rootLanding")) $("rootLanding").hidden = false;
   if ($("ownerAuth")) $("ownerAuth").hidden = true;
   if ($("staffAuth")) $("staffAuth").hidden = true;
-  if ($("auth")) $("auth").hidden = true;
   if ($("customer")) $("customer").hidden = true;
   if ($("staff")) $("staff").hidden = true;
   if ($("owner")) $("owner").hidden = true;
@@ -955,9 +826,6 @@ function showRole() {
   if ($("staffAuth")) {
     $("staffAuth").hidden = true;
   }
-  if ($("auth")) {
-    $("auth").hidden = true;
-  }
 
   if ($("customer")) {
     $("customer").hidden = true;
@@ -983,7 +851,6 @@ function showRole() {
   if (state.role === "STAFF") {
     loadServiceSettings();
     setRoleRoute("STAFF");
-    document.documentElement.style.setProperty("--game-bg", `url("${assetBasePath}background/game/game-bg.PNG")`);
     $("staff").hidden = false;
     showStaffDashboard();
     refreshStaffMachines();
@@ -992,7 +859,6 @@ function showRole() {
 
   if (state.role === "OWNER") {
     setRoleRoute("OWNER");
-    document.documentElement.style.setProperty("--game-bg", `url("${assetBasePath}background/owner/owner-bg.PNG")`);
     $("owner").hidden = false;
     loadOwner();
   }
@@ -1001,9 +867,6 @@ function showRole() {
 function showOwnerLogin(clearMessage = true) {
   if ($("ownerAuth")) {
     $("ownerAuth").hidden = false;
-  }
-  if ($("auth")) {
-    $("auth").hidden = true;
   }
   if ($("customer")) {
     $("customer").hidden = true;
@@ -1062,9 +925,6 @@ function showStaffLogin(clearMessage = true) {
   if ($("staffAuth")) {
     $("staffAuth").hidden = false;
   }
-  if ($("auth")) {
-    $("auth").hidden = true;
-  }
   if ($("customer")) {
     $("customer").hidden = true;
   }
@@ -1115,184 +975,6 @@ async function loginStaffStandalone() {
   }
 }
 
-function showCustomerAuth(clearMessage = true) {
-  document.body.dataset.role = "CUSTOMER_LOGIN";
-  document.documentElement.style.setProperty(
-    "--customer-bg",
-    `url("${assetBasePath}background/customer/customer-bg.PNG")`,
-  );
-
-  if ($("ownerAuth")) {
-    $("ownerAuth").hidden = true;
-  }
-  if ($("staffAuth")) {
-    $("staffAuth").hidden = true;
-  }
-  state.authMode = "CUSTOMER";
-
-  if ($("emailLabel")) {
-    $("emailLabel").hidden = false;
-  }
-
-  if ($("customerLogin")) {
-    $("customerLogin").hidden = false;
-  }
-
-  if ($("staffLogin")) {
-    $("staffLogin").hidden = true;
-  }
-
-
-  if (clearMessage) {
-    msg("authMsg", "");
-  }
-}
-
-function showStaffOwnerAuth(clearMessage = true) {
-  state.authMode = "STAFF_OWNER";
-
-  if ($("emailLabel")) {
-    $("emailLabel").hidden = true;
-  }
-
-  if ($("customerLogin")) {
-    $("customerLogin").hidden = true;
-  }
-
-  if ($("staffLogin")) {
-    $("staffLogin").hidden = false;
-    $("staffLogin").textContent = "Login";
-  }
-
-
-  if (clearMessage) {
-    msg("authMsg", "");
-  }
-}
-
-let authModeRequest = 0;
-let authModeTimer = null;
-
-async function detectAuthMode() {
-  const phone = $("phone")?.value.trim() || "";
-  const requestId = ++authModeRequest;
-
-  if (authModeTimer) {
-    clearTimeout(authModeTimer);
-    authModeTimer = null;
-  }
-
-  if (phone.replace(/\D/g, "").length < 8) {
-    showCustomerAuth(false);
-    return;
-  }
-
-  authModeTimer = setTimeout(async () => {
-    try {
-      const data = await api(
-        "/auth/mode",
-        {
-          method: "POST",
-          body: JSON.stringify({ phone }),
-        },
-      );
-
-      if (requestId !== authModeRequest) {
-        return;
-      }
-
-      if (data.mode === "STAFF_OWNER") {
-        showStaffOwnerAuth(false);
-      } else {
-        showCustomerAuth(false);
-      }
-    } catch {
-      if (requestId !== authModeRequest) {
-        return;
-      }
-
-      showCustomerAuth(false);
-    }
-  }, 250);
-}
-
-async function loginCustomer() {
-  try {
-    const phone = $("phone")?.value.trim() || "";
-    const email = $("email")?.value.trim() || "";
-
-    if (!phone || !email) {
-      msg("authMsg", "Nomor HP dan email wajib diisi.");
-      return;
-    }
-
-    const data = await api("/auth/customer-access", {
-      method: "POST",
-      body: JSON.stringify({ phone, email }),
-    });
-
-    if (data.role !== "CUSTOMER" || !data.token || data.guest) {
-      throw new Error("Data Customer tidak valid.");
-    }
-
-    state.token = data.token;
-    state.role = data.role;
-    state.userId = data.userId;
-    state.expiresAt = data.expiresAt || null;
-
-    saveSession();
-    saveCustomerIdentity({ phone, email, userId: data.userId });
-    msg("authMsg", "");
-    showRole();
-  } catch (error) {
-    msg("authMsg", error.message || "Data tidak dapat diproses.");
-  }
-}
-
-async function loginStaffOwner() {
-  try {
-    const phone =
-      $("phone").value.trim();
-
-    if (!phone) {
-      msg(
-        "authMsg",
-        "Nomor Staff / Owner wajib diisi.",
-      );
-      return;
-    }
-
-    const data =
-      await api(
-        "/auth/login",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            phone,
-          }),
-        },
-      );
-
-    state.token = data.token;
-    state.role = data.role;
-    state.userId = data.userId;
-    state.expiresAt =
-      data.expiresAt || null;
-
-    saveSession();
-
-    msg("authMsg", "");
-
-    showRole();
-    return;
-  } catch (error) {
-    msg(
-      "authMsg",
-      error.message,
-    );
-  }
-}
-
 if ($("ownerLogin")) {
   $("ownerLogin").onclick = loginOwner;
 }
@@ -1317,345 +999,6 @@ if ($("staffPhone")) {
   });
 }
 
-if ($("phone")) {
-  $("phone").addEventListener(
-    "input",
-    detectAuthMode,
-  );
-}
-
-if ($("customerLogin")) {
-  $("customerLogin").onclick = loginCustomer;
-}
-
-if ($("customerIdentitySubmit")) $("customerIdentitySubmit").addEventListener("click", submitCustomerIdentity);
-
-if ($("staffLogin")) {
-  $("staffLogin").onclick =
-    loginStaffOwner;
-}
-
-let raf = 0;
-let score = 0;
-let coins = [];
-let gameTimer = null;
-
-const canvas = $("game");
-const ctx =
-  canvas?.getContext("2d");
-
-const coinImage = new Image();
-
-coinImage.src =
-  "/assets/coin/coin_1st_front.png";
-
-function spawn() {
-  if (!canvas) {
-    return;
-  }
-
-  coins.push({
-    x:
-      18 +
-      Math.random() *
-        (canvas.width - 36),
-    y:
-      42 +
-      Math.random() *
-        (canvas.height - 60),
-    r: 18,
-  });
-}
-
-function draw() {
-  if (!canvas || !ctx) {
-    return;
-  }
-
-  ctx.clearRect(
-    0,
-    0,
-    canvas.width,
-    canvas.height,
-  );
-
-  for (const coin of coins) {
-    if (
-      coinImage.complete &&
-      coinImage.naturalWidth
-    ) {
-      ctx.drawImage(
-        coinImage,
-        coin.x - coin.r,
-        coin.y - coin.r,
-        coin.r * 2,
-        coin.r * 2,
-      );
-    } else {
-      ctx.beginPath();
-      ctx.arc(
-        coin.x,
-        coin.y,
-        coin.r,
-        0,
-        Math.PI * 2,
-      );
-      ctx.fillStyle = "#e5b72b";
-      ctx.fill();
-    }
-  }
-
-  raf =
-    requestAnimationFrame(draw);
-}
-
-function hit(x, y) {
-  for (
-    let i = coins.length - 1;
-    i >= 0;
-    i--
-  ) {
-    const coin = coins[i];
-
-    if (
-      Math.hypot(
-        x - coin.x,
-        y - coin.y,
-      ) <=
-      coin.r + 18
-    ) {
-      coins.splice(i, 1);
-      score += 10;
-
-      if ($("score")) {
-        $("score").textContent =
-          score;
-      }
-
-      spawn();
-      break;
-    }
-  }
-}
-
-if (canvas) {
-  canvas.onpointerdown =
-    (event) => {
-      const rect =
-        canvas.getBoundingClientRect();
-
-      hit(
-        (event.clientX -
-          rect.left) *
-          (canvas.width /
-            rect.width),
-        (event.clientY -
-          rect.top) *
-          (canvas.height /
-            rect.height),
-      );
-    };
-}
-
-async function finish() {
-  clearInterval(gameTimer);
-  cancelAnimationFrame(raf);
-
-  if ($("gameBox")) {
-    $("gameBox").hidden = true;
-  }
-
-  try {
-    const data =
-      await api(
-        "/finish",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            playId:
-              state.playId,
-            sessionId:
-              state.sessionId,
-            result: {
-              score,
-            },
-            idempotencyKey:
-              crypto.randomUUID(),
-          }),
-        },
-      );
-
-    state.rewardId =
-      data.rewardId;
-
-    msg(
-      "gameMsg",
-      "Kamu menang. Klaim reward.",
-    );
-
-    if (!$("claimButton")) {
-      const button =
-        document.createElement(
-          "button",
-        );
-
-      button.id =
-        "claimButton";
-
-      button.textContent =
-        "Klaim Reward";
-
-      button.onclick =
-        claim;
-
-      $("gameMsg").after(
-        button,
-      );
-    }
-  } catch (error) {
-    msg(
-      "gameMsg",
-      error.message,
-    );
-  }
-}
-
-async function start() {
-  try {
-    const transactionId =
-      $("transactionId")
-        .value.trim();
-
-    if (!transactionId) {
-      msg(
-        "gameMsg",
-        "ID transaksi wajib diisi.",
-      );
-      return;
-    }
-
-    score = 0;
-    coins = [];
-
-    spawn();
-
-    $("gameMsg").textContent =
-      "";
-
-    $("rewardBox").hidden =
-      true;
-
-    state.playId = null;
-
-    const data =
-      await api(
-        "/start",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            transactionId,
-            idempotencyKey:
-              crypto.randomUUID(),
-          }),
-        },
-      );
-
-    state.playId =
-      data.playId;
-
-    state.sessionId =
-      data.sessionId;
-
-    $("gameBox").hidden =
-      false;
-
-    $("score").textContent =
-      "0";
-
-    $("time").textContent =
-      "15";
-
-    const end =
-      Date.now() + 15000;
-
-    clearInterval(gameTimer);
-
-    gameTimer =
-      setInterval(() => {
-        const left =
-          Math.max(
-            0,
-            Math.ceil(
-              (end -
-                Date.now()) /
-                1000,
-            ),
-          );
-
-        $("time").textContent =
-          left;
-
-        if (left <= 0) {
-          finish();
-        }
-      }, 200);
-
-    cancelAnimationFrame(
-      raf,
-    );
-
-    draw();
-  } catch (error) {
-    msg(
-      "gameMsg",
-      error.message,
-    );
-  }
-}
-
-async function claim() {
-  try {
-    const data =
-      await api(
-        "/claim",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            rewardId:
-              state.rewardId,
-            idempotencyKey:
-              crypto.randomUUID(),
-          }),
-        },
-      );
-
-    $("rewardBox").hidden =
-      false;
-
-    $("rewardType").textContent =
-      `Reward: ${data.rewardType}`;
-
-    $("token").textContent =
-      data.tokenRef;
-
-    if ($("qr")) {
-      $("qr").hidden = true;
-      $("qr").innerHTML = "";
-    }
-
-    $("claimButton")?.remove();
-  } catch (error) {
-    msg(
-      "gameMsg",
-      error.message,
-    );
-  }
-}
-
-if ($("startGame")) {
-  $("startGame").onclick =
-    start;
-}
 
 function renderMachines(
   target,
@@ -2285,9 +1628,6 @@ async function activateMachine(id) {
   }
 }
 
-if ($("refreshMachines")) {
-  $("refreshMachines").onclick = refreshMachines;
-}
 
 if ($("staffMachineFilters")) {
   $("staffMachineFilters").addEventListener("click", (event) => {
@@ -2436,7 +1776,6 @@ let ownerCurrentView = "overview";
 let ownerOperationPeriod = "daily";
 let ownerCustomerPage = 1;
 let ownerCustomerSearch = "";
-let ownerCustomerScope = "all";
 let ownerCustomerData = { total: 0, page: 1, pageSize: 10, items: [] };
 let ownerSelectedCustomerId = null;
 
@@ -2690,6 +2029,31 @@ async function loadOwnerServiceSettings() {
   const data = await loadServiceSettings();
   serviceSettingsSnapshot = JSON.parse(JSON.stringify(data));
   fillServiceSettingsForm(data);
+  markServiceSettingsPristine();
+}
+
+/* Form Pengaturan Layanan: tampil abu-abu selama belum ada perubahan; kolom yang
+   diubah menjadi hitam dan tombol Simpan baru aktif. */
+const serviceFormFields = () => [...($("ownerServiceSettingsForm")?.querySelectorAll("input:not([type=file]), textarea, select") || [])];
+const serviceFieldValue = (el) => (el.type === "checkbox" || el.type === "radio" ? String(el.checked) : el.value);
+
+function refreshServiceSettingsState() {
+  const form = $("ownerServiceSettingsForm");
+  if (!form) return;
+  let dirty = Boolean($("servicePhoto")?.files?.length);
+  serviceFormFields().forEach((el) => {
+    const edited = el.dataset.base === undefined || el.dataset.base !== serviceFieldValue(el);
+    el.classList.toggle("is-edited", edited);
+    if (edited) dirty = true;
+  });
+  form.classList.toggle("is-pristine", !dirty);
+  const save = $("serviceSettingsSave");
+  if (save) save.disabled = !dirty;
+}
+
+function markServiceSettingsPristine() {
+  serviceFormFields().forEach((el) => { el.dataset.base = serviceFieldValue(el); });
+  refreshServiceSettingsState();
 }
 
 function collectServiceSettingsForm() {
@@ -2737,6 +2101,7 @@ async function saveOwnerServiceSettings(event) {
     serviceSettingsData = data;
     serviceSettingsSnapshot = JSON.parse(JSON.stringify(data));
     fillServiceSettingsForm(data);
+    markServiceSettingsPristine();
     renderServiceDisplay();
     msg("serviceSettingsMsg", "Pengaturan Layanan berhasil disimpan.");
     showServiceSettingsSavedToast();
@@ -2815,75 +2180,67 @@ function renderOwnerMetrics() {
   const totalRewardSupplied = Number(data.totalRewardSupplied || 0);
   const claimed = Number(data.claimed || 0);
   const redeemed = Number(data.redeemed || 0);
-  const claimedPercentage = totalRewardSupplied > 0
-    ? Math.round((claimed / totalRewardSupplied) * 100)
-    : 0;
-  const redeemedPercentage = totalRewardSupplied > 0
-    ? Math.round((redeemed / totalRewardSupplied) * 100)
-    : 0;
-
+  const percentOfSupply = (value) => (totalRewardSupplied > 0 ? Math.round((value / totalRewardSupplied) * 100) : 0);
   const ops = ownerData?.ops || {};
+
+  // label, nilai, ikon, persen (null = tanpa), banding periode sebelumnya, aksi saat diklik
   const items = [
-    ["Total Customer", data.participants, "user", data.participantsChangePct, true, "active-event-customer"],
-    ["Reward Claimed", claimed, "gift", claimedPercentage, false, "active-event-reward"],
-    ["Reward Redeemed", redeemed, "percent", redeemedPercentage, false, ""],
+    ["Total Customer", data.participants, "user", data.participantsChangePct, true, "customers"],
+    ["Total Member", data.members, "customer", null, false, "members"],
+    ["Reward Program", data.programPending, "gift", null, false, "customers"],
+    ["Reward Claimed", claimed, "gift", percentOfSupply(claimed), false, "event-reward"],
+    ["Reward Redeemed", redeemed, "percent", percentOfSupply(redeemed), false, ""],
+    ["Request Antar/Jemput", ops.deliveryNew, "overview", null, false, ""],
     ["Antrean Washer", ops.washerWaiting, "washer", null, false, ""],
     ["Antrean Dryer", ops.dryerWaiting, "dryer", null, false, ""],
     ["Drop-off Aktif", ops.dropoffActive, "gift", null, false, ""],
   ];
+  const ariaByAction = {
+    customers: "Lihat daftar customer",
+    members: "Lihat daftar member",
+    "event-reward": "Lihat detail reward event aktif",
+  };
 
   target.innerHTML = items.map(([label, value, icon, percentage, vsPrevious, actionName]) => {
     const hasPercentage = percentage !== null && percentage !== undefined;
     const numericPercentage = Number(percentage || 0);
-    const arrow = vsPrevious
-      ? (numericPercentage > 0 ? "↑" : numericPercentage < 0 ? "↓" : "→")
-      : "";
+    const arrow = vsPrevious ? (numericPercentage > 0 ? "↑" : numericPercentage < 0 ? "↓" : "→") : "";
     const percentageText = !hasPercentage
       ? ""
       : vsPrevious
-        ? (label === "Total Customer"
-          ? `${Math.abs(numericPercentage)}%`
-          : `${arrow} ${Math.abs(numericPercentage)}%`)
+        ? (label === "Total Customer" ? `${Math.abs(numericPercentage)}%` : `${arrow} ${Math.abs(numericPercentage)}%`)
         : `${Math.abs(numericPercentage)}%`;
-    const note = hasPercentage && (vsPrevious || label === "Reward Claimed" || label === "Reward Redeemed") ? `<span class="owner-metric-note">vs sebelumnya</span>` : "";
-    const action = actionName ? ` data-owner-metric-action="${actionName}" role="button" tabindex="0"` : "";
-    const aria = actionName === "active-event-customer"
-      ? ` aria-label="Lihat customer aktif event"`
-      : actionName === "active-event-reward"
-        ? ` aria-label="Lihat detail reward event aktif"`
-        : "";
-    return `<div class="owner-metric-card${actionName ? " clickable" : ""}"${action}${aria}><span class="owner-metric-icon ${icon}">${ownerIconSvg(icon)}</span><small>${label}</small><b>${Number(value || 0).toLocaleString("id-ID")}</b>${percentageText ? `<em>${percentageText}</em>` : ""}${note}</div>`;
+    const note = hasPercentage && (vsPrevious || label === "Reward Claimed" || label === "Reward Redeemed")
+      ? `<span class="owner-metric-note">vs sebelumnya</span>` : "";
+    const action = actionName ? ` data-owner-metric-action="${actionName}" role="button" tabindex="0" aria-label="${ariaByAction[actionName]}"` : "";
+    return `<div class="owner-metric-card${actionName ? " clickable" : ""}"${action}><span class="owner-metric-icon ${icon}">${ownerIconSvg(icon)}</span><small>${label}</small><b>${Number(value || 0).toLocaleString("id-ID")}</b>${percentageText ? `<em>${percentageText}</em>` : ""}${note}</div>`;
   }).join("");
 
-  const activeCustomerCard = target.querySelector('[data-owner-metric-action="active-event-customer"]');
-  if (activeCustomerCard) {
-    activeCustomerCard.onclick = () => openOwnerActiveEventCustomerList();
-    activeCustomerCard.onkeydown = (event) => {
+  const actions = {
+    customers: () => openOwnerCustomerTrace("all"),
+    members: () => openOwnerCustomerTrace("member"),
+    "event-reward": () => openOwnerActiveEventRewardDetail(),
+  };
+  target.querySelectorAll("[data-owner-metric-action]").forEach((card) => {
+    const run = actions[card.dataset.ownerMetricAction];
+    if (!run) return;
+    card.onclick = run;
+    card.onkeydown = (event) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-        openOwnerActiveEventCustomerList();
+        run();
       }
     };
-  }
-
-  const claimedCard = target.querySelector('[data-owner-metric-action="active-event-reward"]');
-  if (claimedCard) {
-    claimedCard.onclick = () => openOwnerActiveEventRewardDetail();
-    claimedCard.onkeydown = (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        openOwnerActiveEventRewardDetail();
-      }
-    };
-  }
+  });
 }
 
-async function openOwnerActiveEventCustomerList() {
-  ownerCustomerScope = "active-event";
+async function openOwnerCustomerTrace(status = "all") {
   ownerCustomerPage = 1;
   ownerCustomerSearch = "";
   const search = $("ownerCustomerSearch");
   if (search) search.value = "";
+  const filter = $("ownerCustomerStatusFilter");
+  if (filter) filter.value = status;
   setOwnerView("customer-trace");
 }
 
@@ -3079,14 +2436,6 @@ function renderOwnerOverview() {
   renderOwnerOperations();
   renderOwnerActiveEvents();
   mountOwnerIcons();
-}
-
-function formatRemaining(seconds) {
-  const total = Math.max(0, Math.floor(Number(seconds || 0)));
-  const h = String(Math.floor(total / 3600)).padStart(2, "0");
-  const m = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
-  const s = String(total % 60).padStart(2, "0");
-  return `${h}:${m}:${s}`;
 }
 
 function renderOwnerMachines() {
@@ -3411,7 +2760,6 @@ function openRewardForm(rewardPoolId = null) {
 
   const item = (ownerData?.rewardPool || []).find((row) => row.rewardPoolId === rewardPoolId);
   $("rewardFormTitle").textContent = rewardPoolId ? "Edit Reward" : "Tambah Reward";
-  $("lockedRewardFormSubtitle") && ($("lockedRewardFormSubtitle").textContent = rewardPoolId ? "Ubah informasi reward" : "Buat reward baru untuk event");
   $("ownerRewardType").disabled = Boolean(rewardPoolId);
   $("ownerRewardType").value = item?.rewardType || "";
   $("rewardDescription").value = item?.description || "";
@@ -3745,19 +3093,6 @@ async function copyOwnerEventLink(url) {
   }
 }
 
-async function shareOwnerEvent(url, title) {
-  try {
-    if (navigator.share) {
-      await navigator.share({ title: title || "Event Teras Laundry", text: "Lihat informasi event Teras Laundry.", url });
-      msg("eventDetailMsg", "Link event siap dibagikan.");
-      return;
-    }
-    await copyOwnerEventLink(url);
-  } catch (error) {
-    if (error?.name !== "AbortError") msg("eventDetailMsg", "Share dibatalkan atau tidak tersedia.");
-  }
-}
-
 function closeEventViews() {
   revokeOwnerEventDetailImage();
   $("eventDetailView").hidden = true;
@@ -4025,6 +3360,13 @@ function formatCustomerTime(value) {
   return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jakarta" }).format(date).replace(",", "");
 }
 
+function ownerRewardSummary(rewards) {
+  const parts = [];
+  if (rewards?.bonusCoins) parts.push(`${rewards.bonusCoins} koin bonus`);
+  if (rewards?.bags) parts.push(`${rewards.bags} laundry bag`);
+  return parts.length ? parts.join(" · ") : "—";
+}
+
 function renderCustomerTraceList(data) {
   const target = $("ownerCustomerList");
   if (!target) return;
@@ -4034,11 +3376,15 @@ function renderCustomerTraceList(data) {
   const page = Number(ownerCustomerData.page || 1);
   const pageSize = Number(ownerCustomerData.pageSize || 10);
   const from = total ? ((page - 1) * pageSize) + 1 : 0;
-  const to = Math.min(page * pageSize, total);
-  $("ownerCustomerTotal") && ($("ownerCustomerTotal").textContent = `${total.toLocaleString("id-ID")} Customers`);
-  const heading = $("ownerCustomerHeading");
-  if (heading) heading.textContent = ownerCustomerScope === "active-event" ? "Customer Aktif" : "Customer Trace";
-  target.innerHTML = items.length ? `<div class="owner-customer-table-wrap"><table class="owner-customer-table"><thead><tr><th>#</th><th>Email ID</th><th>No. HP</th><th>Play</th><th>Reward</th><th>Status</th><th>Aksi</th><th></th></tr></thead><tbody>${items.map((item, index) => `<tr data-customer-id="${escapeHtml(item.customerId)}"><td>${from + index}</td><td>${escapeHtml(item.email || "—")}</td><td>${escapeHtml(item.phone || item.phoneMasked || "—")}</td><td>${Number(item.totalPlay || 0)}</td><td>${Number(item.totalReward || 0)}</td><td><span class="owner-customer-status ${item.status === "ACTIVE" ? "" : "inactive"}">${item.status === "ACTIVE" ? "Active" : "Inactive"}</span></td><td><button type="button" class="owner-customer-delete" data-delete-customer="${escapeHtml(item.customerId)}" aria-label="Hapus customer">${ownerIconSvg("trash")}</button></td><td><button type="button" class="owner-customer-open" aria-label="Buka detail customer">›</button></td></tr>`).join("")}</tbody></table></div>` : `<div class="owner-customer-empty">Belum ada customer terdaftar.</div>`;
+  const totalAll = Number(ownerCustomerData.totalCustomers ?? total);
+  const members = Number(ownerCustomerData.totalMembers ?? 0);
+  const totalLabel = $("ownerCustomerTotal");
+  if (totalLabel) totalLabel.textContent = `${totalAll.toLocaleString("id-ID")} Customer · ${members.toLocaleString("id-ID")} Member`;
+
+  target.innerHTML = items.length
+    ? `<div class="owner-customer-table-wrap"><table class="owner-customer-table"><thead><tr><th>#</th><th>Nama</th><th>No. HP</th><th>Reward</th><th>Status</th><th>Aksi</th></tr></thead><tbody>${items.map((item, index) => `<tr data-customer-id="${escapeHtml(item.customerId)}"><td>${from + index}</td><td>${escapeHtml(item.name || "Tanpa nama")}</td><td>${escapeHtml(item.phone || item.phoneMasked || "—")}</td><td>${escapeHtml(ownerRewardSummary(item.rewards))}</td><td><span class="owner-customer-status ${item.isMember ? "" : "inactive"}">${item.isMember ? "Member" : "Belum member"}</span></td><td class="owner-customer-actions"><button type="button" class="owner-customer-delete" data-delete-customer="${escapeHtml(item.customerId)}" aria-label="Hapus customer">${ownerIconSvg("trash")}</button><button type="button" class="owner-customer-open" aria-label="Buka detail customer">›</button></td></tr>`).join("")}</tbody></table></div>`
+    : `<div class="owner-customer-empty">Customer tidak ditemukan.</div>`;
+
   target.querySelectorAll("[data-customer-id]").forEach((row) => row.addEventListener("click", (event) => {
     if (event.target.closest("[data-delete-customer]")) return;
     openCustomerDetail(row.dataset.customerId);
@@ -4046,9 +3392,8 @@ function renderCustomerTraceList(data) {
   target.querySelectorAll("[data-delete-customer]").forEach((button) => button.addEventListener("click", async (event) => {
     event.stopPropagation();
     const customerId = button.dataset.deleteCustomer;
-    const customerRow = button.closest("tr");
-    const customerEmail = customerRow?.querySelector("td:nth-child(2)")?.textContent?.trim() || "yang dipilih";
-    if (!customerId || !window.confirm(`Hapus customer yang dipilih (${customerEmail}) beserta data customer tersebut?`)) return;
+    const label = button.closest("tr")?.querySelector("td:nth-child(2)")?.textContent?.trim() || "yang dipilih";
+    if (!customerId || !window.confirm(`Hapus customer ${label} beserta seluruh datanya (member, antrean, drop-off, antar/jemput)?`)) return;
     try {
       await api(`/owner/customers/${encodeURIComponent(customerId)}`, { method: "DELETE" });
       if (ownerCustomerData.items?.length === 1 && ownerCustomerPage > 1) ownerCustomerPage -= 1;
@@ -4087,7 +3432,6 @@ function renderCustomerPagination(total, page, pageSize) {
 async function loadOwnerCustomers() {
   try {
     const params = new URLSearchParams({ page: String(ownerCustomerPage), pageSize: "10" });
-    if (ownerCustomerScope === "active-event") params.set("scope", "active-event");
     const statusFilter = $("ownerCustomerStatusFilter")?.value || "all";
     params.set("status", statusFilter);
     if (ownerCustomerSearch) params.set("search", ownerCustomerSearch);
@@ -4113,79 +3457,42 @@ async function openCustomerDetail(customerId) {
   }
 }
 
+function renderCustomerJourney(items, emptyText) {
+  if (!items.length) return `<div class="owner-customer-empty">${escapeHtml(emptyText)}</div>`;
+  return `<div class="owner-customer-journey">${items.map((item) => `<div class="owner-journey-item"><span class="owner-journey-dot"></span><div><b>${escapeHtml(item.title)}</b>${item.detail ? `<small>${escapeHtml(item.detail)}</small>` : ""}</div><time>${escapeHtml(formatCustomerTime(item.at))}</time></div>`).join("")}</div>`;
+}
+
 function renderCustomerTrace(data) {
   const target = $("ownerCustomerDetail");
   if (!target) return;
   const customer = data.customer || {};
-  const event = data.event || null;
-  const transactions = data.transactions || [];
-  const plays = data.plays || [];
-  const rewards = data.rewards || [];
+  const progress = data.progress || null;
+  const rules = data.rules || {};
+  const journey = data.journey || [];
+  const memberSince = customer.memberSince ? formatCustomerDate(customer.memberSince) : "—";
 
-  const latestTransaction = transactions[0] || null;
-  const latestPlay = plays[0] || null;
-  const latestReward = rewards[0] || null;
-  const hasTransaction = transactions.length > 0;
-  const hasPlay = plays.length > 0;
-  const hasReward = rewards.length > 0;
-  const hasRedeem = rewards.some((row) => row.redeemed_at);
-  const hasClaimed = rewards.some((row) => row.claimed_at);
-
-  const journey = [
-    {
-      title: "Transaction",
-      active: hasTransaction,
-      text: hasTransaction ? `${latestTransaction.transaction_id || "—"} · ${latestTransaction.service_type || "Transaction"}` : "Belum ada aktivitas",
-      at: hasTransaction ? latestTransaction.created_at : null,
-    },
-    {
-      title: "Play",
-      active: hasPlay,
-      text: hasPlay ? `${latestPlay.session_id || latestPlay.play_id || "—"}${latestPlay.status ? ` · ${latestPlay.status}` : ""}` : "Belum ada aktivitas",
-      at: hasPlay ? latestPlay.created_at : null,
-    },
-    {
-      title: "Reward",
-      active: hasReward,
-      text: hasReward ? `${latestReward.reward_id || "—"}${latestReward.type ? ` (${latestReward.type})` : ""}` : "Belum ada aktivitas",
-      at: hasReward ? latestReward.created_at : null,
-    },
-    {
-      title: "Redeem",
-      active: hasRedeem,
-      text: hasRedeem ? "Reward redeemed" : "Belum ada aktivitas",
-      at: hasRedeem ? (rewards.find((row) => row.redeemed_at)?.redeemed_at || null) : null,
-    },
-    {
-      title: "Claimed",
-      active: hasClaimed,
-      text: hasClaimed ? "" : "Belum ada aktivitas",
-      at: hasClaimed ? (rewards.find((row) => row.claimed_at)?.claimed_at || null) : null,
-    },
+  const info = [
+    ["Nama", customer.name || "Tanpa nama"],
+    ["No. HP", customer.phone || customer.phoneMasked || "—"],
+    ["Alamat", customer.address || "—"],
+    ["Status", `<span class="owner-customer-status ${customer.isMember ? "" : "inactive"}">${customer.isMember ? "Member" : "Belum member"}</span>`, true],
+    ...(customer.isMember ? [
+      ["Bergabung", memberSince],
+      ["Total koin dibeli", String(customer.totalCoins ?? 0)],
+      [`Siklus ke-${progress?.cycleNumber ?? 1}`, `${progress?.cycleCoins ?? 0} / ${rules.bagAtCoins ?? 40} koin`],
+    ] : []),
   ];
 
-  const totalPlay = plays.length;
-  const totalReward = rewards.length;
-  const totalRedeemed = rewards.filter((row) => row.redeemed_at).length;
-  const eventName = event?.event_title || "—";
-  const eventPeriod = event ? `${formatCustomerDate(event.event_starts_at)} – ${formatCustomerDate(event.event_ends_at)}` : "—";
+  // Dua timeline terpisah: reward program (member) dan reward event.
+  const program = journey.filter((item) => item.group === "PROGRAM");
+  const events = journey.filter((item) => item.group === "EVENT");
 
   target.innerHTML = `<div class="owner-customer-detail-heading"><h1>Customer Detail</h1></div>
-    <div class="owner-customer-info-card"><div><span>Alamat Email</span><b>${escapeHtml(customer.email || "—")}</b></div><div><span>No. HP</span><b>${escapeHtml(customer.phone || customer.phone_masked || "—")}</b></div><div><span>Registrasi</span><b>${escapeHtml(formatCustomerDate(customer.created_at))}</b></div><div><span>Event</span><b>${escapeHtml(eventName)}</b></div><div><span>Periode Event</span><b>${escapeHtml(eventPeriod)}</b></div><div><span>Total Play</span><b>${totalPlay}</b></div><div><span>Total Reward</span><b>${totalReward}</b></div><div><span>Total Redeemed</span><b>${totalRedeemed}</b></div><div><span>Status</span><b><em class="owner-customer-status ${customer.login_status === "ACTIVE" ? "" : "inactive"}">${customer.login_status === "ACTIVE" ? "Active" : "Inactive"}</em></b></div></div>
-    <h2 class="owner-customer-journey-title">Customer Journey</h2>
-    <div class="owner-customer-journey">${journey.map((item, index) => `<div class="owner-journey-item${item.active ? "" : " inactive"}"><span class="owner-journey-dot"></span><div><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.text)}</small></div><time>${escapeHtml(item.at ? formatCustomerTime(item.at) : "—")}</time></div>`).join("")}</div>`;
-}
-
-async function loadOwnerAudit() {
-  try {
-    const data = await api("/owner/audit?limit=100");
-    const query = ($("auditSearch")?.value || "").trim().toLowerCase();
-    const items = (data.items || []).filter((item) => !query || `${item.entity_type} ${item.entity_id} ${item.action} ${item.actor} ${item.result}`.toLowerCase().includes(query));
-    const target = $("ownerAuditList");
-    target.innerHTML = items.length ? items.map((item) => `<div class="owner-list-item audit-item"><div class="row"><b>${escapeHtml(item.action)}</b><span class="status-pill ${item.result === "SUCCESS" ? "" : "off"}">${escapeHtml(item.result)}</span></div><small>${escapeHtml(formatDateTime(item.timestamp))}</small><div class="meta"><div>Entity<strong>${escapeHtml(item.entity_type)}</strong></div><div>ID<strong>${escapeHtml(item.entity_id)}</strong></div><div>Source<strong>${escapeHtml(item.actor)}</strong></div></div></div>`).join("") : `<div class="owner-list-item"><small>Tidak ada audit.</small></div>`;
-  } catch (error) {
-    $("ownerAuditList").textContent = error.message;
-  }
+    <div class="owner-customer-info-card">${info.map(([label, value, raw]) => `<div><span>${escapeHtml(label)}</span><b>${raw ? value : escapeHtml(value)}</b></div>`).join("")}</div>
+    <h2 class="owner-customer-journey-title">Journey Program <span class="owner-journey-tag">Member</span></h2>
+    ${renderCustomerJourney(program, customer.isMember ? "Belum ada aktivitas program." : "Customer belum bergabung sebagai member.")}
+    <h2 class="owner-customer-journey-title">Journey Event <span class="owner-journey-tag event">Event</span></h2>
+    ${renderCustomerJourney(events, "Belum ada aktivitas event.")}`;
 }
 
 async function loadOwnerData(range = null) {
@@ -4216,7 +3523,6 @@ function escapeHtml(value) {
 for (const button of document.querySelectorAll("[data-owner-view]")) {
   button.addEventListener("click", () => {
     if (button.dataset.ownerView === "customer-trace") {
-      ownerCustomerScope = "all";
       ownerCustomerPage = 1;
       ownerCustomerSearch = "";
     }
@@ -4338,7 +3644,6 @@ $("saveRewardButton")?.addEventListener("click", saveReward);
 $("eventDetailBack")?.addEventListener("click", () => { closeEventViews(); setOwnerView("events"); });
 $("editEventButton")?.addEventListener("click", () => { if (selectedEventId) openEventForm(selectedEventId); });
 $("deleteEventButton")?.addEventListener("click", deleteEvent);
-$("loadOwner")?.addEventListener("click", loadOwnerData);
 $("ownerCustomerSearchButton")?.addEventListener("click", () => { ownerCustomerSearch = ($("ownerCustomerSearch")?.value || "").trim(); ownerCustomerPage = 1; loadOwnerCustomers(); });
 $("ownerCustomerSearch")?.addEventListener("keydown", (event) => { if (event.key === "Enter") { ownerCustomerSearch = event.currentTarget.value.trim(); ownerCustomerPage = 1; loadOwnerCustomers(); } });
 $("ownerCustomerStatusFilter")?.addEventListener("change", () => { ownerCustomerPage = 1; loadOwnerCustomers(); });
@@ -4371,6 +3676,12 @@ $("downloadExport")?.addEventListener("click", async () => {
 });
 
 $("ownerServiceSettingsForm")?.addEventListener("submit", saveOwnerServiceSettings);
+$("ownerServiceSettingsForm")?.addEventListener("input", refreshServiceSettingsState);
+$("ownerServiceSettingsForm")?.addEventListener("change", refreshServiceSettingsState);
+if ($("ownerServiceSettingsForm")) {
+  // baris tarif/fasilitas yang ditambah atau dihapus ikut dihitung sebagai perubahan
+  new MutationObserver(refreshServiceSettingsState).observe($("ownerServiceSettingsForm"), { childList: true, subtree: true });
+}
 $("serviceSettingsReset")?.addEventListener("click", resetOwnerServiceSettings);
 $("ownerServiceAddTariff")?.addEventListener("click", () => {
   const rows = collectOwnerServiceTariffs();
@@ -4445,368 +3756,6 @@ async function loadOwner() {
   }
 }
 
-function makeQrSvg(text) {
-  const n = 37;
-
-  const matrix =
-    Array.from(
-      {
-        length: n,
-      },
-      () =>
-        Array(n).fill(
-          null,
-        ),
-    );
-
-  const set =
-    (x, y, value) => {
-      if (
-        x >= 0 &&
-        y >= 0 &&
-        x < n &&
-        y < n
-      ) {
-        matrix[y][x] =
-          value;
-      }
-    };
-
-  function finder(cx, cy) {
-    for (
-      let y = -1;
-      y <= 7;
-      y++
-    ) {
-      for (
-        let x = -1;
-        x <= 7;
-        x++
-      ) {
-        const on =
-          x >= 0 &&
-          x <= 6 &&
-          y >= 0 &&
-          y <= 6 &&
-          (
-            x === 0 ||
-            x === 6 ||
-            y === 0 ||
-            y === 6 ||
-            (
-              x >= 2 &&
-              x <= 4 &&
-              y >= 2 &&
-              y <= 4
-            )
-          );
-
-        set(
-          cx + x,
-          cy + y,
-          on,
-        );
-      }
-    }
-  }
-
-  finder(0, 0);
-  finder(n - 7, 0);
-  finder(0, n - 7);
-
-  for (
-    let i = 8;
-    i < n - 8;
-    i++
-  ) {
-    set(
-      i,
-      6,
-      i % 2 === 0,
-    );
-
-    set(
-      6,
-      i,
-      i % 2 === 0,
-    );
-  }
-
-  for (
-    const [cx, cy]
-    of [
-      [6, 30],
-      [30, 6],
-      [30, 30],
-    ]
-  ) {
-    if (
-      matrix[cy]?.[cx] !==
-      null
-    ) {
-      continue;
-    }
-
-    for (
-      let y = -2;
-      y <= 2;
-      y++
-    ) {
-      for (
-        let x = -2;
-        x <= 2;
-        x++
-      ) {
-        set(
-          cx + x,
-          cy + y,
-          Math.max(
-            Math.abs(x),
-            Math.abs(y),
-          ) === 2 ||
-            Math.max(
-              Math.abs(x),
-              Math.abs(y),
-            ) === 0,
-        );
-      }
-    }
-  }
-
-  set(
-    8,
-    n - 8,
-    true,
-  );
-
-  for (
-    let i = 0;
-    i < 9;
-    i++
-  ) {
-    if (
-      matrix[i][8] ===
-      null
-    ) {
-      matrix[i][8] =
-        false;
-    }
-
-    if (
-      matrix[8][i] ===
-      null
-    ) {
-      matrix[8][i] =
-        false;
-    }
-  }
-
-  for (
-    let i = 0;
-    i < 8;
-    i++
-  ) {
-    if (
-      matrix[n - 1 - i][8] ===
-      null
-    ) {
-      matrix[n - 1 - i][8] =
-        false;
-    }
-
-    if (
-      matrix[8][n - 1 - i] ===
-      null
-    ) {
-      matrix[8][n - 1 - i] =
-        false;
-    }
-  }
-
-  const bytes =
-    Array.from(
-      new TextEncoder().encode(
-        text,
-      ),
-    );
-
-  if (bytes.length > 106) {
-    throw new Error(
-      "QR text too long",
-    );
-  }
-
-  const dataBits = [
-    0,
-    1,
-    0,
-    0,
-  ];
-
-  for (
-    let i = 7;
-    i >= 0;
-    i--
-  ) {
-    dataBits.push(
-      (bytes.length >> i) &
-        1,
-    );
-  }
-
-  for (const byte of bytes) {
-    for (
-      let i = 7;
-      i >= 0;
-      i--
-    ) {
-      dataBits.push(
-        (byte >> i) & 1,
-      );
-    }
-  }
-
-  while (
-    dataBits.length <
-    108 * 8
-  ) {
-    dataBits.push(0);
-  }
-
-  while (
-    dataBits.length %
-      8
-  ) {
-    dataBits.push(0);
-  }
-
-  const data = [];
-
-  for (
-    let i = 0;
-    i <
-    dataBits.length;
-    i += 8
-  ) {
-    let value = 0;
-
-    for (
-      let j = 0;
-      j < 8;
-      j++
-    ) {
-      value =
-        (value << 1) |
-        dataBits[i + j];
-    }
-
-    data.push(value);
-  }
-
-  const bits = [];
-
-  for (
-    const byte of data
-  ) {
-    for (
-      let i = 7;
-      i >= 0;
-      i--
-    ) {
-      bits.push(
-        (byte >> i) & 1,
-      );
-    }
-  }
-
-  let bitIndex = 0;
-  let upward = true;
-
-  for (
-    let x = n - 1;
-    x > 0;
-    x -= 2
-  ) {
-    if (x === 6) {
-      x--;
-    }
-
-    for (
-      let yy = 0;
-      yy < n;
-      yy++
-    ) {
-      const y = upward
-        ? n - 1 - yy
-        : yy;
-
-      for (
-        let xx = 0;
-        xx < 2;
-        xx++
-      ) {
-        const column =
-          x - xx;
-
-        if (
-          matrix[y][column] !==
-          null
-        ) {
-          continue;
-        }
-
-        let value =
-          bits[bitIndex++] ||
-          0;
-
-        value ^=
-          (y + column) %
-            2 ===
-          0
-            ? 1
-            : 0;
-
-        matrix[y][column] =
-          Boolean(value);
-      }
-    }
-
-    upward = !upward;
-  }
-
-  const size = n + 12;
-
-  let svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges">`;
-
-  svg +=
-    `<rect width="100%" height="100%" fill="white"/>`;
-
-  for (
-    let y = 0;
-    y < n;
-    y++
-  ) {
-    for (
-      let x = 0;
-      x < n;
-      x++
-    ) {
-      if (
-        matrix[y][x]
-      ) {
-        svg +=
-          `<rect x="${x + 6}" y="${y + 6}" width="1" height="1"/>`;
-      }
-    }
-  }
-
-  svg +=
-    "</svg>";
-
-  return svg;
-}
-
 async function initialize() {
   const pathname = normalizePathname();
   const expectedRole = resolveRolePath(pathname);
@@ -4861,52 +3810,27 @@ async function initialize() {
   }
 
   // /customer and every /customer/* URL open directly to Customer Dashboard.
-  // Customer access can start as a guest session when no identity is stored.
-  // the read-only machine/event APIs continue to work; identity is collected
-  // separately by the compact No. HP + Email popup.
+  // Customer login memakai nama + nomor HP (td-auth.js). Tanpa sesi customer yang valid,
+  // layar login tampil dan showRole() dipanggil setelah customer masuk.
   if (expectedRole === "CUSTOMER") {
     document.body.dataset.role = "CUSTOMER";
 
     if ($("rootLanding")) $("rootLanding").hidden = true;
     if ($("ownerAuth")) $("ownerAuth").hidden = true;
     if ($("staffAuth")) $("staffAuth").hidden = true;
-    if ($("auth")) $("auth").hidden = true;
     if ($("staff")) $("staff").hidden = true;
     if ($("owner")) $("owner").hidden = true;
     if ($("customer")) $("customer").hidden = false;
 
-    if (restoreSession() && state.role === "CUSTOMER") {
-      await loadConfig();
-      showRole();
-      if (!loadCustomerIdentity()) openCustomerIdentityPopup();
-      return;
-    }
-
-    clearSession();
-
-    try {
-      await createCustomerGuestSession();
-    } catch {
-      // Dashboard remains visible; protected API refresh will retry only after
-      // a valid Customer session is established.
-      state.role = "CUSTOMER";
-    }
-
     await loadConfig();
-    showRole();
 
-    if (loadCustomerIdentity()) {
-      try {
-        await restoreCustomerIdentitySession(loadCustomerIdentity());
-        await refreshCustomerDashboardMachines();
-        await loadActiveEventForRole("CUSTOMER");
-      } catch {
-        openCustomerIdentityPopup();
-      }
+    // Sudah punya sesi customer yang valid -> dashboard. Jika belum, layar login
+    // (td-auth.js) tampil dan memanggil showRole() setelah customer masuk.
+    if (restoreSession() && state.role === "CUSTOMER") {
+      showRole();
     } else {
-      openCustomerIdentityPopup();
+      clearSession();
     }
-
     return;
   }
 
