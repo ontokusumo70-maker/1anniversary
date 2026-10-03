@@ -11,6 +11,7 @@ import { handleDropoffRequest } from './routes/dropoff';
 import { handleSelfServiceQueueRequest } from './routes/self-service-queue';
 import { handleDeliveryRequest } from './routes/delivery-requests';
 import { handleProgramRequest } from './routes/program';
+import { handleProgramRewardsRequest } from './routes/program-rewards';
 import { handleAuthRequest } from './routes/auth';
 import { cleanupExpiredEvents, handleOwnerRequest } from './routes/owner';
 import { handleAssetRequest } from './routes/assets';
@@ -451,6 +452,19 @@ async function handleRequest(
     404
   ) {
     return withCors(programResponse, origin);
+  }
+
+  const programRewardsResponse =
+    await handleProgramRewardsRequest(
+      request,
+      env,
+    );
+
+  if (
+    programRewardsResponse.status !==
+    404
+  ) {
+    return withCors(programRewardsResponse, origin);
   }
 
   const deliveryRequestResponse =
