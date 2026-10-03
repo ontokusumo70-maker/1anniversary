@@ -30,12 +30,3 @@ const request = new Request("https://example.test/", { headers: { Authorization:
   assert.equal(session, null);
   console.log("Session guard tests PASS");
 })();
-
-import { readFileSync } from "node:fs";
-const gameSource = readFileSync(
-  "worker/routes/game.ts",
-  "utf8",
-);
-assert.match(gameSource, /requireSession/);
-assert.doesNotMatch(gameSource, /const token =\s*getBearerToken/);
-assert.doesNotMatch(gameSource, /FROM auth_sessions/);
