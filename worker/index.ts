@@ -1,5 +1,4 @@
 export { RealtimeHub } from './realtime';
-import { handleGameRequest } from './routes/game';
 import { handleMachineRequest } from './routes/machines';
 import {
   handleOwnerExportRequest,
@@ -29,7 +28,6 @@ export interface Env {
   STAFF_PHONE?: string;
   OWNER_PHONE_1?: string;
   OWNER_PHONE_2?: string;
-
 
   R2?: R2Bucket;
 }
@@ -290,12 +288,6 @@ async function handleRequest(
           '2026-11-01',
         campaignEnd:
           '2026-11-10',
-        game: {
-          type:
-            'Coin Catch',
-          durationSeconds:
-            15,
-        },
         assets: {
           basePath:
             env.R2
@@ -328,17 +320,20 @@ async function handleRequest(
     );
   }
 
-  const gameResponse =
-    await handleGameRequest(
-      request,
-      env,
-    );
-
+  // Game ditiadakan: endpoint game tidak lagi dilayani (data lama tetap tersimpan).
   if (
-    gameResponse.status !==
-    404
+    request.method === 'POST' &&
+    (url.pathname === '/start' || url.pathname === '/finish')
   ) {
-    return withCors(gameResponse, origin);
+    return json(
+      {
+        ok: false,
+        error: 'GAME_DISABLED',
+        message: 'Game sedang ditiadakan.',
+      },
+      410,
+      origin,
+    );
   }
 
   const machineResponse =
