@@ -665,6 +665,8 @@
 
   async function pollCustomerNotices() {
     if (role() !== "CUSTOMER" || !$("tdDash") || $("tdDash").hidden) return;
+    const login = $("tdAuth"); // layar login tampil -> bukan customer yang sudah masuk
+    if (login && !login.hidden) return;
     try {
       const mine = await call("/queue/self-service/mine");
       for (const t of mine.recentActivated || []) {
@@ -740,6 +742,7 @@
       <div class="td-c"><h2>Drop-off</h2>
         <div class="td-fs">${field("phours", "Estimasi pengerjaan (jam)", '<input class="td-in" id="td_phours" type="number" min="1" max="720" step="1">')}</div>
       </div>
+
       <div class="td-c"><button type="button" class="td-btn" id="tdPSave" style="position:static">Simpan pengaturan</button><p class="td-note" id="tdPMsg" aria-live="polite"></p></div>`;
     ownerSection.appendChild(view);
 
