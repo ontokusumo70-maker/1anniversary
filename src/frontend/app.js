@@ -3383,7 +3383,7 @@ function renderCustomerTraceList(data) {
   if (totalLabel) totalLabel.textContent = `${totalAll.toLocaleString("id-ID")} Customer · ${members.toLocaleString("id-ID")} Member`;
 
   target.innerHTML = items.length
-    ? `<div class="owner-customer-table-wrap"><table class="owner-customer-table"><thead><tr><th>#</th><th>Nama</th><th>No. HP</th><th>Reward</th><th>Status</th><th>Aksi</th></tr></thead><tbody>${items.map((item, index) => `<tr data-customer-id="${escapeHtml(item.customerId)}"><td>${from + index}</td><td>${escapeHtml(item.name || "Tanpa nama")}</td><td>${escapeHtml(item.phone || item.phoneMasked || "—")}</td><td>${escapeHtml(ownerRewardSummary(item.rewards))}</td><td><span class="owner-customer-status ${item.isMember ? "" : "inactive"}">${item.isMember ? "Member" : "Belum member"}</span></td><td class="owner-customer-actions"><button type="button" class="owner-customer-delete" data-delete-customer="${escapeHtml(item.customerId)}" aria-label="Hapus customer">${ownerIconSvg("trash")}</button><button type="button" class="owner-customer-open" aria-label="Buka detail customer">›</button></td></tr>`).join("")}</tbody></table></div>`
+    ? `<div class="owner-customer-table-wrap"><table class="owner-customer-table"><thead><tr><th>#</th><th>Nama</th><th>No. HP</th><th>Reward</th><th>Status</th><th>Aksi</th></tr></thead><tbody>${items.map((item, index) => `<tr data-customer-id="${escapeHtml(item.customerId)}"><td>${from + index}</td><td>${escapeHtml(item.name || "Tanpa nama")}</td><td>${escapeHtml(item.phone || item.phoneMasked || "—")}</td><td>${escapeHtml(ownerRewardSummary(item.rewards))}</td><td><span class="owner-customer-status ${item.isMember ? "" : "inactive"}">${item.isMember ? "Member" : "Belum member"}</span></td><td class="owner-customer-actions"><div class="owner-customer-actions-inner"><button type="button" class="owner-customer-delete" data-delete-customer="${escapeHtml(item.customerId)}" aria-label="Hapus customer">${ownerIconSvg("trash")}</button><button type="button" class="owner-customer-open" aria-label="Buka detail customer">›</button></div></td></tr>`).join("")}</tbody></table></div>`
     : `<div class="owner-customer-empty">Customer tidak ditemukan.</div>`;
 
   target.querySelectorAll("[data-customer-id]").forEach((row) => row.addEventListener("click", (event) => {
@@ -4308,4 +4308,3 @@ async function staffSaveMemberPurchase() {
 }
 
 initialize();
-
