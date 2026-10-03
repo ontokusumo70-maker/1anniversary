@@ -272,3 +272,56 @@
 .tx-st-row a { color: var(--td-g); text-decoration: none; overflow-wrap: anywhere; }
 .tx-st-row.mu { color: var(--td-mut); }
 .tx-st-foot { margin: 0; font: 400 11px/14px var(--td-font); color: var(--td-mut); }
+
+/* ---------- OWNER OVERVIEW: card Request Antar/Jemput (Antar | Jemput) ---------- */
+#ownerMetrics .owner-metric-delivery .owner-delivery-split {
+  display: grid; grid-template-columns: 1fr 1px 1fr; align-items: center; width: 100%; margin-top: 4px;
+}
+#ownerMetrics .owner-metric-delivery .owner-delivery-col {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0;
+}
+#ownerMetrics .owner-metric-delivery .owner-delivery-col strong {
+  display: block; font-size: 28px; line-height: 1.05; font-weight: 800; color: #101a16;
+}
+#ownerMetrics .owner-metric-delivery .owner-delivery-col span {
+  display: block; font-size: 12px; line-height: 1.2; color: #5d6965; font-weight: 600;
+}
+#ownerMetrics .owner-metric-delivery .owner-reward-split-divider {
+  display: block; width: 1px; height: 44px; background: #d5ddda;
+}
+
+/* ---------- REWARD POOL: reward khusus Program Member (tanpa info event) ---------- */
+.locked-card-main.tx-prog-only .locked-used-label,
+.locked-card-main.tx-prog-only .locked-no-event { display: none !important; }
+.reward-detail-event-card.tx-hide { display: none !important; }
+
+/* ---------- MENU PROGRAM: teks abu-abu setelah simpan, hitam saat diedit ---------- */
+#tdOwnerProgram.tx-pristine input:not([type=checkbox]):not([type=radio]),
+#tdOwnerProgram.tx-pristine select,
+#tdOwnerProgram.tx-pristine textarea {
+  color: #8d9a95 !important;
+  -webkit-text-fill-color: #8d9a95 !important;
+}
+#tdOwnerProgram:not(.tx-pristine) input:not([type=checkbox]):not([type=radio]),
+#tdOwnerProgram:not(.tx-pristine) select,
+#tdOwnerProgram:not(.tx-pristine) textarea {
+  color: #10201a !important;
+  -webkit-text-fill-color: #10201a !important;
+}
+
+/* select reward program: lebih lega agar nama reward tidak terpotong */
+.tx-prog-row { grid-template-columns: minmax(0, 1fr) 64px 38px; gap: 6px; padding: 8px 6px; }
+.tx-prog .tx-prog-sel { font-size: 12px; padding: 0 6px; text-overflow: ellipsis; }
+.tx-prog .tx-prog-qty { padding: 0 2px; font-size: 13px; }
+.tx-prog-del { width: 38px; height: 38px; }
+
+/* ---------- STAFF: pilih reward program yang diserahkan ---------- */
+.tx-pick { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; text-align: left; }
+.tx-pick-item {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px;
+  border: 1px solid var(--td-line, rgba(11, 122, 83, .14)); background: var(--td-mints, #F1F9F4); cursor: pointer;
+}
+.tx-pick-item.off { opacity: .5; cursor: not-allowed; }
+.tx-pick-item input { width: 18px; height: 18px; flex: none; accent-color: var(--td-g, #0B7A53); }
+.tx-pick-item b { display: block; font: 700 14px/20px var(--td-font); color: var(--td-ink, #10281D); }
+.tx-pick-item small { display: block; font: 500 11px/14px var(--td-font); color: #087552; }
