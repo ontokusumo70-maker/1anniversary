@@ -232,23 +232,46 @@
   let dropEstimateHours = 24;
   let clockTimer = null;
 
+  const waitingPickup = (o) => o.source === "PICKUP_REQUEST" && o.request_status && o.request_status !== "COMPLETED";
+  const returnText = (o) => (o.return_method === "DELIVERY" ? "Diantar" : "Ambil sendiri");
+
   function orderStatus(o) {
-    if (o.status === "COMPLETED") return badge("Siap diambil", "m");
+    if (o.status === "COMPLETED") return badge(o.return_method === "DELIVERY" ? "Siap diantar" : "Siap diambil", "m");
+    if (waitingPickup(o)) return badge("Menunggu dijemput", "m");
     return badge("Diproses");
+  }
+
+  /* Aksi staff untuk satu pesanan */
+  function staffOrderActions(o) {
+    if (o.status === "RECEIVED") {
+      if (waitingPickup(o)) {
+        return `<div class="td-note">Request jemput belum selesai. Tandai "selesai dijemput" di menu Request Antar / Jemput, lalu pesanan bisa diproses.</div>`;
+      }
+      return `<div class="td-act"><button type="button" class="p" data-act="complete">${ico("check")}Tandai selesai</button></div>`;
+    }
+    // COMPLETED
+    if (!o.return_method) {
+      return `${infoRow("clock", "Menunggu customer memilih antar / ambil sendiri", "mu")}
+        <div class="td-act"><button type="button" class="p" data-act="pickup">${ico("check")}Sudah diambil</button></div>`;
+    }
+    if (!o.return_confirmed_at) {
+      return `${infoRow("truck", `Customer memilih: <b>${esc(returnText(o))}</b>`)}
+        <div class="td-act"><button type="button" class="p" data-act="confirm-return">${ico("check")}Konfirmasi ${o.return_method === "DELIVERY" ? "antar" : "pickup"}</button></div>`;
+    }
+    return `${infoRow("check", `Dikonfirmasi: <b>${esc(returnText(o))}</b>`, "mu")}
+      <div class="td-act"><button type="button" class="p" data-act="pickup">${ico("check")}${o.return_method === "DELIVERY" ? "Sudah diantar" : "Sudah diambil"}</button></div>`;
   }
 
   function staffOrderCard(o) {
     return `<article class="td-c" data-order="${esc(o.order_id)}">
       <div class="td-rq-top"><h2>${esc(o.customer_name || "Tanpa nama")}</h2>${orderStatus(o)}</div>
-      ${infoRow("note", `<b>${esc(o.order_id)}</b>`)}
+      ${infoRow("note", `No. Order <b>${esc(o.order_id)}</b>${o.source === "PICKUP_REQUEST" ? ' <span class="td-badge tx-type">Request jemput</span>' : ""}`)}
       ${infoRow("phone", `<a href="${phoneHref(o.phone)}">${esc(o.phone || o.phone_masked || "–")}</a>`)}
       ${o.customer_address ? infoRow("pin", esc(o.customer_address)) : ""}
       ${infoRow("scale", `${esc(o.weight_kg)} kg · ${esc(o.item_count || 1)} ${unitLabel(o.item_unit)}`)}
       ${infoRow("cal", `Diterima ${esc(fmtDT(o.received_at))}`)}
       ${infoRow("clock", `Estimasi selesai ${esc(fmtDT(o.est_done_at))}`, "mu")}
-      <div class="td-act">
-        ${o.status === "RECEIVED" ? `<button type="button" class="p" data-act="complete">${ico("check")}Tandai selesai</button>` : `<button type="button" class="p" data-act="pickup">${ico("check")}Sudah diambil</button>`}
-      </div>
+      ${staffOrderActions(o)}
     </article>`;
   }
 
@@ -376,11 +399,17 @@
       if (!btn) return;
       const id = btn.closest("[data-order]").getAttribute("data-order");
       const act = btn.getAttribute("data-act");
-      if (!window.confirm(act === "complete" ? "Tandai cucian ini selesai dikerjakan?" : "Tandai cucian ini sudah diambil customer?")) return;
+      const TEXT = {
+        complete: ["Tandai cucian ini selesai dikerjakan?", "Ditandai selesai"],
+        pickup: ["Tandai cucian ini sudah diterima customer (diambil / diantar)?", "Ditandai selesai diterima customer"],
+        "confirm-return": ["Konfirmasi pilihan customer untuk laundry ini?", "Pilihan customer dikonfirmasi"],
+      };
+      const [question, doneText] = TEXT[act] || [];
+      if (!question || !window.confirm(question)) return;
       btn.disabled = true;
       try {
         await call(`/staff/dropoff/${encodeURIComponent(id)}/${act}`, { method: "POST" });
-        toast(act === "complete" ? "Ditandai selesai" : "Ditandai sudah diambil");
+        toast(doneText);
       } catch (error) { toast(error.message || "Aksi gagal."); }
       loadStaffOrders(); U.refreshDashboard();
     });
@@ -388,6 +417,28 @@
   }
 
   /* ---------- customer ---------- */
+  function returnButtons(o) {
+    const cur = o.return_method;
+    return `<div class="td-act">
+      <button type="button" class="${cur === "DELIVERY" ? "p" : ""}" data-ret="DELIVERY">Diantar</button>
+      <button type="button" class="${cur === "SELF_PICKUP" ? "p" : ""}" data-ret="SELF_PICKUP">Ambil sendiri</button>
+    </div>`;
+  }
+
+  function returnBlock(o) {
+    if (o.status !== "COMPLETED") return "";
+    if (o.return_confirmed_at) {
+      return infoRow("check", o.return_method === "DELIVERY"
+        ? "Dikonfirmasi staff — laundry akan diantar ke alamat Anda."
+        : "Dikonfirmasi staff — silakan ambil laundry Anda.", "mu");
+    }
+    if (o.return_method) {
+      return `${infoRow("clock", `Pilihan Anda: <b>${esc(returnText(o))}</b> · menunggu konfirmasi staff`, "mu")}
+        <p class="td-note">Ingin mengubah pilihan?</p>${returnButtons(o)}`;
+    }
+    return `${infoRow("check", "Laundry Anda sudah selesai. Pilih cara menerimanya:", "mu")}${returnButtons(o)}`;
+  }
+
   async function loadCustomerOrders() {
     if (!U.isOpen("dropoff")) return;
     const body = U.body();
@@ -398,15 +449,25 @@
       const who = data.customer || {};
       if (!orders.length) { body.innerHTML = empty("Belum ada laundry drop-off aktif."); return; }
       body.innerHTML = `<div class="td-grid">${orders.map((o) => `
-        <article class="td-c">
+        <article class="td-c" data-order="${esc(o.order_id)}">
           <div class="td-rq-top"><h2>${esc(o.order_id)}</h2>${orderStatus(o)}</div>
-          ${infoRow("cal", `Diterima staff <b>${esc(fmtDT(o.received_at))}</b>`)}
+          ${infoRow("note", `No. Order <b>${esc(o.order_id)}</b>${o.source === "PICKUP_REQUEST" ? ' <span class="td-badge tx-type">Request jemput</span>' : ""}`)}
+          ${waitingPickup(o) ? infoRow("truck", "Petugas kami sedang menuju lokasi Anda untuk menjemput laundry.", "mu") : infoRow("cal", `Diterima staff <b>${esc(fmtDT(o.received_at))}</b>`)}
           ${infoRow("clock", `Estimasi selesai <b>${esc(fmtDT(o.est_done_at))}</b>`)}
           ${infoRow("users", esc(who.name || "–"))}
           ${infoRow("phone", esc(who.phone || "–"))}
-          ${infoRow("scale", `${esc(o.weight_kg)} kg · ${esc(o.item_count || 1)} ${unitLabel(o.item_unit)} diserahkan`)}
-          ${o.status === "COMPLETED" ? infoRow("check", "Cucian selesai — silakan diambil.", "mu") : ""}
+          ${infoRow("scale", `${esc(o.weight_kg)} kg · ${esc(o.item_count || 1)} ${unitLabel(o.item_unit)} ${o.source === "PICKUP_REQUEST" ? "(estimasi)" : "diserahkan"}`)}
+          ${returnBlock(o)}
         </article>`).join("")}</div>`;
+      body.querySelectorAll("[data-ret]").forEach((b) => b.addEventListener("click", async () => {
+        const id = b.closest("[data-order]").getAttribute("data-order");
+        b.disabled = true;
+        try {
+          await call(`/dropoff/${encodeURIComponent(id)}/return-choice`, { method: "POST", body: JSON.stringify({ method: b.getAttribute("data-ret") }) });
+          toast("Pilihan dikirim ke staff");
+        } catch (error) { toast(error.message || "Gagal mengirim pilihan."); }
+        loadCustomerOrders(); U.refreshDashboard();
+      }));
     } catch (error) {
       if (U.isOpen("dropoff")) body.innerHTML = empty(error.message || "Gagal memuat drop-off.");
     }
@@ -464,6 +525,60 @@
       <div class="td-c td-tblwrap" id="tdMTable">${loading()}</div>`;
     $("tdMSearch").addEventListener("input", debounce((e) => { memberQuery = e.target.value.trim(); loadStaffMembers(); }, 300));
     loadStaffMembers();
+  }
+
+  /* Serahkan reward: Staff memilih reward yang "Digunakan di Program Member". */
+  function fulfillReward(rewardId) {
+    return new Promise(async (resolve, reject) => {
+      let items = [];
+      try {
+        items = (await call("/staff/program-rewards")).items || [];
+      } catch (error) { reject(error); return; }
+
+      const send = async (poolId) => {
+        await call(`/staff/member/reward/${encodeURIComponent(rewardId)}/fulfill`, {
+          method: "POST",
+          body: poolId ? JSON.stringify({ programRewardPoolId: poolId }) : undefined,
+        });
+        toast("Reward diserahkan");
+      };
+
+      // Owner belum memilih reward program -> alur serah biasa
+      if (!items.length) {
+        if (!window.confirm("Serahkan reward ini ke customer?")) { resolve(); return; }
+        try { await send(""); resolve(); } catch (error) { reject(error); }
+        return;
+      }
+
+      $("tdPick")?.remove();
+      const el = document.createElement("div");
+      el.id = "tdPick";
+      el.className = "td-modal";
+      el.setAttribute("role", "dialog");
+      el.setAttribute("aria-modal", "true");
+      const firstOk = items.findIndex((i) => i.remaining > 0 && i.active !== false);
+      el.innerHTML = `<div class="td-modal-card">
+        <h2>Serahkan Reward</h2>
+        <p class="td-note">Pilih reward yang diserahkan ke customer.</p>
+        <div class="tx-pick">${items.map((i, idx) => {
+          const off = i.remaining <= 0 || i.active === false;
+          return `<label class="tx-pick-item${off ? " off" : ""}">
+            <input type="radio" name="tdPickR" value="${esc(i.rewardPoolId)}"${idx === firstOk ? " checked" : ""}${off ? " disabled" : ""}>
+            <span><b>${esc(i.rewardType)}</b><small>Digunakan di Program Member · sisa ${esc(i.remaining)}</small></span></label>`;
+        }).join("")}</div>
+        <p class="td-e tx-pick-err" id="tdPickErr" role="alert"></p>
+        <div class="td-act"><button type="button" id="tdPickNo">Batal</button><button type="button" class="p" id="tdPickYes"${firstOk < 0 ? " disabled" : ""}>Serahkan</button></div>
+      </div>`;
+      document.body.appendChild(el);
+      $("tdPickNo").addEventListener("click", () => { el.remove(); resolve(); });
+      $("tdPickYes").addEventListener("click", async () => {
+        const chosen = el.querySelector('input[name="tdPickR"]:checked');
+        if (!chosen) { $("tdPickErr").textContent = "Pilih reward yang diserahkan."; return; }
+        $("tdPickYes").disabled = true;
+        try { await send(chosen.value); el.remove(); resolve(); }
+        catch (error) { $("tdPickErr").textContent = error.message || "Gagal menyerahkan reward."; $("tdPickYes").disabled = false; }
+      });
+    });
   }
 
   /* ---------- staff: detail ---------- */
@@ -525,11 +640,9 @@
         } catch (error) { toast(error.message || "Gagal menyimpan koin."); btn.disabled = false; }
       });
       body.querySelectorAll("[data-fulfill]").forEach((b) => b.addEventListener("click", async () => {
-        if (!window.confirm("Serahkan reward ini ke customer?")) return;
         b.disabled = true;
         try {
-          await call(`/staff/member/reward/${encodeURIComponent(b.getAttribute("data-fulfill"))}/fulfill`, { method: "POST" });
-          toast("Reward diserahkan");
+          await fulfillReward(b.getAttribute("data-fulfill"));
         } catch (error) { toast(error.message || "Gagal."); }
         renderStaffMemberDetail(cid);
       }));
@@ -659,6 +772,54 @@
     setTimeout(() => { if (el.isConnected) close(); }, 20000);
   }
 
+  /* Laundry drop-off selesai -> customer memilih diantar / ambil sendiri */
+  function showReturnPrompt(o, who) {
+    $("tdRet")?.remove();
+    const el = document.createElement("div");
+    el.id = "tdRet";
+    el.className = "td-modal";
+    el.setAttribute("role", "dialog");
+    el.setAttribute("aria-modal", "true");
+    el.innerHTML = `<div class="td-modal-card">
+      <h2>Laundry Anda sudah selesai</h2>
+      <div class="tx-ret-info">
+        ${infoRow("note", `No. Order <b>${esc(o.order_id)}</b>`)}
+        ${infoRow("users", esc(who?.name || "–"))}
+        ${infoRow("scale", `${esc(o.weight_kg)} kg · ${esc(o.item_count || 1)} ${unitLabel(o.item_unit)}`)}
+        ${infoRow("check", `Selesai ${esc(fmtDT(o.completed_at))}`, "mu")}
+      </div>
+      <p>Pilih cara menerima laundry Anda:</p>
+      <div class="td-act"><button type="button" id="tdRetNo">Nanti</button><button type="button" id="tdRetDel">Diantar</button><button type="button" class="p" id="tdRetSelf">Ambil sendiri</button></div>
+    </div>`;
+    document.body.appendChild(el);
+    const close = () => { markSeen(`ret-${o.order_id}`); el.remove(); };
+    $("tdRetNo").addEventListener("click", close);
+    const choose = async (method, btn) => {
+      btn.disabled = true;
+      try {
+        await call(`/dropoff/${encodeURIComponent(o.order_id)}/return-choice`, { method: "POST", body: JSON.stringify({ method }) });
+        toast("Pilihan dikirim ke staff");
+        close();
+        if (U.isOpen("dropoff")) loadCustomerOrders();
+        U.refreshDashboard();
+      } catch (error) { toast(error.message || "Gagal mengirim pilihan."); btn.disabled = false; }
+    };
+    $("tdRetDel").addEventListener("click", (e) => choose("DELIVERY", e.currentTarget));
+    $("tdRetSelf").addEventListener("click", (e) => choose("SELF_PICKUP", e.currentTarget));
+  }
+
+  async function pollCustomerDropoff() {
+    if (role() !== "CUSTOMER" || !$("tdDash") || $("tdDash").hidden) return;
+    const login = $("tdAuth");
+    if (login && !login.hidden) return;
+    if ($("tdRet")) return;
+    try {
+      const data = await call("/dropoff/mine");
+      const o = (data.orders || []).find((x) => x.status === "COMPLETED" && !x.return_method && !seen().has(`ret-${x.order_id}`));
+      if (o) showReturnPrompt(o, data.customer);
+    } catch { /* abaikan */ }
+  }
+
   function machineText(type, machineId) {
     return machineId ? `${typeLabel(type)} ${machineId}` : typeLabel(type);
   }
@@ -692,6 +853,7 @@
     if (t === "DROPOFF_ORDER_UPDATED") {
       if (U.isOpen("dropoff")) (role() === "STAFF" ? loadStaffOrders : loadCustomerOrders)();
       U.refreshDashboard();
+      if (role() === "CUSTOMER") setTimeout(pollCustomerDropoff, 300);
     }
     if (t === "MEMBER_PROGRESS_UPDATED" || t === "MEMBER_REWARD_FULFILLED") {
       if (U.isOpen("members")) loadStaffMembers();
@@ -791,7 +953,8 @@
   function onDashboard(r) {
     if (r !== "CUSTOMER") return;
     setTimeout(pollCustomerNotices, 400);
-    if (!noticeTimer) noticeTimer = setInterval(pollCustomerNotices, 20000);
+    setTimeout(pollCustomerDropoff, 900);
+    if (!noticeTimer) noticeTimer = setInterval(() => { pollCustomerNotices(); pollCustomerDropoff(); }, 20000);
   }
 
   function start() {
